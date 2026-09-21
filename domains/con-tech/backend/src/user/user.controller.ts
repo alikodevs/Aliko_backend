@@ -12,7 +12,7 @@ import {
   ConTechUserProfile,
 } from './user.service';
 import { ConTechProfileGuard } from '../auth';
-import { ContechRole } from '../generated/client';
+import { ContechRole } from '@prisma/client';
 import { RpcExceptionFilter } from '../common/filters/rpc-exception.filter';
 import { JoiValidationPipe } from '../common/pipes/joi-validation.pipe';
 import {
@@ -138,5 +138,17 @@ export class UserController {
         `Failed to handle user_created event for user ${payload.userId}: ${errorMessage}`,
       );
     }
+  }
+
+  @MessagePattern({ cmd: 'get_contech_user' })
+  async getUserById(@Payload() payload: { userId: string }) {
+    this.logger.log(`Fetching details for user: ${payload.userId}`);
+    return this.userService.getUserByIdDetailed(payload.userId);
+  }
+
+  @MessagePattern({ cmd: 'update_contech_user' })
+  async updateUser(@Payload() payload: { userId: string; data: any }) {
+    this.logger.log(`Updating user: ${payload.userId}`);
+    return this.userService.updateUserAdmin(payload.userId, payload.data);
   }
 }

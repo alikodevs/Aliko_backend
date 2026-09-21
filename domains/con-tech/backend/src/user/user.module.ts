@@ -1,8 +1,9 @@
 import { Global, Module } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule } from '@nestjs/config';
+import { ClientsModule } from '@nestjs/microservices';
+import { createAuthClientAsync } from '@alikohub/auth-client';
 
 @Global()
 @Module({
@@ -10,20 +11,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ClientsModule.registerAsync([
-      {
-        name: 'AUTH_SERVICE',
-        imports: [ConfigModule],
-        inject: [ConfigService],
-        useFactory: (configService: ConfigService) => ({
-          transport: Transport.TCP,
-          options: {
-            host: configService.get<string>('AUTH_SERVICE_HOST') || 'localhost',
-            port: configService.get<number>('AUTH_TCP_PORT') || 3011,
-          },
-        }),
-      },
-    ]),
+    ClientsModule.registerAsync([createAuthClientAsync()]),
   ],
   controllers: [UserController],
   providers: [UserService],

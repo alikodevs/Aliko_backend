@@ -31,21 +31,25 @@ export class PostsService {
     }
 
     const status =
-      createPostDto.type === PostType.SOCIAL_EVENT
+      (createPostDto.status as PostStatus) ||
+      (createPostDto.type === PostType.SOCIAL_EVENT
         ? PostStatus.PUBLISHED
-        : PostStatus.DRAFT;
+        : PostStatus.DRAFT);
+
+
+    const parseDate = (dateStr: string | undefined | null) => {
+      if (!dateStr || dateStr === "" || dateStr === "null") return null;
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? null : date;
+    };
 
     return this.prisma.post.create({
       data: {
         ...createPostDto,
         authorId: user.firebaseId,
         status,
-        eventDate: createPostDto.eventDate
-          ? new Date(createPostDto.eventDate)
-          : null,
-        endEventDate: createPostDto.endEventDate
-          ? new Date(createPostDto.endEventDate)
-          : null,
+        eventDate: parseDate(createPostDto.eventDate),
+        endEventDate: parseDate(createPostDto.endEventDate),
       },
     });
   }
@@ -77,9 +81,12 @@ export class PostsService {
     if (!isPublic && user) {
       const profile = await this.userService.getProfileAndSync(user);
       const isPrivileged =
-        profile &&
-        (profile.role === EventsRole.ADMIN ||
-          profile.role === EventsRole.CONTENT_MANAGER);
+        (profile &&
+          (profile.role === EventsRole.ADMIN ||
+            profile.role === EventsRole.CONTENT_MANAGER)) ||
+        user.globalRole === "ADMIN" ||
+        user.role === "ADMIN" ||
+        (user as any).eventsRole === "ADMIN";
 
       if (!isPrivileged) {
         // Regular users only see their own posts in management view
@@ -105,7 +112,7 @@ export class PostsService {
         where,
         skip,
         take: limit,
-        orderBy: { publishDate: "desc" },
+        orderBy: [{ createdAt: "desc" }],
       }),
       this.prisma.post.count({ where }),
     ]);
@@ -171,11 +178,22 @@ export class PostsService {
       throw new ForbiddenException("Permission denied.");
     }
 
+    const parseDate = (dateStr: string | undefined | null) => {
+      if (!dateStr || dateStr === "" || dateStr === "null") return null;
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? null : date;
+    };
+
     const updateData: any = { ...updatePostDto };
-    if (updateData.eventDate)
-      updateData.eventDate = new Date(updateData.eventDate);
-    if (updateData.endEventDate)
-      updateData.endEventDate = new Date(updateData.endEventDate);
+    if (profile.role !== EventsRole.ADMIN) {
+      delete updateData.status;
+    }
+    if (updateData.eventDate !== undefined)
+      updateData.eventDate = parseDate(updateData.eventDate);
+    if (updateData.endEventDate !== undefined)
+      updateData.endEventDate = parseDate(updateData.endEventDate);
+    if (updateData.publishDate !== undefined)
+      updateData.publishDate = parseDate(updateData.publishDate);
 
     // If CM updates a rejected post, it resets rejection reason
     if (
@@ -229,10 +247,14 @@ export class PostsService {
       );
     }
 
-    const data: any = { status };
-    if (status === PostStatus.REJECTED) {
+    // APPROVED is treated as PUBLISHED so content goes live (no dead-end status).
+    const effectiveStatus =
+      status === PostStatus.APPROVED ? PostStatus.PUBLISHED : status;
+
+    const data: any = { status: effectiveStatus };
+    if (effectiveStatus === PostStatus.REJECTED) {
       data.rejectionReason = rejectionReason;
-    } else if (status === PostStatus.PUBLISHED) {
+    } else if (effectiveStatus === PostStatus.PUBLISHED) {
       data.publishDate = new Date();
       data.rejectionReason = null;
     }
@@ -241,6 +263,68 @@ export class PostsService {
       where: { id },
       data,
     });
+  }
+
+  async getLandingInfo() {
+    const [featured, announcements, portfolio, counts] = await Promise.all([
+      this.prisma.post.findMany({
+        where: { status: PostStatus.PUBLISHED, type: PostType.EVENT },
+        orderBy: [{ eventDate: "asc" }, { publishDate: "desc" }],
+        take: 6,
+        select: {
+          id: true,
+          title: true,
+          excerpt: true,
+          coverImage: true,
+          eventDate: true,
+          endEventDate: true,
+          location: true,
+          type: true,
+          status: true,
+        },
+      }),
+      this.prisma.post.findMany({
+        where: {
+          status: PostStatus.PUBLISHED,
+          type: { in: [PostType.ANNOUNCEMENT, PostType.NEWS] },
+        },
+        orderBy: { publishDate: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          title: true,
+          excerpt: true,
+          coverImage: true,
+          publishDate: true,
+          type: true,
+        },
+      }),
+      this.prisma.portfolioMedia.findMany({
+        orderBy: { sortOrder: "asc" },
+        take: 8,
+      }),
+      this.prisma.post.groupBy({
+        by: ["type"],
+        where: { status: PostStatus.PUBLISHED },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const byType = Object.fromEntries(
+      counts.map((c) => [c.type, c._count._all]),
+    );
+
+    return {
+      featured,
+      announcements,
+      portfolio,
+      counts: {
+        events: byType[PostType.EVENT] || 0,
+        socialEvents: byType[PostType.SOCIAL_EVENT] || 0,
+        announcements: byType[PostType.ANNOUNCEMENT] || 0,
+        news: byType[PostType.NEWS] || 0,
+      },
+    };
   }
 
   async remove(id: string, user: AuthenticatedUser) {
@@ -318,5 +402,39 @@ export class PostsService {
     });
 
     return stats;
+  }
+
+  async getEventStats(id: string, user: AuthenticatedUser) {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      include: {
+        registrations: true,
+      },
+    });
+
+    if (!post) throw new NotFoundException("Event not found");
+
+    const profile = await this.userService.getProfileAndSync(user);
+    if (
+      !profile ||
+      (profile.role !== EventsRole.ADMIN && post.authorId !== user.firebaseId)
+    ) {
+      throw new ForbiddenException("Permission denied.");
+    }
+
+    const registrations = post.registrations.length;
+    const revenue = post.registrations.reduce(
+      (sum, r) => sum + (r.totalPaid || 0),
+      0,
+    );
+    const checkedIn = post.registrations.filter((r) => r.isCheckedIn).length;
+
+    return {
+      views: 0, // Placeholder as views are not tracked in schema
+      registrations,
+      revenue,
+      checkedIn,
+      conversionRate: 0, // Needs views to calculate
+    };
   }
 }

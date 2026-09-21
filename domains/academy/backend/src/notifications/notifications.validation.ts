@@ -15,6 +15,10 @@ export const CreateNotificationSchema = Joi.object({
       .description(
         'The category of the notification (e.g., SYSTEM, COURSE_UPDATE)',
       ),
+    meta: Joi.object()
+      .unknown(true)
+      .optional()
+      .description('Optional structured details for this notification'),
   })
     .required()
     .description('Notification creation details'),

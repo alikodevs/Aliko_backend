@@ -9,23 +9,23 @@ import {
 
 export class CreateTeachingScheduleDto {
   @IsString()
-  title: string;
+  title!: string;
 
   @IsOptional()
   @IsString()
   description?: string;
 
   @IsString()
-  startTime: string;
+  startTime!: string;
 
   @IsString()
-  endTime: string;
+  endTime!: string;
 
   @IsEnum(ScheduleType)
-  type: ScheduleType;
+  type!: ScheduleType;
 
   @IsNumber()
-  courseId: number;
+  courseId!: number;
 
   @IsOptional()
   @IsBoolean()
@@ -34,4 +34,8 @@ export class CreateTeachingScheduleDto {
   @IsOptional()
   @IsString()
   recurrencePattern?: string;
+
+  @IsOptional()
+  @IsNumber()
+  cohortId?: number;
 }

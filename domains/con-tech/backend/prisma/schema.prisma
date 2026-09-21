@@ -7,7 +7,6 @@
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-1.1.x"]
-  output        = "../src/generated/client"
 }
 
 datasource db {
@@ -106,7 +105,9 @@ model Task {
   description String
   status      String
   deadline    DateTime
-  assignedTo  String
+  assignedTo  String?
+  progress    Float?  @default(0.0)
+  actualHours Int?
   isVisibleToClient Boolean @default(false)
   
   // Relations
@@ -118,9 +119,13 @@ model Task {
 model Contract {
   id           Int     @id @default(autoincrement())
   projectId    Int
+  title        String?
   contractFile String
-  status       String
-  changeOrders Json
+  status       String  @default("DRAFT")
+  value        Float?  @default(0.0)
+  startDate    DateTime?
+  endDate      DateTime?
+  changeOrders Json    @default("[]")
   
   // Relations
   Project      Project @relation(fields: [projectId], references: [id])
@@ -131,10 +136,11 @@ model Contract {
 model Inspection {
   id          Int      @id @default(autoincrement())
   projectId   Int
-  inspector   String
-  checklist   Json
-  photos      Json
-  status      String
+  title       String?
+  inspector   String?
+  checklist   Json     @default("[]")
+  photos      Json     @default("[]")
+  status      String   @default("PENDING")
   isVisibleToClient Boolean @default(false)
   
   // Relations
@@ -252,4 +258,6 @@ enum ContechRole {
   ADMIN
   CONTRACTOR
   CLIENT
+  PROJECT_MANAGER
+  USER
 }

@@ -140,6 +140,49 @@ export class ContractController {
     }
   }
 
+  @MessagePattern({ cmd: 'find_all_contracts' })
+  async findAll(@Payload() payload: { user: AuthenticatedUser }) {
+    this.logger.log(
+      `Fetching all contracts list (requested by: ${payload.user.firebaseId})`,
+    );
+    try {
+      return await this.contractsService.findAll(payload.user);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch all contracts: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  @MessagePattern({ cmd: 'create_contract' })
+  @UseGuards(RoleGuard)
+  @Roles('ADMIN')
+  async createContract(
+    @Payload() payload: { projectId: number; contractUrl: string; user: AuthenticatedUser } & any
+  ) {
+    return this.contractsService.createContract(payload.projectId, payload.contractUrl, payload);
+  }
+
+  @MessagePattern({ cmd: 'update_contract' })
+  @UseGuards(RoleGuard)
+  @Roles('ADMIN')
+  async updateContract(
+    @Payload() payload: { id: number; user: AuthenticatedUser } & any
+  ) {
+    const { id, user, ...data } = payload;
+    return this.contractsService.update(id, data, user);
+  }
+
+  @MessagePattern({ cmd: 'remove_contract' })
+  @UseGuards(RoleGuard)
+  @Roles('ADMIN')
+  async removeContract(
+    @Payload() payload: { id: number; user: AuthenticatedUser }
+  ) {
+    return this.contractsService.remove(payload.id, payload.user);
+  }
+
   @MessagePattern({ cmd: 'getContractsByProjectId' })
   async getContractsByProjectId(
     @Payload() payload: { projectId: number; user: AuthenticatedUser },

@@ -2,13 +2,18 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { CreateCohortDto } from './dto/create-cohort.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser, UserService } from '../user/user.service';
+import { PushNotificationService } from '@alikohub/notification';
 
 @Injectable()
 export class CohortsService {
+  private readonly logger = new Logger(CohortsService.name);
+  private readonly notificationService = new PushNotificationService();
+
   constructor(
     private prisma: PrismaService,
     private userService: UserService,
@@ -30,7 +35,16 @@ export class CohortsService {
       );
     }
 
-    return await this.prisma.cohort.create({ data: dto });
+    const cohort = await this.prisma.cohort.create({ data: dto });
+
+    this.notificationService.sendCohortCreatedNotification(
+      cohort.name,
+      course.title,
+      String(cohort.id),
+      String(course.id),
+    ).catch(err => this.logger.error('Failed to send cohort push notification:', err));
+
+    return cohort;
   }
 
   async findAll(query: any = {}) {

@@ -22,6 +22,26 @@ export class CreatePromotionRequestDto {
   type: string; // Event / Announcement / News
 
   @IsString()
+  @IsOptional()
+  organization?: string;
+
+  @IsString()
+  @IsOptional()
+  event_type?: string;
+
+  @IsString()
+  @IsOptional()
+  estimatedAttendees?: string;
+
+  @IsString()
+  @IsOptional()
+  preferredDate?: string;
+
+  @IsString()
+  @IsOptional()
+  location?: string;
+
+  @IsString()
   @IsNotEmpty()
   message: string;
 }

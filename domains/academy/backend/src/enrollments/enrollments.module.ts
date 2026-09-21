@@ -4,25 +4,11 @@ import { EnrollmentsController } from './enrollments.controller';
 import { PrismaService } from '../prisma/prisma.service';
 import { EnrollmentGuard } from './enrollment.guard';
 import { PaymentFulfillmentListener } from './payment-fulfillment.listener';
-import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ConfigService } from '@nestjs/config';
+import { ClientsModule } from '@nestjs/microservices';
+import { createPaymentClientAsync } from '@alikohub/payment-client';
 
 @Module({
-  imports: [
-    ClientsModule.registerAsync([
-      {
-        name: 'PAYMENT_SERVICE',
-        useFactory: (configService: ConfigService) => ({
-          transport: Transport.TCP,
-          options: {
-            host: configService.get('PAYMENT_SERVICE_HOST') || 'payment-service',
-            port: parseInt(configService.get('PAYMENT_SERVICE_PORT')) || 3012,
-          },
-        }),
-        inject: [ConfigService],
-      },
-    ]),
-  ],
+  imports: [ClientsModule.registerAsync([createPaymentClientAsync()])],
   controllers: [EnrollmentsController, PaymentFulfillmentListener],
   providers: [EnrollmentsService, PrismaService, EnrollmentGuard],
   exports: [EnrollmentsService],

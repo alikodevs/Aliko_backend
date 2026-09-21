@@ -1,5 +1,5 @@
 // src/inspections/dto/create-inspection.dto.ts
-import { ChecklistItemStatus } from '../../generated/client';
+import { ChecklistItemStatus } from '@prisma/client';
 import {
   IsEnum,
   IsNotEmpty,

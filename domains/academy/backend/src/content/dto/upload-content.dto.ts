@@ -5,8 +5,8 @@ export class UploadContentDto {
   @IsString()
   title: string;
 
-  @IsEnum(ContentType)
-  type: ContentType;
+  @IsString()
+  type: string;
 
   @IsInt()
   lessonId: number;

@@ -1,0 +1,1238 @@
+{
+	"info": {
+		"_postman_id": "c1f7a2d1-4b1a-4d3e-9b9c-8e4f5a6b7c8d",
+		"name": "Conshifter API",
+		"description": "API collection for the Conshifter service via API Gateway. Covers Events, Organizations, Programs, Partners, Testimonials, Stats, Subscriptions, and Applications.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Events",
+			"item": [
+				{
+					"name": "Get All Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"events"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Upcoming Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/events/upcoming",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"events",
+								"upcoming"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Event by Slug",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/events/:slug",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"events",
+								":slug"
+							],
+							"variable": [
+								{
+									"key": "slug",
+									"value": "example-event"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Event (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"New Conference\",\n  \"slug\": \"new-conference\",\n  \"description\": \"Details about the conference\",\n  \"eventType\": \"CONFERENCE\",\n  \"location\": \"Virtual\",\n  \"isVirtual\": true,\n  \"startDate\": \"2026-10-01T10:00:00Z\",\n  \"imageUrl\": \"https://example.com/image.png\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"events"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Event (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Conference Title\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/events/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"events",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Event (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/events/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"events",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Organizations",
+			"item": [
+				{
+					"name": "Get Approved Organizations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/organizations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"organizations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Organization by Slug",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/organizations/:slug",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"organizations",
+								":slug"
+							],
+							"variable": [
+								{
+									"key": "slug",
+									"value": "example-org"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Organization (Public)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Startup Inc\",\n  \"slug\": \"startup-inc\",\n  \"type\": \"STARTUP\",\n  \"description\": \"A tech startup\",\n  \"region\": \"MENA\",\n  \"country\": \"Jordan\",\n  \"submittedByEmail\": \"user@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/organizations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"organizations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Organizations (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/admin/organizations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"admin",
+								"organizations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Organization Status (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"APPROVED\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/organizations/:id/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"organizations",
+								":id",
+								"status"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Organization (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/organizations/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"organizations",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Programs",
+			"item": [
+				{
+					"name": "Get Active Programs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/programs",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"programs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Programs (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/admin/programs",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"admin",
+								"programs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Program (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Accelerator\",\n  \"slug\": \"accelerator\",\n  \"description\": \"Startup accelerator program\",\n  \"isActive\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/programs",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"programs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Program (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Program Name\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/programs/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"programs",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Program (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/programs/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"programs",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Partners",
+			"item": [
+				{
+					"name": "Get All Partners",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/partners",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"partners"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Partner (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Tech Partner\",\n  \"logoUrl\": \"https://example.com/logo.png\",\n  \"website\": \"https://partner.com\",\n  \"partnerType\": \"partner\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/partners",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"partners"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Partner (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Partner Name\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/partners/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"partners",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Partner (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/partners/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"partners",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Testimonials",
+			"item": [
+				{
+					"name": "Get Featured Testimonials",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/testimonials",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"testimonials"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Testimonials (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/admin/testimonials",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"admin",
+								"testimonials"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Testimonial (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"quote\": \"Great experience!\",\n  \"authorName\": \"John Doe\",\n  \"authorTitle\": \"CEO\",\n  \"authorOrganization\": \"Tech Corp\",\n  \"isFeatured\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/testimonials",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"testimonials"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Testimonial (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"quote\": \"Updated quote text\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/testimonials/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"testimonials",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Testimonial (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/testimonials/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"testimonials",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Stats",
+			"item": [
+				{
+					"name": "Get All Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/stats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"stats"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Stat (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"label\": \"Members\",\n  \"value\": \"500+\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/stats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"stats"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Stat (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"value\": \"600+\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/stats/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"stats",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Stat (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/stats/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"stats",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Newsletter",
+			"item": [
+				{
+					"name": "Subscribe",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/subscribe",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"subscribe"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Subscribers (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/admin/subscribers",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"admin",
+								"subscribers"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Applications",
+			"item": [
+				{
+					"name": "Submit Membership Application",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"organizationName\": \"My Company\",\n  \"organizationType\": \"CONTRACTOR\",\n  \"contactName\": \"John Doe\",\n  \"contactEmail\": \"john@example.com\",\n  \"country\": \"Jordan\",\n  \"region\": \"MENA\",\n  \"tier\": \"MEMBER\",\n  \"motivation\": \"To join the ecosystem\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/applications",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"applications"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Applications (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/admin/applications",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"admin",
+								"applications"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Application Status (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"APPROVED\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/applications/:id/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"applications",
+								":id",
+								"status"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Application (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/applications/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"applications",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Dashboard",
+			"item": [
+				{
+					"name": "Get Dashboard Counts (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/conshifter/admin/dashboard/counts",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"conshifter",
+								"admin",
+								"dashboard",
+								"counts"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3006"
+		},
+		{
+			"key": "adminToken",
+			"value": "YOUR_ADMIN_JWT_HERE"
+		}
+	]
+}

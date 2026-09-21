@@ -7,8 +7,10 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
-  const TCP_PORT = parseInt(process.env.PORT, 10) || 3006;
-  const HTTP_PORT = TCP_PORT + 1000; // 4006
+  const TCP_PORT =
+    parseInt(process.env.CONSULTANCY_SERVICE_PORT || process.env.PORT, 10) || 3016;
+  const HTTP_PORT =
+    parseInt(process.env.HTTP_PORT, 10) || (TCP_PORT === 3016 ? 4016 : TCP_PORT + 1000);
 
   // TCP transport — Gateway communication
   app.connectMicroservice({

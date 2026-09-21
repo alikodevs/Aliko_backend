@@ -149,7 +149,9 @@ export class UserService {
         this.logger.log(
           `[UserService] Auth record received for ${userId}: ${JSON.stringify(authRecord)}`,
         );
-        // Determine effective role: prioritize activeRole if present, otherwise base role
+        // Determine effective role: prefer activeRole (user's current working context)
+        // over base role, since activeRole represents what the user selected in the UI
+        // (e.g. a user with base role INSTRUCTOR who switched to STUDENT mode).
         let effectiveRole = authRecord.activeRole || authRecord.role;
 
         // If the user is a global admin, they are an admin in Academy too regardless of active role
@@ -223,6 +225,53 @@ export class UserService {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       this.logger.error('Error in selectRole:', errorMessage);
+      throw error;
+    }
+  }
+
+  async forgotPassword(payload: {
+    email: string;
+    frontendUrl?: string;
+    app?: string;
+  }) {
+    try {
+      this.logger.log(`Forwarding forgotPassword request for: ${payload.email}`);
+      return await firstValueFrom(
+        this.authClient.send(
+          { cmd: 'forgot_password' },
+          {
+            email: payload.email,
+            frontendUrl: payload.frontendUrl,
+            app: payload.app || 'academy',
+          },
+        ),
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Failed to forward forgotPassword for ${payload.email}`,
+        errorMessage,
+      );
+      throw error;
+    }
+  }
+
+  async resetPassword(payload: any) {
+    try {
+      this.logger.log(
+        `Forwarding resetPassword request for: ${payload.email || '(token)'}`,
+      );
+      return await firstValueFrom(
+        this.authClient.send({ cmd: 'reset_password' }, payload),
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Failed to forward resetPassword for ${payload.email || '(token)'}`,
+        errorMessage,
+      );
       throw error;
     }
   }

@@ -44,6 +44,25 @@ export const CreateExerciseSchema = Joi.object({
   user: Joi.any().required().description('The authenticated user'),
 }).description('Schema for creating a new exercise');
 
+export const CreateBulkExercisesSchema = Joi.object({
+  dtos: Joi.array().items(
+    Joi.object({
+      title: Joi.string().required(),
+      description: Joi.string().allow('', null).optional(),
+      moduleId: Joi.number().integer().required(),
+      lessonId: Joi.number().integer().optional(),
+      type: Joi.string().valid('MULTIPLE_CHOICE', 'TRUE_FALSE', 'MATCHING', 'SHORT_TEXT').required(),
+      question: Joi.string().required(),
+      options: Joi.any().optional(),
+      correctAnswer: Joi.any().optional(),
+      hints: Joi.array().items(Joi.string()).optional(),
+      points: Joi.number().integer().optional().default(1),
+      order: Joi.number().integer().optional().default(0),
+    })
+  ).required(),
+  user: Joi.any().required()
+}).description('Schema for bulk creating exercises');
+
 export const UpdateExerciseSchema = Joi.object({
   id: Joi.number()
     .integer()

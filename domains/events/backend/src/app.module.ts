@@ -10,6 +10,8 @@ import { RegistrationsModule } from "./registrations/registrations.module";
 import { RsvpsModule } from "./rsvps/rsvps.module";
 import { PortfolioModule } from "./portfolio/portfolio.module";
 import { MessagingModule } from "./messaging/messaging.module";
+import { SessionsModule } from "./sessions/sessions.module";
+import { SponsorsModule } from "./sponsors/sponsors.module";
 import { AppController } from "./app.controller";
 
 @Module({
@@ -23,6 +25,8 @@ import { AppController } from "./app.controller";
     RsvpsModule,
     PortfolioModule,
     MessagingModule,
+    SessionsModule,
+    SponsorsModule,
     UserModule,
     AuthModule,
   ],

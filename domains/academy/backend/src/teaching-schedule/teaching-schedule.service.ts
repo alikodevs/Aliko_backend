@@ -59,6 +59,7 @@ export class TeachingScheduleService {
       orderBy: { startTime: 'asc' },
       include: {
         course: true,
+        cohort: true,
       },
     });
 
@@ -108,6 +109,7 @@ export class TeachingScheduleService {
       orderBy: { startTime: 'asc' },
       include: {
         course: true,
+        cohort: true,
       },
     });
 
@@ -152,6 +154,19 @@ export class TeachingScheduleService {
       );
     }
 
+    // Validate cohort constraints if provided
+    if (scheduleData.cohortId) {
+      const cohort = await this.prisma.cohort.findUnique({
+        where: { id: scheduleData.cohortId },
+      });
+      if (!cohort) {
+        throw new NotFoundException('Cohort not found');
+      }
+      if (cohort.courseId !== scheduleData.courseId) {
+        throw new BadRequestException('Cohort does not belong to this course');
+      }
+    }
+
     // Validate time constraints
     if (new Date(scheduleData.startTime) >= new Date(scheduleData.endTime)) {
       throw new BadRequestException('Start time must be before end time');
@@ -169,9 +184,11 @@ export class TeachingScheduleService {
         instructorId: user.firebaseId,
         isRecurring: scheduleData.isRecurring || false,
         recurrencePattern: scheduleData.recurrencePattern,
+        cohortId: scheduleData.cohortId || null,
       },
       include: {
         course: true,
+        cohort: true,
       },
     });
 
@@ -221,6 +238,19 @@ export class TeachingScheduleService {
       }
     }
 
+    // Validate cohort constraints if provided
+    if (updateData.cohortId) {
+      const cohort = await this.prisma.cohort.findUnique({
+        where: { id: updateData.cohortId },
+      });
+      if (!cohort) {
+        throw new NotFoundException('Cohort not found');
+      }
+      if (cohort.courseId !== existingSchedule.courseId) {
+        throw new BadRequestException('Cohort does not belong to this course');
+      }
+    }
+
     // Update the teaching schedule
     const updatedSchedule = await this.prisma.teachingSchedule.update({
       where: { id: scheduleId },
@@ -234,9 +264,11 @@ export class TeachingScheduleService {
         type: updateData.type,
         isRecurring: updateData.isRecurring,
         recurrencePattern: updateData.recurrencePattern,
+        cohortId: updateData.cohortId !== undefined ? updateData.cohortId : undefined,
       },
       include: {
         course: true,
+        cohort: true,
       },
     });
 
@@ -292,6 +324,7 @@ export class TeachingScheduleService {
       where: { id: scheduleId },
       include: {
         course: true,
+        cohort: true,
       },
     });
 

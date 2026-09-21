@@ -44,8 +44,9 @@ export class ContactController {
     @Payload() payload: any,
   ) {
     const targetId = resolveParam(id, payload?.id);
-    const resolvedData = resolvePayload(data, payload);
-    return this.contactService.update(targetId, resolvedData);
+    const resolvedData = resolvePayload(data, payload?.data || payload);
+    const { id: ignoredId, ...updateFields } = resolvedData || {};
+    return this.contactService.update(targetId, updateFields);
   }
 
   @MessagePattern({ cmd: 'remove_contact' })

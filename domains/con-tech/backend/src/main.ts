@@ -57,14 +57,8 @@ async function bootstrap() {
   // Centralized Global Error Handling
   app.useGlobalFilters(new RpcExceptionFilter());
 
-  // centralized Validation Handling
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
+  // Note: We use JoiValidationPipe at controller level for microservice payloads
+  // Global ValidationPipe can interfere with wrapped microservice payloads
 
   // Note: Guards are applied at controller level, not globally, to allow health checks
 

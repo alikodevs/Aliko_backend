@@ -30,3 +30,27 @@ export const UserCreatedEventSchema = Joi.object({
     .description('The email address of the new user'),
   role: Joi.string().required().description('The initial role for the user'),
 }).description('Schema for internal user creation events');
+
+export const ForgotPasswordSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .required()
+    .trim()
+    .description('User email address'),
+  frontendUrl: Joi.string().uri().optional(),
+  app: Joi.string().valid('academy', 'events').optional(),
+}).description('Schema for requesting a password reset');
+
+export const ResetPasswordSchema = Joi.object({
+  token: Joi.string().required().description('Reset token from the email link'),
+  newPassword: Joi.string()
+    .min(8)
+    .regex(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/)
+    .required()
+    .description('New password'),
+  email: Joi.string()
+    .email()
+    .optional()
+    .trim()
+    .description('Optional email (must match token)'),
+}).description('Schema for reset password');

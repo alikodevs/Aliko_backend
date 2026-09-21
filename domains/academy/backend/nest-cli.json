@@ -6,7 +6,12 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "assets": [
-      { "include": "generated/**/*", "watchAssets": true }
-    ]
+      {
+        "include": "generated/**/*",
+        "watchAssets": true
+      }
+    ],
+    "builder": "tsc",
+    "webpack": false
   }
 }

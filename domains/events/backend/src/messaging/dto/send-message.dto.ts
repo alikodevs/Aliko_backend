@@ -15,11 +15,11 @@ export class SendMessageDto {
 
   @IsString()
   @IsNotEmpty()
-  content: string;
+  body: string;
 
   @IsEnum(TargetAudience)
-  @IsNotEmpty()
-  targetAudience: TargetAudience;
+  @IsOptional()
+  targetAudience: TargetAudience = TargetAudience.ALL;
 
   @IsString()
   @IsOptional()

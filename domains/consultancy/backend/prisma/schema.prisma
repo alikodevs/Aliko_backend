@@ -45,7 +45,7 @@ enum ConsultationType {
 
 model Profile {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @unique @map("user_id") @db.Uuid
+  userId    String   @unique @map("user_id")
   fullName  String?  @map("full_name")
   email     String?
   phone     String?
@@ -63,7 +63,7 @@ model Profile {
 
 model UserRole {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
+  userId    String   @map("user_id")
   role      AppRole
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
@@ -92,7 +92,7 @@ model TimeBlock {
   startDatetime DateTime @map("start_datetime") @db.Timestamptz
   endDatetime   DateTime @map("end_datetime") @db.Timestamptz
   reason        String?
-  createdBy     String?  @map("created_by") @db.Uuid
+  createdBy     String?  @map("created_by")
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("time_blocks")
@@ -100,7 +100,7 @@ model TimeBlock {
 
 model Booking {
   id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId           String?          @map("user_id") @db.Uuid
+  userId           String?          @map("user_id")
   bookingCode      String           @unique @map("booking_code")
   fullName         String           @map("full_name")
   email            String
@@ -120,7 +120,7 @@ model Booking {
 
 model Application {
   id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId           String?           @map("user_id") @db.Uuid
+  userId           String?           @map("user_id")
   applicationCode  String            @unique @map("application_code")
   fullName         String            @map("full_name")
   email            String
@@ -129,7 +129,7 @@ model Application {
   status           ApplicationStatus @default(SUBMITTED)
   formData         Json              @default("{}") @map("form_data")
   adminNotes       String?           @map("admin_notes")
-  reviewedBy       String?           @map("reviewed_by") @db.Uuid
+  reviewedBy       String?           @map("reviewed_by")
   reviewedAt       DateTime?         @map("reviewed_at") @db.Timestamptz
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
@@ -145,7 +145,7 @@ model ApplicationStatusLog {
   applicationId String            @map("application_id") @db.Uuid
   oldStatus     ApplicationStatus? @map("old_status")
   newStatus     ApplicationStatus  @map("new_status")
-  changedBy     String?           @map("changed_by") @db.Uuid
+  changedBy     String?           @map("changed_by")
   notes         String?
   createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz
 
@@ -161,7 +161,7 @@ model ApplicationDocument {
   filePath      String   @map("file_path")
   fileSize      Int?     @map("file_size")
   mimeType      String?  @map("mime_type")
-  uploadedBy    String?  @map("uploaded_by") @db.Uuid
+  uploadedBy    String?  @map("uploaded_by")
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
@@ -177,7 +177,7 @@ model Page {
   isPublished     Boolean  @default(false) @map("is_published")
   metaTitle       String?  @map("meta_title")
   metaDescription String?  @map("meta_description")
-  createdBy       String?  @map("created_by") @db.Uuid
+  createdBy       String?  @map("created_by")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -194,7 +194,7 @@ model Resource {
   thumbnailUrl     String?          @map("thumbnail_url")
   isPublished      Boolean          @default(false) @map("is_published")
   consultationType ConsultationType? @map("consultation_type")
-  createdBy        String?          @map("created_by") @db.Uuid
+  createdBy        String?          @map("created_by")
   fileUrl          String?          @map("file_url")
   createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
@@ -213,9 +213,10 @@ model Webinar {
   durationMinutes Int?      @map("duration_minutes")
   isPublished     Boolean   @default(false) @map("is_published")
   isFree          Boolean   @default(true) @map("is_free")
-  createdBy       String?   @map("created_by") @db.Uuid
+  createdBy       String?   @map("created_by")
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  registrations   WebinarRegistration[]
 
   @@map("webinars")
 }
@@ -234,6 +235,18 @@ model Testimonial {
   updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   @@map("testimonials")
+}
+
+model WebinarRegistration {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  webinarId String   @map("webinar_id") @db.Uuid
+  name      String
+  email     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  webinar   Webinar  @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+
+  @@map("webinar_registrations")
 }
 
 model ContactSubmission {

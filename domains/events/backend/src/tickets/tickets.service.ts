@@ -43,6 +43,45 @@ export class TicketsService {
     });
   }
 
+  async findAllForUser(user: AuthenticatedUser) {
+    const profile = await this.userService.getProfileAndSync(user);
+    if (!profile) throw new ForbiddenException("No events profile found.");
+
+    const where: any = { isActive: true };
+    if (profile.role !== EventsRole.ADMIN) {
+      where.event = { authorId: user.firebaseId };
+    }
+
+    return this.prisma.ticket.findMany({
+      where,
+      include: {
+        event: {
+          select: { title: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async update(id: string, dto: { name?: string, price?: number, quantity?: number }, user: AuthenticatedUser) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id },
+      include: { event: true },
+    });
+
+    if (!ticket) throw new NotFoundException("Ticket not found");
+
+    const profile = await this.userService.getProfileAndSync(user);
+    if (!profile || (profile.role !== EventsRole.ADMIN && ticket.event.authorId !== user.firebaseId)) {
+      throw new ForbiddenException("Permission denied.");
+    }
+
+    return this.prisma.ticket.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
   async remove(id: string, user: AuthenticatedUser) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },

@@ -1,7 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { PrismaService } from '../prisma/prisma.service';
-import { ContechRole } from '../generated/client';
+import { ContechRole } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 
 export type AuthenticatedUser = {
@@ -219,7 +219,7 @@ export class UserService {
         where: { userId },
       });
 
-      let updatedProfile: import('../generated/client').ContechProfile;
+      let updatedProfile: import('@prisma/client').ContechProfile;
       if (existingProfile) {
         updatedProfile = await this.prisma.contechProfile.update({
           where: { userId },
@@ -338,5 +338,58 @@ export class UserService {
       );
       throw error;
     }
+  }
+
+  async getUserByIdDetailed(userId: string): Promise<ConTechUserProfile | null> {
+    const profile = await this.prisma.contechProfile.findUnique({
+      where: { userId },
+    });
+    if (!profile) return null;
+
+    const authUser = await this.getUserById(userId);
+    if (!authUser) return null;
+
+    return {
+      ...profile,
+      email: authUser.email,
+      firstname: authUser.firstname,
+      lastname: authUser.lastname,
+      globalRole: authUser.globalRole,
+      status: authUser.status,
+    };
+  }
+
+  async updateUserAdmin(userId: string, data: any) {
+    const { role, bio, companyName, company, phone, ...authData } = data;
+
+    // 1. Update local profile
+    const profile = await this.prisma.contechProfile.update({
+      where: { userId },
+      data: {
+        role: role as ContechRole,
+        bio,
+        companyName,
+        company,
+        phone,
+      },
+    });
+
+    // 2. Update Auth service if needed (role or other metadata)
+    try {
+      if (authData && Object.keys(authData).length > 0) {
+        await firstValueFrom(
+          this.authClient.send({ cmd: 'update_user' }, { firebaseId: userId, ...authData })
+        );
+      } else if (role) {
+        // Just role update notification
+        await firstValueFrom(
+          this.authClient.send({ cmd: 'update_contech_role' }, { userId, role })
+        );
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to update Auth service for user ${userId}: ${error.message}`);
+    }
+
+    return this.getUserByIdDetailed(userId);
   }
 }

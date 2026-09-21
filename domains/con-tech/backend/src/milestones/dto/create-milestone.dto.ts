@@ -5,7 +5,7 @@ import {
   IsInt,
   IsEnum,
 } from 'class-validator';
-import { MilestoneStatus } from '../../generated/client';
+import { MilestoneStatus } from '@prisma/client';
 
 export class CreateMilestoneDto {
   @IsNotEmpty()

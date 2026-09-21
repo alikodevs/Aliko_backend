@@ -20,6 +20,7 @@ import {
   PostIdSchema,
   FindAllPostsSchema,
   ReviewPostSchema,
+  UserOnlySchema,
 } from "./posts.validation";
 
 @Controller()
@@ -192,8 +193,24 @@ export class PostsController {
   }
 
   @MessagePattern({ cmd: "get_stats" })
+  @UsePipes(new JoiValidationPipe(UserOnlySchema))
   async getStats(@Payload() payload: { user: AuthenticatedUser }) {
     this.logger.log(`Fetching stats for user: ${payload.user.firebaseId}`);
     return this.postsService.getStats(payload.user);
+  }
+
+  @MessagePattern({ cmd: "get_event_stats" })
+  @UsePipes(new JoiValidationPipe(PostIdSchema))
+  async getEventStats(
+    @Payload() payload: { id: string; user: AuthenticatedUser },
+  ) {
+    this.logger.log(`Fetching stats for event ID: ${payload.id}`);
+    return this.postsService.getEventStats(payload.id, payload.user);
+  }
+
+  @MessagePattern({ cmd: "get_landing_info" })
+  async getLandingInfo() {
+    this.logger.log("Fetching landing info");
+    return this.postsService.getLandingInfo();
   }
 }

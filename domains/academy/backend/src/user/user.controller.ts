@@ -11,6 +11,8 @@ import {
   UserProfileSchema,
   SelectRoleSchema,
   UserCreatedEventSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
 } from './user.validation';
 
 @Controller()
@@ -113,6 +115,39 @@ export class UserController {
       this.logger.error(
         `Failed to handle user_created event for user: ${payload.userId}: ${errorMessage}`,
       );
+    }
+  }
+
+  @MessagePattern({ cmd: 'forgot_password' })
+  @UsePipes(new JoiValidationPipe(ForgotPasswordSchema))
+  async forgotPassword(
+    @Payload()
+    payload: { email: string; frontendUrl?: string; app?: string },
+  ) {
+    this.logger.log(`Received forgotPassword request for: ${payload.email}`);
+    try {
+      return await this.userService.forgotPassword(payload);
+    } catch (error) {
+      this.logger.error(
+        `Forgot password failed for ${payload.email}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  @MessagePattern({ cmd: 'reset_password' })
+  @UsePipes(new JoiValidationPipe(ResetPasswordSchema))
+  async resetPassword(@Payload() payload: any) {
+    this.logger.log(
+      `Received resetPassword request for: ${payload.email || '(token)'}`,
+    );
+    try {
+      return await this.userService.resetPassword(payload);
+    } catch (error) {
+      this.logger.error(
+        `Reset password failed for ${payload.email || '(token)'}: ${error.message}`,
+      );
+      throw error;
     }
   }
 }

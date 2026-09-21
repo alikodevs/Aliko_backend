@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { MilestoneStatus } from '../generated/client';
+import { MilestoneStatus } from '@prisma/client';
 
 export const CreateMilestoneSchema = Joi.object({
   createMilestoneDto: Joi.object({

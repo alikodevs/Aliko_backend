@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { ProjectStatus } from '../generated/client';
+import { ProjectStatus } from '@prisma/client';
 
 export const CreateProjectSchema = Joi.object({
   dto: Joi.object({
@@ -86,6 +86,11 @@ export const UpdateProjectSchema = Joi.object({
       .items(Joi.string())
       .optional()
       .description('Updated list of project photo URLs'),
+    progress: Joi.number()
+      .min(0)
+      .max(100)
+      .optional()
+      .description('Updated project progress percentage'),
   })
     .required()
     .description('Project update details'),

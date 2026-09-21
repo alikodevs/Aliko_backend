@@ -1,14 +1,19 @@
 import {
   BadRequestException,
   Injectable,
+  Inject,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { AcademyRole, CourseStatus, LessonType } from '../generated/client';
 import { AuthenticatedUser, UserService } from '../user/user.service';
+import { PushNotificationService } from '@alikohub/notification';
 
 type FindAllQuery = {
   page?: number;
@@ -23,10 +28,30 @@ type FindAllQuery = {
 
 @Injectable()
 export class CoursesService {
+  private readonly logger = new Logger(CoursesService.name);
+  private readonly notificationService = new PushNotificationService();
+
   constructor(
     private prisma: PrismaService,
     private userService: UserService,
+    @Inject('PAYMENT_SERVICE') private readonly paymentClient?: ClientProxy,
   ) {}
+
+  private async resolveGeoConfig(clientIp?: string, clientCountry?: string): Promise<{ currency: string; provider: string }> {
+    try {
+      if (this.paymentClient) {
+        const config = await lastValueFrom(
+          this.paymentClient.send({ cmd: 'resolve_payment_config' }, { clientIp, clientCountry }),
+        );
+        if (config && config.currency) {
+          return config;
+        }
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to resolve geo config for course currency: ${error.message}`);
+    }
+    return { currency: 'ETB', provider: 'CHAPA' };
+  }
 
   async create(dto: CreateCourseDto, user: AuthenticatedUser) {
     const academyProfile = await this.userService.getOrCreateProfile(user);
@@ -212,9 +237,16 @@ export class CoursesService {
     return course;
   }
 
-  // REFACTORED: To enrich data with user info
-  async findAll(query: FindAllQuery, user?: AuthenticatedUser) {
+  // REFACTORED: To enrich data with user info and GeoService pricing
+  async findAll(
+    query: FindAllQuery,
+    user?: AuthenticatedUser,
+    clientIp?: string,
+    clientCountry?: string,
+  ) {
     try {
+      const geoConfig = await this.resolveGeoConfig(clientIp, clientCountry);
+      const currency = geoConfig.currency;
       // Build the where clause
       const where: any = {};
 
@@ -250,60 +282,97 @@ export class CoursesService {
         ];
       }
 
-      // Handle pagination
+      // Fetch all matching courses to sort globally in-memory by upcoming cohort schedules
+      const allCourses = await this.prisma.course.findMany({
+        where,
+        include: {
+          cohorts: {
+            include: {
+              teachingSchedules: {
+                where: {
+                  startTime: { gte: new Date() },
+                  cohortId: { not: null },
+                },
+                orderBy: {
+                  startTime: 'asc',
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              modules: true,
+              enrollments: true,
+            },
+          },
+          profile: {
+            select: {
+              bio: true,
+              expertise: true,
+              specialization: true,
+              role: true,
+            },
+          },
+          // Conditional include for full content when pending approval
+          ...(query.status === CourseStatus.PENDING_APPROVAL
+            ? {
+                modules: {
+                  orderBy: { createdAt: 'asc' },
+                  include: {
+                    lessons: {
+                      orderBy: { order: 'asc' },
+                      include: {
+                        contents: {
+                          orderBy: { createdAt: 'asc' },
+                        },
+                        exercises: {
+                          orderBy: { order: 'asc' },
+                        },
+                      },
+                    },
+                    exercises: {
+                      orderBy: { order: 'asc' },
+                    },
+                  },
+                },
+              }
+            : {}),
+        },
+      });
+
+      // Calculate next upcoming schedule for each course
+      const coursesWithSchedules = allCourses.map((course) => {
+        let nextScheduleTime: Date | null = null;
+        for (const cohort of course.cohorts) {
+          for (const schedule of cohort.teachingSchedules) {
+            if (!nextScheduleTime || schedule.startTime < nextScheduleTime) {
+              nextScheduleTime = schedule.startTime;
+            }
+          }
+        }
+        return { course, nextScheduleTime };
+      });
+
+      // Sort: Courses with upcoming cohort schedules first (earliest start time first),
+      // then courses without schedules (by createdAt descending)
+      coursesWithSchedules.sort((a, b) => {
+        if (a.nextScheduleTime && b.nextScheduleTime) {
+          return a.nextScheduleTime.getTime() - b.nextScheduleTime.getTime();
+        }
+        if (a.nextScheduleTime) return -1;
+        if (b.nextScheduleTime) return 1;
+        return b.course.createdAt.getTime() - a.course.createdAt.getTime();
+      });
+
+      // Handle pagination on the sorted array
       const page = Number(query.page) || 1;
       const pageSize = Number(query.pageSize) || 10;
       const skip = (page - 1) * pageSize;
+      const total = coursesWithSchedules.length;
 
-      const [courses, total] = await Promise.all([
-        this.prisma.course.findMany({
-          where,
-          skip,
-          take: pageSize,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            _count: {
-              select: {
-                modules: true,
-                enrollments: true,
-              },
-            },
-            profile: {
-              select: {
-                bio: true,
-                expertise: true,
-                specialization: true,
-                role: true,
-              },
-            },
-            // Conditional include for full content when pending approval
-            ...(query.status === CourseStatus.PENDING_APPROVAL
-              ? {
-                  modules: {
-                    orderBy: { createdAt: 'asc' },
-                    include: {
-                      lessons: {
-                        orderBy: { order: 'asc' },
-                        include: {
-                          contents: {
-                            orderBy: { createdAt: 'asc' },
-                          },
-                          exercises: {
-                            orderBy: { order: 'asc' },
-                          },
-                        },
-                      },
-                      exercises: {
-                        orderBy: { order: 'asc' },
-                      },
-                    },
-                  },
-                }
-              : {}),
-          },
-        }),
-        this.prisma.course.count({ where }),
-      ]);
+      const courses = coursesWithSchedules
+        .slice(skip, skip + pageSize)
+        .map((x) => x.course);
 
       // --- Data Enrichment Step ---
       // Get unique instructor IDs from the courses
@@ -319,8 +388,17 @@ export class CoursesService {
           (i: any) => i.firebaseId === course.instructorId,
         );
 
+        const price =
+          currency === 'USD'
+            ? course.priceInUsd ?? course.price
+            : course.price;
+
         return {
           ...course,
+          currency,
+          price,
+          priceInEtb: course.price,
+          priceInUsd: course.priceInUsd,
           modulesCount: course._count?.modules || 0,
           enrolledNum: course._count?.enrollments || course.enrolledNum || 0,
           instructor: authInfo
@@ -361,8 +439,13 @@ export class CoursesService {
     }
   }
 
-  // REFACTORED: Use string ID and enrich data
-  async findOne(id: number, user?: AuthenticatedUser) {
+  // REFACTORED: Use string ID and enrich data with GeoService pricing
+  async findOne(
+    id: number,
+    user?: AuthenticatedUser,
+    clientIp?: string,
+    clientCountry?: string,
+  ) {
     const course = await this.prisma.course.findUnique({
       where: { id },
       include: {
@@ -415,6 +498,14 @@ export class CoursesService {
       }
     }
 
+    // Resolve GeoIP currency & provider
+    const geoConfig = await this.resolveGeoConfig(clientIp, clientCountry);
+    const currency = geoConfig.currency;
+    const price =
+      currency === 'USD'
+        ? course.priceInUsd ?? course.price
+        : course.price;
+
     // Count enrollments for this course
     const enrollmentCount = await this.prisma.enrollment.count({
       where: {
@@ -426,6 +517,10 @@ export class CoursesService {
     const instructor = await this.userService.getUserById(course.instructorId);
     return {
       ...course,
+      currency,
+      price,
+      priceInEtb: course.price,
+      priceInUsd: course.priceInUsd,
       enrolledNum: enrollmentCount, // Override the stored enrolledNum with actual count
       instructor,
     };
@@ -691,6 +786,44 @@ export class CoursesService {
     return coursesWithStats;
   }
 
+  // --- NEW: Get instructor's draft courses ---
+  async getInstructorDraftCourses(user: AuthenticatedUser) {
+    const academyProfile = await this.userService.getOrCreateProfile(user);
+    if (
+      academyProfile.role !== AcademyRole.INSTRUCTOR &&
+      academyProfile.role !== AcademyRole.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'You do not have permission to view courses.',
+      );
+    }
+
+    const courses = await this.prisma.course.findMany({
+      where: {
+        instructorId: user.firebaseId,
+        status: CourseStatus.DRAFT,
+      },
+      include: {
+        _count: {
+          select: {
+            modules: true,
+            enrollments: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return courses.map((course: any) => ({
+      ...course,
+      modulesCount: course._count?.modules || 0,
+      enrolledNum: course._count?.enrollments || course.enrolledNum || 0,
+      _count: undefined,
+    }));
+  }
+
   async submitForApproval(id: number, user: AuthenticatedUser) {
     const course = await this.prisma.course.findUnique({ where: { id } });
     if (!course) throw new NotFoundException('Course not found');
@@ -720,10 +853,18 @@ export class CoursesService {
       throw new ForbiddenException('Only administrators can approve courses');
     }
 
-    return await this.prisma.course.update({
+    const course = await this.prisma.course.update({
       where: { id },
       data: { status: CourseStatus.PUBLISHED },
     });
+
+    this.notificationService.sendCourseCreatedNotification(
+      course.title,
+      String(course.id),
+      course.category || undefined,
+    ).catch(err => this.logger.error('Failed to send course push notification:', err));
+
+    return course;
   }
 
   async reject(id: number, reason: string, user: AuthenticatedUser) {

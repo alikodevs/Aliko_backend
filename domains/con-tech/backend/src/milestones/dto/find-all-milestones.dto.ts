@@ -1,6 +1,6 @@
 import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { MilestoneStatus } from '../../generated/client';
+import { MilestoneStatus } from '@prisma/client';
 
 export class FindAllMilestonesDto {
   @IsOptional()

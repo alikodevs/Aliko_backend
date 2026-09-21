@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsArray, IsInt, IsEnum } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsArray,
+  IsInt,
+  IsEnum,
+  IsNumber,
+} from 'class-validator';
 import { CourseStatus } from '../../generated/client';
 
 export class UpdateCourseDto {
@@ -36,6 +43,11 @@ export class UpdateCourseDto {
   @IsOptional()
   conceptsLearned?: string[];
 
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  outcomes?: string[];
+
   @IsInt()
   @IsOptional()
   estimatedTime?: number;
@@ -43,6 +55,22 @@ export class UpdateCourseDto {
   @IsString()
   @IsOptional()
   targetLevel?: string;
+
+  @IsInt()
+  @IsOptional()
+  enrolledNum?: number;
+
+  @IsNumber()
+  @IsOptional()
+  rating?: number;
+
+  @IsNumber()
+  @IsOptional()
+  price?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  priceInUsd?: number | null;
 
   @IsArray()
   @IsString({ each: true })

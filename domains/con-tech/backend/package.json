@@ -41,7 +41,11 @@
     "prisma": "6.15.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "@alikohub/cloudinary": "*",
+    "@alikohub/logger": "*",
+    "@alikohub/rabbitmq": "*",
+    "@alikohub/auth-client": "*"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

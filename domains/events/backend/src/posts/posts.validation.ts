@@ -167,3 +167,7 @@ export const ReviewPostSchema = Joi.object({
     .description("Explanation if rejected"),
   user: Joi.any().required().description("Authenticated admin user context"),
 }).description("Schema for admin moderation of posts");
+
+export const UserOnlySchema = Joi.object({
+  user: Joi.any().required().description("Authenticated user context"),
+}).description("Schema for operations requiring only user context");

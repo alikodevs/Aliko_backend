@@ -7,7 +7,7 @@ import {
   IsDateString,
   IsNumber,
 } from 'class-validator';
-import { ProjectStatus } from '../../generated/client';
+import { ProjectStatus } from '@prisma/client';
 
 export class UpdateProjectDto extends PartialType(CreateProjectDto) {
   @IsOptional()
@@ -56,4 +56,8 @@ export class UpdateProjectDto extends PartialType(CreateProjectDto) {
 
   @IsOptional()
   photos?: string[];
+
+  @IsNumber()
+  @IsOptional()
+  progress?: number;
 }

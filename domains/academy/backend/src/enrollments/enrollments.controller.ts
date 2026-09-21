@@ -63,13 +63,13 @@ export class EnrollmentsController {
   @MessagePattern({ cmd: 'create_enrollment' })
   @UsePipes(new JoiValidationPipe(CreateEnrollmentSchema))
   async create(
-    @Payload() payload: { dto: CreateEnrollmentDto; user: AuthenticatedUser },
+    @Payload() payload: { dto: CreateEnrollmentDto; user: AuthenticatedUser; clientIp?: string; clientCountry?: string },
   ) {
     this.logger.log(
-      `Enrolling user in course ID: ${payload.dto.courseId} (requested by: ${payload.user.firebaseId})`,
+      `Enrolling user in course ID: ${payload.dto.courseId} (requested by: ${payload.user.firebaseId}) [IP: ${payload.clientIp || 'N/A'}, Country: ${payload.clientCountry || 'N/A'}]`,
     );
     try {
-      return await this.enrollmentsService.create(payload.dto, payload.user);
+      return await this.enrollmentsService.create(payload.dto, payload.user, payload.clientIp, payload.clientCountry);
     } catch (error) {
       this.logger.error(
         `Failed to create enrollment for course ID ${payload.dto.courseId} by user ${payload.user.firebaseId}: ${error.message}`,

@@ -5,7 +5,6 @@ export const CreateContentSchema = Joi.object({
   dto: Joi.object({
     title: Joi.string().required().description('The title of the content item'),
     type: Joi.string()
-      .valid(...Object.values(ContentType))
       .required()
       .description('The type of content (e.g., VIDEO, PDF, QUIZ)'),
     url: Joi.string()
@@ -34,7 +33,6 @@ export const UpdateContentSchema = Joi.object({
   dto: Joi.object({
     title: Joi.string().optional().description('The updated title'),
     type: Joi.string()
-      .valid(...Object.values(ContentType))
       .optional()
       .description('The updated type'),
     url: Joi.string().allow('', null).optional().description('The updated URL'),
@@ -94,13 +92,17 @@ export const UploadContentSchema = Joi.object({
       .integer()
       .required()
       .description('The ID of the lesson to associate the upload with'),
-    contentType: Joi.string()
-      .valid(...Object.values(ContentType))
+    type: Joi.string()
       .required()
       .description('The type of content being uploaded'),
     title: Joi.string()
       .required()
       .description('The display title for the uploaded file'),
+    contentUrl: Joi.string()
+      .uri()
+      .optional()
+      .description('Pre-uploaded file URL (skips internal processing)'),
+    description: Joi.string().optional().description('Optional description'),
   })
     .required()
     .description('Metadata for the file upload'),
@@ -110,15 +112,14 @@ export const UploadContentSchema = Joi.object({
     mimetype: Joi.string().required().description('The MIME type of the file'),
     size: Joi.number().required().description('The size of the file in bytes'),
   })
-    .required()
-    .description('The uploaded file object'),
+    .optional()
+    .description('The uploaded file object (required if contentUrl is not provided)'),
   user: Joi.any().required().description('The authenticated user'),
 }).description('Schema for uploading content files');
 
 export const SearchContentSchema = Joi.object({
   query: Joi.string().required().description('The search term or keyword'),
   type: Joi.string()
-    .valid(...Object.values(ContentType))
     .optional()
     .description('Optional filter by content type'),
   courseId: Joi.number()

@@ -51,6 +51,27 @@ export class TasksController {
     }
   }
 
+  @MessagePattern({ cmd: 'find_all_tasks' })
+  async findGlobal(
+    @Payload()
+    payload: {
+      query: Record<string, any>;
+      user: AuthenticatedUser;
+    },
+  ) {
+    this.logger.log(
+      `Fetching global tasks (requested by: ${payload.user.firebaseId})`,
+    );
+    try {
+      return await this.tasksService.findAll(payload.query, payload.user);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch global tasks by user ${payload.user.firebaseId}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
   @MessagePattern({ cmd: 'find_tasks_by_project' })
   @UsePipes(new JoiValidationPipe(GetTasksByProjectSchema))
   async findByProject(
@@ -71,12 +92,8 @@ export class TasksController {
         payload.user,
       );
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `Failed to fetch tasks for project ID ${payload.projectId} by user ${payload.user.firebaseId}: ${errorMessage}`,
-        errorStack,
+        `Failed to fetch tasks for project ID ${payload.projectId}: ${error.message}`,
       );
       throw error;
     }
@@ -219,5 +236,17 @@ export class TasksController {
       );
       throw error;
     }
+  }
+
+  @MessagePattern({ cmd: 'assign_task' })
+  async assignTask(@Payload() payload: { id: number; userId: string; user: AuthenticatedUser }) {
+    this.logger.log(`Assigning task ${payload.id} to user ${payload.userId}`);
+    return this.tasksService.assignTask(payload.id, payload.userId, payload.user);
+  }
+
+  @MessagePattern({ cmd: 'update_task_status' })
+  async updateStatus(@Payload() payload: { id: number; status: string; user: AuthenticatedUser }) {
+    this.logger.log(`Updating task ${payload.id} status to ${payload.status}`);
+    return this.tasksService.updateTaskStatus(payload.id, payload.status, payload.user);
   }
 }

@@ -10,7 +10,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { AuthenticatedUser, UserService } from '../user/user.service';
-import { CourseStatus, EnrollmentStatus, PaymentStatus } from '../generated/client';
+import { CourseStatus, EnrollmentStatus, PaymentStatus, EnrollmentContext } from '../generated/client';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 
@@ -24,8 +24,8 @@ export class EnrollmentsService {
     @Inject('PAYMENT_SERVICE') private readonly paymentClient: ClientProxy,
   ) {}
 
-  async create(dto: CreateEnrollmentDto, user: AuthenticatedUser) {
-    this.logger.log(`Creating enrollment. DTO: ${JSON.stringify(dto)}, User: ${JSON.stringify(user)}`);
+  async create(dto: CreateEnrollmentDto, user: AuthenticatedUser, clientIp?: string, clientCountry?: string) {
+    this.logger.log(`Creating enrollment. DTO: ${JSON.stringify(dto)}, User: ${JSON.stringify(user)} [IP: ${clientIp || 'N/A'}]`);
 
     // Manual validation
     if (!dto.courseId) {
@@ -121,6 +121,7 @@ export class EnrollmentsService {
             enrollmentType: enrollmentType as any,
             paymentStatus,
             status: enrollmentStatus as any,
+            context: cohortId ? EnrollmentContext.COHORT_BASED : EnrollmentContext.COURSE_ONLY,
           },
         });
     }
@@ -140,9 +141,21 @@ export class EnrollmentsService {
         // Fetch user details for payment gateway (email is required)
         const userDetails = await this.userService.getUserById(userIdToEnroll);
 
-        const provider = dto.paymentGateway || 'CHAPA';
-        const amount = provider === 'STRIPE' ? (course.priceInUsd || course.price) : course.price;
-        const currency = provider === 'STRIPE' ? 'USD' : 'ETB';
+        const requestedProvider = (dto.paymentGateway && dto.paymentGateway !== 'auto') ? dto.paymentGateway.toUpperCase() : undefined;
+
+        // Resolve provider & currency (checking IP location when not explicitly
+        // requested) *before* picking the amount, so the amount always matches
+        // the currency that will actually be charged.
+        const geoConfig = await lastValueFrom(
+          this.paymentClient.send({ cmd: 'resolve_payment_config' }, {
+            clientIp,
+            clientCountry,
+            provider: requestedProvider,
+          })
+        );
+        const provider = geoConfig.provider;
+        const currency = geoConfig.currency;
+        const amount = currency === 'USD' ? (course.priceInUsd || course.price) : course.price;
 
         const paymentSession = await lastValueFrom(
           this.paymentClient.send({ cmd: 'initialize_payment' }, {
@@ -152,6 +165,8 @@ export class EnrollmentsService {
             firstName: userDetails?.firstname || '',
             lastName: userDetails?.lastname || '',
             provider,
+            clientIp,
+            clientCountry,
             userId: userIdToEnroll,
             purpose: `COURSE_PURCHASE_${course.id}`,
             metadata: {

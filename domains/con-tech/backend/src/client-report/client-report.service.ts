@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service'; // Adjust the path to your Prisma service
 import { CreateClientReportDto } from './dto/create-client-report.dto';
-import { Prisma, Project } from '../generated/client';
+import { Prisma, Project } from '@prisma/client';
 import { AuthenticatedUser, UserService } from '../user/user.service';
 
 @Injectable()

@@ -1,5 +1,5 @@
 import { ScheduleType } from '../../generated/client';
-import { IsString, IsOptional, IsEnum, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsBoolean, IsNumber } from 'class-validator';
 
 export class UpdateTeachingScheduleDto {
   @IsOptional()
@@ -29,4 +29,8 @@ export class UpdateTeachingScheduleDto {
   @IsOptional()
   @IsString()
   recurrencePattern?: string;
+
+  @IsOptional()
+  @IsNumber()
+  cohortId?: number;
 }

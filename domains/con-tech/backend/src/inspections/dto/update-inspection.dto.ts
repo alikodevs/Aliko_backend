@@ -1,4 +1,4 @@
-import { InspectionStatus } from '../../generated/client';
+import { InspectionStatus } from '@prisma/client';
 import { IsEnum, IsInt, IsOptional, IsString } from 'class-validator';
 
 export class UpdateInspectionDto {

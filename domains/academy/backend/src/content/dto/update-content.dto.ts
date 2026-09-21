@@ -7,8 +7,8 @@ export class UpdateContentDto {
   title?: string;
 
   @IsOptional()
-  @IsEnum(ContentType)
-  type?: ContentType;
+  @IsString()
+  type?: string;
 
   @IsOptional()
   @IsUrl()

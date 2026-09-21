@@ -28,6 +28,19 @@ export class TicketsController {
     return this.ticketsService.findAllForEvent(payload.eventId);
   }
 
+  @MessagePattern({ cmd: "find_all_tickets" })
+  async findAllForUser(@Payload() payload: { user: AuthenticatedUser }) {
+    this.logger.log(`Fetching all tickets by user: ${payload.user.firebaseId}`);
+    return this.ticketsService.findAllForUser(payload.user);
+  }
+
+  @MessagePattern({ cmd: "update_ticket" })
+  @UsePipes(new JoiValidationPipe(TicketIdSchema))
+  async update(@Payload() payload: { id: string; dto: { name?: string; price?: number; quantity?: number }; user: AuthenticatedUser }) {
+    this.logger.log(`Updating ticket ID: ${payload.id} by user: ${payload.user.firebaseId}`);
+    return this.ticketsService.update(payload.id, payload.dto, payload.user);
+  }
+
   @MessagePattern({ cmd: "remove_ticket" })
   @UsePipes(new JoiValidationPipe(TicketIdSchema))
   async remove(@Payload() payload: { id: string; user: AuthenticatedUser }) {

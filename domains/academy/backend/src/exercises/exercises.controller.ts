@@ -18,6 +18,7 @@ import {
   FindExercisesSchema,
   SubmitExerciseSchema,
   GradeExerciseSchema,
+  CreateBulkExercisesSchema,
 } from './exercises.validation';
 
 @Controller()
@@ -41,6 +42,27 @@ export class ExercisesController {
     } catch (error) {
       this.logger.error(
         `Failed to create exercise "${payload.dto.title}" for module ${payload.dto.moduleId} by user ${payload.user.firebaseId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @MessagePattern({ cmd: 'create_bulk_exercises' })
+  @UseGuards(RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  @UsePipes(new JoiValidationPipe(CreateBulkExercisesSchema))
+  async createBulk(
+    @Payload() payload: { dtos: CreateExerciseDto[]; user: AuthenticatedUser },
+  ) {
+    this.logger.log(
+      `Bulk creating ${payload.dtos.length} exercises by user: ${payload.user.firebaseId}`,
+    );
+    try {
+      return await this.exercisesService.createBulk(payload.dtos, payload.user);
+    } catch (error) {
+      this.logger.error(
+        `Failed to bulk create exercises by user ${payload.user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -217,6 +239,29 @@ export class ExercisesController {
     } catch (error) {
       this.logger.error(
         `Instructor ${payload.user.firebaseId} failed to grade submission ID ${payload.id}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @MessagePattern({ cmd: 'find_instructor_submissions' })
+  @UseGuards(RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  async findInstructorSubmissions(
+    @Payload() payload: { user: AuthenticatedUser; query?: any },
+  ) {
+    this.logger.log(
+      `Instructor ${payload.user.firebaseId} fetching submissions for grading`,
+    );
+    try {
+      return await this.exercisesService.findSubmissionsForInstructor(
+        payload.user,
+        payload.query,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Instructor ${payload.user.firebaseId} failed to fetch submissions: ${error.message}`,
         error.stack,
       );
       throw error;

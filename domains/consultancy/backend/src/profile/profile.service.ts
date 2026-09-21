@@ -19,6 +19,7 @@ export class ProfileService {
   }
 
   async findByUserId(userId: string) {
+    if (!userId) return null;
     return this.prisma.profile.findUnique({ where: { userId } });
   }
 
@@ -27,6 +28,7 @@ export class ProfileService {
   }
 
   async updateByUserId(userId: string, data: Prisma.ProfileUpdateInput) {
+    if (!userId) return null;
     return this.prisma.profile.update({ where: { userId }, data });
   }
 

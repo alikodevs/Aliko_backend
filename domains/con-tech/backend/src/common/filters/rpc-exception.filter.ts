@@ -7,7 +7,7 @@ import {
   ExceptionFilter,
 } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
-import { Prisma } from '../../generated/client';
+import { Prisma } from '@prisma/client';
 import { Observable, throwError } from 'rxjs';
 
 /**

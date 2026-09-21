@@ -67,11 +67,11 @@ export class CreateCourseDto {
 
   @IsNumber()
   @IsOptional()
-  price?: number;
+  price?: number | null;
 
   @IsNumber()
   @IsOptional()
-  priceInUsd?: number;
+  priceInUsd?: number | null;
 
   @IsArray()
   @IsString({ each: true })

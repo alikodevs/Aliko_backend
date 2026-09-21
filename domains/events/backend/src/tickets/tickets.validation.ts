@@ -12,5 +12,6 @@ export const CreateTicketSchema = Joi.object({
 
 export const TicketIdSchema = Joi.object({
   id: Joi.string().required().description("Unique identifier of the ticket"),
+  dto: Joi.object().optional().description("Update data for the ticket"),
   user: Joi.any().required().description("Authenticated user context"),
 });

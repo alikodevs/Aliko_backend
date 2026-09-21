@@ -9,7 +9,7 @@ import { UpdateMilestoneDto } from './dto/update-milestone.dto';
 import { CreateMilestoneReviewDto } from './dto/create-milestone-review.dto';
 import { FindAllMilestonesDto } from './dto/find-all-milestones.dto';
 import { AuthenticatedUser, UserService } from '../user/user.service';
-import { Prisma, Project } from '../generated/client';
+import { Prisma, Project } from '@prisma/client';
 
 @Injectable()
 export class MilestonesService {

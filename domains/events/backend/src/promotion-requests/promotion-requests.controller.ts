@@ -25,12 +25,12 @@ export class PromotionRequestsController {
 
   @MessagePattern({ cmd: "submit_promotion_request" })
   @UsePipes(new JoiValidationPipe(CreatePromotionRequestSchema))
-  async create(@Payload() dto: CreatePromotionRequestDto) {
+  async create(@Payload() { userId, ...dto }: CreatePromotionRequestDto & { userId?: string }) {
     this.logger.log(
       `Submitting new promotion request from company: ${dto.companyName}`,
     );
     try {
-      return await this.service.create(dto);
+      return await this.service.create(dto, userId);
     } catch (error) {
       this.logger.error(
         `Failed to submit promotion request for ${dto.companyName}: ${error.message}`,
@@ -38,6 +38,12 @@ export class PromotionRequestsController {
       );
       throw error;
     }
+  }
+
+  @MessagePattern({ cmd: "find_my_promotion_requests" })
+  async findMyRequests(@Payload() payload: { userId: string }) {
+    this.logger.log(`Fetching promotion requests for user: ${payload.userId}`);
+    return this.service.findMyRequests(payload.userId);
   }
 
   @MessagePattern({ cmd: "find_all_promotion_requests" })
@@ -71,6 +77,26 @@ export class PromotionRequestsController {
     } catch (error) {
       this.logger.error(
         `Failed to update promotion request ID ${payload.id} by admin ${payload.user.firebaseId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @MessagePattern({ cmd: "convert_promotion_to_event" })
+  @UseGuards(EventsProfileGuard)
+  @UsePipes(new JoiValidationPipe(PromotionRequestIdSchema))
+  async convertToEvent(
+    @Payload() payload: { id: string; user: AuthenticatedUser },
+  ) {
+    this.logger.log(
+      `Converting promotion request ID: ${payload.id} to event draft by admin: ${payload.user.firebaseId}`,
+    );
+    try {
+      return await this.service.convertToEvent(payload.id, payload.user);
+    } catch (error) {
+      this.logger.error(
+        `Failed to convert request ID ${payload.id} by admin ${payload.user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;

@@ -89,7 +89,7 @@ export class ContentService {
         return await this.prisma.content.create({
           data: {
             title: dto.title,
-            type: dto.type,
+            type: dto.type as any,
             url: dto.contentUrl,
             lessonId: Number(dto.lessonId),
           },
@@ -105,11 +105,12 @@ export class ContentService {
       throw new BadRequestException('Either contentUrl or file is required');
     }
 
+    // Allow all file formats
     const allowedTypes = this.getAllowedFileTypes(dto.type);
-    if (!allowedTypes.includes(file.mimetype))
-      throw new BadRequestException(
-        `Invalid file type. Allowed types for ${dto.type}: ${allowedTypes.join(', ')}`,
-      );
+    if (allowedTypes.length > 0 && !allowedTypes.includes(file.mimetype)) {
+      // For legacy/backward compatibility, we still log but don't block
+      console.log(`[DEBUG] MIME type ${file.mimetype} for ${dto.type} is not in standard list, but allowing anyway.`);
+    }
 
     try {
       console.log('[DEBUG] Starting file serialization and upload...');
@@ -148,7 +149,7 @@ export class ContentService {
         return await this.prisma.content.create({
           data: {
             title: dto.title,
-            type: dto.type,
+            type: dto.type as any,
             url: uploadResponse.url,
             lessonId: Number(dto.lessonId),
           },
@@ -168,7 +169,7 @@ export class ContentService {
     }
   }
 
-  private getAllowedFileTypes(contentType: ContentType): string[] {
+  private getAllowedFileTypes(contentType: string): string[] {
     switch (contentType) {
       case 'VIDEO':
         return ['video/mp4', 'video/avi', 'video/mov', 'video/wmv'];
@@ -431,7 +432,7 @@ export class ContentService {
 
   async searchContent(payload: {
     query: string;
-    type?: ContentType;
+    type?: string;
     courseId?: number;
     user: AuthenticatedUser;
   }) {

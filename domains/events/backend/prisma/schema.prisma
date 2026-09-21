@@ -137,22 +137,41 @@ model RSVP {
 }
 
 model PromotionRequest {
-  id               String   @id @default(uuid())
-  companyName      String
-  contactPerson    String
-  email            String
-  phoneNumber      String?
-  type             PostType @default(EVENT)
-  message          String   // Renamed from description
-  status           String   @default("PENDING") // PENDING, REVIEWED
-  createdAt        DateTime @default(now())
+  id                 String   @id @default(uuid())
+  companyName        String
+  contactPerson      String
+  email              String
+  phoneNumber        String?
+  organization       String?
+  event_type         String?
+  estimatedAttendees String?
+  preferredDate      DateTime?
+  location           String?
+  type               PostType @default(EVENT)
+  message            String   // Detailed goals
+  status             String   @default("PENDING") // PENDING, REVIEWED, CONVERTED
+  userId             String?  // Firebase UID of the submitter
+  createdAt          DateTime @default(now())
 }
 
 model EventsProfile {
   id               String     @id // Firebase UID
-  role             EventsRole @default(CONTENT_MANAGER)
+  role             EventsRole @default(USER)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
+}
+
+model MessageDispatch {
+  id              String   @id @default(uuid())
+  eventId         String
+  subject         String
+  recipientCount  Int
+  sentCount       Int
+  createdBy       String
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([createdBy])
 }
 
 model PortfolioMedia {

@@ -13,7 +13,19 @@ export const CreateRsvpSchema = Joi.object({
   user: Joi.any().optional(), // Can be anonymous
 });
 
+export const UpdateRsvpStatusSchema = Joi.object({
+  id: Joi.string().required(),
+  dto: Joi.object({
+    response: Joi.string().valid("yes", "no", "maybe").required(),
+  }).required(),
+  user: Joi.any().optional(),
+});
+
 export const RsvpIdSchema = Joi.object({
   id: Joi.string().required(),
+  user: Joi.any().required(),
+});
+
+export const UserOnlySchema = Joi.object({
   user: Joi.any().required(),
 });

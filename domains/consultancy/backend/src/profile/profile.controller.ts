@@ -16,13 +16,15 @@ export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
   @MessagePattern({ cmd: 'get_profile' })
-  handleGetProfile(@Payload() payload: { userId: string }) {
-    return this.profileService.findByUserId(payload.userId);
+  handleGetProfile(@Payload() payload: any) {
+    const userId = typeof payload === 'string' ? payload : (payload?.userId || payload?.id);
+    return this.profileService.findByUserId(userId);
   }
 
   @MessagePattern({ cmd: 'update_profile' })
-  handleUpdateProfile(@Payload() payload: { userId: string } & Record<string, any>) {
-    const { userId, ...data } = payload;
+  handleUpdateProfile(@Payload() payload: any) {
+    const userId = payload?.userId || payload?.id;
+    const { userId: ignoredUser, id: ignoredId, ...data } = payload || {};
     return this.profileService.updateByUserId(userId, data);
   }
 

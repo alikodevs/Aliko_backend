@@ -38,8 +38,9 @@ export class CmsController {
 
   @MessagePattern({ cmd: 'get_page_by_slug' })
   @Get('pages/slug/:slug')
-  findPageBySlug(@Param('slug') slug: string, @Payload() payloadSlug: string) {
-    return this.cmsService.findBySlug(resolveParam(slug, payloadSlug));
+  findPageBySlug(@Param('slug') slug: string, @Payload() payloadSlug: any) {
+    const targetSlug = resolveParam(slug, payloadSlug, 'slug');
+    return this.cmsService.findBySlug(targetSlug);
   }
 
   @MessagePattern({ cmd: 'update_page' })
@@ -50,8 +51,9 @@ export class CmsController {
     @Payload() payload: any,
   ) {
     const targetId = resolveParam(id, payload?.id);
-    const resolvedData = resolvePayload(data, payload);
-    return this.cmsService.updatePage(targetId, resolvedData);
+    const resolvedData = resolvePayload(data, payload?.data || payload);
+    const { id: ignoredId, ...updateFields } = resolvedData || {};
+    return this.cmsService.updatePage(targetId, updateFields);
   }
 
   @MessagePattern({ cmd: 'remove_page' })
@@ -75,9 +77,10 @@ export class CmsController {
   @Get('resources')
   findAllResources(
     @Query('type') type?: string,
-    @Payload() payload?: { type?: string },
+    @Payload() payload?: any,
   ) {
-    return this.cmsService.findAllResources(resolveParam(type, payload?.type));
+    const targetType = resolveParam(type, payload, 'type');
+    return this.cmsService.findAllResources(targetType);
   }
 
   @MessagePattern({ cmd: 'update_resource' })
@@ -88,8 +91,9 @@ export class CmsController {
     @Payload() payload: any,
   ) {
     const targetId = resolveParam(id, payload?.id);
-    const resolvedData = resolvePayload(data, payload);
-    return this.cmsService.updateResource(targetId, resolvedData);
+    const resolvedData = resolvePayload(data, payload?.data || payload);
+    const { id: ignoredId, ...updateFields } = resolvedData || {};
+    return this.cmsService.updateResource(targetId, updateFields);
   }
 
   @MessagePattern({ cmd: 'remove_resource' })
@@ -123,8 +127,9 @@ export class CmsController {
     @Payload() payload: any,
   ) {
     const targetId = resolveParam(id, payload?.id);
-    const resolvedData = resolvePayload(data, payload);
-    return this.cmsService.updateWebinar(targetId, resolvedData);
+    const resolvedData = resolvePayload(data, payload?.data || payload);
+    const { id: ignoredId, ...updateFields } = resolvedData || {};
+    return this.cmsService.updateWebinar(targetId, updateFields);
   }
 
   @MessagePattern({ cmd: 'remove_webinar' })
@@ -132,6 +137,35 @@ export class CmsController {
   removeWebinar(@Param('id') id: string, @Payload() payload: any) {
     const targetId = resolveParam(id, payload?.id);
     return this.cmsService.removeWebinar(targetId);
+  }
+
+  @MessagePattern({ cmd: 'register_webinar' })
+  @Post('webinars/:id/register')
+  registerForWebinar(
+    @Param('id') id: string,
+    @Body() data: { name: string; email: string },
+    @Payload() payload: any,
+  ) {
+    const targetId = resolveParam(id, payload?.id);
+    const resolvedData = resolvePayload(data, payload?.data || payload);
+    const { id: ignoredId, ...regData } = resolvedData || {};
+    return this.cmsService.registerForWebinar(targetId, regData);
+  }
+
+  @MessagePattern({ cmd: 'get_webinar_registrations' })
+  @Get('webinars/:id/registrations')
+  getWebinarRegistrations(
+    @Param('id') id?: string,
+    @Query('webinarId') webinarIdQuery?: string,
+    @Payload() payload?: any,
+  ) {
+    const targetWebinarId = resolveParam(id || webinarIdQuery, payload?.webinarId || payload?.id);
+    return this.cmsService.findWebinarRegistrations(targetWebinarId);
+  }
+
+  @Get('webinar-registrations')
+  getAllWebinarRegistrations(@Query('webinarId') webinarId?: string) {
+    return this.cmsService.findWebinarRegistrations(webinarId);
   }
 
   // --- Testimonials ---
@@ -158,8 +192,9 @@ export class CmsController {
     @Payload() payload: any,
   ) {
     const targetId = resolveParam(id, payload?.id);
-    const resolvedData = resolvePayload(data, payload);
-    return this.cmsService.updateTestimonial(targetId, resolvedData);
+    const resolvedData = resolvePayload(data, payload?.data || payload);
+    const { id: ignoredId, ...updateFields } = resolvedData || {};
+    return this.cmsService.updateTestimonial(targetId, updateFields);
   }
 
   @MessagePattern({ cmd: 'remove_testimonial' })

@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum ConshifterRole {
+  ADMIN
+  USER
+}
+
+enum ApplicationStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum EventType {
+  CONFERENCE
+  WORKSHOP
+  WEBINAR
+  SUMMIT
+  DEMO_DAY
+  MEETUP
+}
+
+enum MembershipTier {
+  OBSERVER
+  MEMBER
+  PREMIUM
+  FOUNDING
+}
+
+enum OrganizationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrganizationType {
+  STARTUP
+  CONTRACTOR
+  UNIVERSITY
+  INVESTOR
+  GOVERNMENT
+  NGO
+  ASSOCIATION
+  CONSULTANT
+}
+
+// ─── Models ─────────────────────────────────────────────
+
+model ConshifterProfile {
+  id        String         @id // Firebase UID
+  role      ConshifterRole @default(USER)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+
+  @@map("conshifter_profiles")
+}
+
+model Event {
+  id               String    @id @default(uuid())
+  title            String
+  slug             String    @unique
+  description      String?
+  eventType        EventType @map("event_type")
+  location         String?
+  isVirtual        Boolean   @default(false) @map("is_virtual")
+  virtualLink      String?   @map("virtual_link")
+  startDate        DateTime  @map("start_date")
+  endDate          DateTime? @map("end_date")
+  registrationLink String?   @map("registration_link")
+  imageUrl         String?   @map("image_url")
+  isFeatured       Boolean             @default(false) @map("is_featured")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  registrations    EventRegistration[]
+
+  @@map("events")
+}
+
+model Organization {
+  id               String             @id @default(uuid())
+  name             String
+  slug             String             @unique
+  type             OrganizationType
+  description      String?
+  logoUrl          String?            @map("logo_url")
+  website          String?
+  region           String
+  country          String
+  focusTags        String[]           @default([]) @map("focus_tags")
+  email            String?
+  status           OrganizationStatus @default(PENDING)
+  submittedByEmail String?            @map("submitted_by_email")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  @@map("organizations")
+}
+
+model Program {
+  id              String   @id @default(uuid())
+  name            String
+  slug            String   @unique
+  description     String?
+  longDescription String?  @map("long_description")
+  icon            String?
+  isActive        Boolean  @default(true) @map("is_active")
+  orderIndex      Int      @default(0) @map("order_index")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  applications MembershipApplication[]
+
+  @@map("programs")
+}
+
+model Partner {
+  id          String   @id @default(uuid())
+  name        String
+  logoUrl     String?  @map("logo_url")
+  website     String?
+  partnerType String   @default("partner") @map("partner_type")
+  orderIndex  Int      @default(0) @map("order_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("partners")
+}
+
+model Testimonial {
+  id                 String   @id @default(uuid())
+  quote              String
+  authorName         String   @map("author_name")
+  authorTitle        String?  @map("author_title")
+  authorOrganization String?  @map("author_organization")
+  authorImageUrl     String?  @map("author_image_url")
+  isFeatured         Boolean  @default(false) @map("is_featured")
+  orderIndex         Int      @default(0) @map("order_index")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("testimonials")
+}
+
+model NewsletterSubscriber {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  role         String?
+  subscribedAt DateTime @default(now()) @map("subscribed_at")
+  isActive     Boolean  @default(true) @map("is_active")
+
+  @@map("newsletter_subscribers")
+}
+
+model MembershipApplication {
+  id               String            @id @default(uuid())
+  organizationName String            @map("organization_name")
+  organizationType OrganizationType  @map("organization_type")
+  contactName      String            @map("contact_name")
+  contactEmail     String            @map("contact_email")
+  contactPhone     String?           @map("contact_phone")
+  website          String?
+  country          String
+  region           String
+  tier             MembershipTier
+  motivation       String?
+  howHeard         String?           @map("how_heard")
+  status           ApplicationStatus @default(PENDING)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  programId String? @map("program_id")
+  program   Program? @relation(fields: [programId], references: [id])
+
+  @@map("membership_applications")
+}
+
+model Stat {
+  id         String @id @default(uuid())
+  label      String
+  value      String
+  orderIndex Int    @default(0) @map("order_index")
+
+  @@map("stats")
+}
+
+model EventRegistration {
+  id        String   @id @default(uuid())
+  eventId   String   @map("event_id")
+  event     Event    @relation(fields: [eventId], references: [id])
+  name      String
+  email     String
+  company   String?
+  role      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("event_registrations")
+}

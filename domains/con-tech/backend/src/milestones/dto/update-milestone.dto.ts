@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsEnum } from 'class-validator';
-import { MilestoneStatus } from '../../generated/client';
+import { MilestoneStatus } from '@prisma/client';
 
 export class UpdateMilestoneDto {
   @IsOptional()

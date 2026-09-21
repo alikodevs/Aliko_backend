@@ -1,21 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientsModule } from '@nestjs/microservices';
+import { createAuthClientAsync } from '@alikohub/auth-client';
 import { ContactController } from './contact.controller';
 import { ContactService } from './contact.service';
 
 @Module({
-  imports: [
-    ClientsModule.register([
-      {
-        name: 'AUTH_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host: process.env.AUTH_SERVICE_HOST || 'localhost',
-          port: parseInt(process.env.AUTH_SERVICE_PORT as string) || 3001,
-        },
-      },
-    ]),
-  ],
+  imports: [ClientsModule.registerAsync([createAuthClientAsync()])],
   controllers: [ContactController],
   providers: [ContactService],
 })

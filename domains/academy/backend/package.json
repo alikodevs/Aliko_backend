@@ -42,7 +42,15 @@
     "passport": "^0.7.0",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "@alikohub/notification": "*",
+    "@alikohub/cloudinary": "*",
+    "@alikohub/logger": "*",
+    "@alikohub/payment-client": "*",
+    "@alikohub/file-upload-client": "*",
+    "@alikohub/auth-client": "*",
+    "@alikohub/rabbitmq": "*",
+    "@alikohub/chat": "*"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
@@ -76,7 +84,9 @@
     "typescript": "^5.1.3"
   },
   "jest": {
-    "modulePathIgnorePatterns": ["<rootDir>/dist/"],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/dist/"
+    ],
     "moduleFileExtensions": [
       "js",
       "json",
@@ -92,5 +102,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "overrides": {
+    "uuid": "7.0.3"
   }
 }

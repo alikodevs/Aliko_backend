@@ -19,6 +19,8 @@ import { RoleGuard } from './auth/role-guard/role-guard';
 import { ExercisesModule } from './exercises/exercises.module';
 import { RpcExceptionFilter } from './common/filters/rpc-exception.filter';
 import { AppController } from './app.controller';
+import { AnnouncementsModule } from './announcements/announcements.module';
+import { ChatModule } from './chat/chat.module';
 
 @Global()
 @Module({
@@ -39,6 +41,8 @@ import { AppController } from './app.controller';
     UserApplicationModule,
     TeachingScheduleModule,
     ExercisesModule,
+    AnnouncementsModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [

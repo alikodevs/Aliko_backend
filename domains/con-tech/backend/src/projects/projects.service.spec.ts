@@ -3,7 +3,7 @@ import { ProjectsService } from './projects.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
 import { ForbiddenException, BadRequestException } from '@nestjs/common';
-import { Project, ProjectUpdate } from '../generated/client';
+import { Project, ProjectUpdate } from '@prisma/client';
 
 type DeepMockPromise<T> = {
   [K in keyof T]: T[K] extends (...args: infer A) => any

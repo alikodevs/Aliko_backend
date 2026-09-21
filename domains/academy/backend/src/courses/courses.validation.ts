@@ -47,9 +47,11 @@ export const CreateCourseSchema = Joi.object({
       .optional()
       .description('Average user rating of the course'),
     price: Joi.number()
+      .allow(null, '')
       .optional()
       .description('Cost of the course in minor units (e.g., cents)'),
     priceInUsd: Joi.number()
+      .allow(null, '')
       .optional()
       .description('Cost of the course in USD for Stripe payments'),
     prerequisites: Joi.array()
@@ -124,8 +126,14 @@ export const UpdateCourseSchema = Joi.object({
       .optional()
       .description('The updated enrollment count'),
     rating: Joi.number().optional().description('The updated rating'),
-    price: Joi.number().optional().description('The updated price'),
-    priceInUsd: Joi.number().optional().description('The updated price in USD'),
+    price: Joi.number()
+      .allow(null, '')
+      .optional()
+      .description('The updated price'),
+    priceInUsd: Joi.number()
+      .allow(null, '')
+      .optional()
+      .description('The updated price in USD'),
     prerequisites: Joi.array()
       .items(Joi.string())
       .optional()
@@ -173,6 +181,8 @@ export const FindAllCoursesSchema = Joi.object({
     .default({})
     .description('Query parameters for filtering results'),
   user: Joi.any().optional().description('The authenticated user'),
+  clientIp: Joi.string().optional().allow('', null),
+  clientCountry: Joi.string().optional().allow('', null),
 }).description('Schema for fetching all courses with filters');
 
 export const CourseIdSchema = Joi.object({
@@ -187,6 +197,8 @@ export const FindOneCourseSchema = Joi.object({
     .required()
     .description('The unique identifier of the course'),
   user: Joi.any().optional().description('The authenticated user'),
+  clientIp: Joi.string().optional().allow('', null),
+  clientCountry: Joi.string().optional().allow('', null),
 }).description('Schema for fetching a single course (publicly accessible)');
 
 export const UpdateCourseStatusSchema = Joi.object({

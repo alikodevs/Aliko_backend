@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { TaskPriority, TaskStatus } from '../generated/client';
+import { TaskPriority, TaskStatus } from '@prisma/client';
 
 export const CreateTaskSchema = Joi.object({
   dto: Joi.object({
@@ -8,8 +8,9 @@ export const CreateTaskSchema = Joi.object({
       .required()
       .description('The ID of the project this task belongs to'),
     description: Joi.string()
-      .required()
-      .description('Detailed description of the construction task'),
+      .optional()
+      .allow('', null)
+      .description('Detailed description of the task'),
     priority: Joi.string()
       .valid(...Object.values(TaskPriority))
       .optional()
@@ -100,3 +101,8 @@ export const GetTasksByProjectSchema = Joi.object({
     .description('The project ID to fetch tasks for'),
   user: Joi.any().required().description('The authenticated user context'),
 }).description('Schema for fetching tasks related to a project');
+
+export const FindAllTasksSchema = Joi.object({
+  query: Joi.any().optional().description('Filtering and pagination queries'),
+  user: Joi.any().required().description('The authenticated user context'),
+}).description('Schema for fetching multiple tasks');

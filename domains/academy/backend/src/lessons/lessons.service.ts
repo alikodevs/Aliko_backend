@@ -229,16 +229,41 @@ export class LessonsService {
     const { module: _module, ...lessonWithoutNesting } = lesson;
 
     // Check if the lesson is locked for this user (if they are a student)
+    let isLocked = false;
     if (academyProfile.role === 'STUDENT' && lesson.unlockRules) {
-      // Basic check: if unlockRules has prerequisites, we might need a separate service to check them.
-      // For now, we'll just include the rules and let the client or a subsequent PR handle the complex logic.
-      // But we specify it in the response.
+      const rules = lesson.unlockRules as any;
+      if (rules.prerequisites && Array.isArray(rules.prerequisites)) {
+        const prerequisiteLessonIds = rules.prerequisites
+          .filter((pre: any) => pre.type === 'LESSON' && typeof pre.id === 'number')
+          .map((pre: any) => pre.id);
+
+        if (prerequisiteLessonIds.length > 0) {
+          const completedPrerequisites = await this.prisma.progress.count({
+            where: {
+              userId: user.firebaseId,
+              lessonId: { in: prerequisiteLessonIds },
+              status: 'COMPLETED',
+            },
+          });
+
+          if (completedPrerequisites < prerequisiteLessonIds.length) {
+            isLocked = true;
+          }
+        }
+      }
     }
 
-    return {
+    // Strict enforcement: Hide contents if locked
+    const result = {
       ...lessonWithoutNesting,
-      isLocked: false,
+      isLocked,
     };
+
+    if (isLocked) {
+      result.contents = [];
+    }
+
+    return result;
   }
 
   async update(id: number, dto: UpdateLessonDto, user: AuthenticatedUser) {

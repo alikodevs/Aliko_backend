@@ -13,8 +13,9 @@ export class PortfolioService {
 
   async create(createPortfolioDto: CreatePortfolioDto, user: AuthenticatedUser) {
     const profile = await this.userService.getProfileAndSync(user);
-    if (!profile || profile.role !== EventsRole.ADMIN) {
-      throw new ForbiddenException("Only admins can manage portfolio media.");
+    const isInternal = profile?.role === EventsRole.ADMIN || profile?.role === EventsRole.CONTENT_MANAGER;
+    if (!profile || !isInternal) {
+      throw new ForbiddenException("Only admins and content managers can manage portfolio media.");
     }
 
     return this.prisma.portfolioMedia.create({
@@ -40,8 +41,9 @@ export class PortfolioService {
 
   async remove(id: string, user: AuthenticatedUser) {
     const profile = await this.userService.getProfileAndSync(user);
-    if (!profile || profile.role !== EventsRole.ADMIN) {
-      throw new ForbiddenException("Only admins can manage portfolio media.");
+    const isInternal = profile?.role === EventsRole.ADMIN || profile?.role === EventsRole.CONTENT_MANAGER;
+    if (!profile || !isInternal) {
+      throw new ForbiddenException("Only admins and content managers can manage portfolio media.");
     }
 
     const item = await this.prisma.portfolioMedia.findUnique({ where: { id } });

@@ -1,20 +1,3 @@
-import {
-  utilities as nestWinstonModuleUtilities,
-  WinstonModule,
-} from 'nest-winston';
-import * as winston from 'winston';
+import { createWinstonLogger } from '@alikohub/logger';
 
-export const winstonConfig = WinstonModule.createLogger({
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.ms(),
-        nestWinstonModuleUtilities.format.nestLike('AcademyService', {
-          colors: true,
-          prettyPrint: true,
-        }),
-      ),
-    }),
-  ],
-});
+export const winstonConfig = createWinstonLogger('AcademyService');

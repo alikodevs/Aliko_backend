@@ -54,6 +54,28 @@ export class InspectionsController {
     }
   }
 
+  @MessagePattern({ cmd: 'find_all_inspections' })
+  async findGlobal(
+    @Payload()
+    data: {
+      pagination?: { skip?: number; take?: number };
+      user: AuthenticatedUser;
+    },
+  ) {
+    const { pagination = {}, user } = data;
+    this.logger.log(
+      `Fetching global inspections (requested by: ${user.firebaseId})`,
+    );
+    try {
+      return await this.inspectionsService.findAll(pagination, user);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch global inspections: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
   @MessagePattern({ cmd: 'findAllInspections' })
   @UsePipes(new JoiValidationPipe(GetInspectionsByProjectSchema))
   async findAll(
@@ -144,5 +166,11 @@ export class InspectionsController {
       );
       throw error;
     }
+  }
+
+  @MessagePattern('finalizeInspection')
+  async finalize(@Payload() payload: { id: number; status: string; user: AuthenticatedUser }) {
+    this.logger.log(`Finalizing inspection ${payload.id} with status ${payload.status}`);
+    return this.inspectionsService.finalize(payload.id, payload.status, payload.user);
   }
 }

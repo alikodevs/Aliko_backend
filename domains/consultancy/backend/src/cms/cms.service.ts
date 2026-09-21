@@ -1,10 +1,46 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../generated/client';
+import { EmailService } from '../common/email.service';
 
 @Injectable()
 export class CmsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+  ) { }
+
+  // Webinar Registration
+  async registerForWebinar(webinarId: string, data: { name: string; email: string }) {
+    const { name, email } = data;
+    const webinar = await this.prisma.webinar.findUnique({ where: { id: webinarId } });
+    if (!webinar) {
+      throw new NotFoundException('Webinar not found');
+    }
+
+    const registration = await this.prisma.webinarRegistration.create({
+      data: {
+        webinarId,
+        name,
+        email,
+      },
+    });
+
+    // Send async confirmation email
+    if (webinar.webinarUrl) {
+      this.emailService.sendWebinarConfirmation(
+        data.email,
+        data.name,
+        webinar.title,
+        webinar.webinarUrl,
+        webinar.scheduledAt,
+      ).catch(err => {
+        console.error('Failed to send webinar email:', err);
+      });
+    }
+
+    return registration;
+  }
 
   // Pages
   async createPage(data: Prisma.PageCreateInput) {
@@ -32,12 +68,17 @@ export class CmsService {
   }
 
   // Resources
-  async createResource(data: Prisma.ResourceCreateInput) {
+  async createResource(data: any) {
+    if (data.resourceType) data.resourceType = data.resourceType.toUpperCase();
+    if (data.consultationType) data.consultationType = data.consultationType.toUpperCase();
     return this.prisma.resource.create({ data });
   }
 
   async findAllResources(type?: string) {
-    const where = type ? { resourceType: type as any } : {};
+    const where =
+      typeof type === 'string' && type.trim()
+        ? { resourceType: type.trim().toUpperCase() as any }
+        : {};
     return this.prisma.resource.findMany({ where });
   }
 
@@ -45,7 +86,9 @@ export class CmsService {
     return this.prisma.resource.findUnique({ where: { id } });
   }
 
-  async updateResource(id: string, data: Prisma.ResourceUpdateInput) {
+  async updateResource(id: string, data: any) {
+    if (data.resourceType) data.resourceType = data.resourceType.toUpperCase();
+    if (data.consultationType) data.consultationType = data.consultationType.toUpperCase();
     return this.prisma.resource.update({ where: { id }, data });
   }
 
@@ -54,8 +97,17 @@ export class CmsService {
   }
 
   // Webinars
-  async createWebinar(data: Prisma.WebinarCreateInput) {
-    return this.prisma.webinar.create({ data });
+  private formatWebinarData(data: any) {
+    const formatted = { ...data };
+    if (formatted.scheduledAt && typeof formatted.scheduledAt === 'string') {
+      formatted.scheduledAt = new Date(formatted.scheduledAt);
+    }
+    return formatted;
+  }
+
+  async createWebinar(data: any) {
+    const formattedData = this.formatWebinarData(data);
+    return this.prisma.webinar.create({ data: formattedData });
   }
 
   async findAllWebinars() {
@@ -66,17 +118,43 @@ export class CmsService {
     return this.prisma.webinar.findUnique({ where: { id } });
   }
 
-  async updateWebinar(id: string, data: Prisma.WebinarUpdateInput) {
-    return this.prisma.webinar.update({ where: { id }, data });
+  async updateWebinar(id: string, data: any) {
+    const formattedData = this.formatWebinarData(data);
+    return this.prisma.webinar.update({ where: { id }, data: formattedData });
   }
 
   async removeWebinar(id: string) {
-    return this.prisma.webinar.delete({ where: { id } });
+    return this.prisma.$transaction(async (tx) => {
+      await tx.webinarRegistration.deleteMany({ where: { webinarId: id } });
+      return tx.webinar.delete({ where: { id } });
+    });
+  }
+
+  async findWebinarRegistrations(webinarId?: string) {
+    const where = webinarId ? { webinarId } : {};
+    return this.prisma.webinarRegistration.findMany({
+      where,
+      include: {
+        webinar: {
+          select: { id: true, title: true, slug: true, scheduledAt: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   // Testimonials
-  async createTestimonial(data: Prisma.TestimonialCreateInput) {
-    return this.prisma.testimonial.create({ data });
+  private formatTestimonialData(data: any) {
+    const formatted = { ...data };
+    if (formatted.consultationType && typeof formatted.consultationType === 'string') {
+      formatted.consultationType = formatted.consultationType.toUpperCase();
+    }
+    return formatted;
+  }
+
+  async createTestimonial(data: any) {
+    const formattedData = this.formatTestimonialData(data);
+    return this.prisma.testimonial.create({ data: formattedData });
   }
 
   async findAllTestimonials() {
@@ -87,8 +165,9 @@ export class CmsService {
     return this.prisma.testimonial.findUnique({ where: { id } });
   }
 
-  async updateTestimonial(id: string, data: Prisma.TestimonialUpdateInput) {
-    return this.prisma.testimonial.update({ where: { id }, data });
+  async updateTestimonial(id: string, data: any) {
+    const formattedData = this.formatTestimonialData(data);
+    return this.prisma.testimonial.update({ where: { id }, data: formattedData });
   }
 
   async removeTestimonial(id: string) {

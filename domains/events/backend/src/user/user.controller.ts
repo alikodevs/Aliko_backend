@@ -104,6 +104,61 @@ export class UserController {
     return this.userService.removeProfile(payload.userId);
   }
 
+  @MessagePattern({ cmd: "get_user_role" })
+  @UseGuards(EventsProfileGuard)
+  @UsePipes(new JoiValidationPipe(GetEventsProfileSchema))
+  async getUserRole(@Payload() payload: { user: AuthenticatedUser }) {
+    const profile = await this.userService.getProfileAndSync(payload.user);
+    return {
+      userId: payload.user.firebaseId,
+      role: profile?.role ?? EventsRole.USER,
+    };
+  }
+
+  @MessagePattern({ cmd: "assign_role" })
+  @UseGuards(EventsProfileGuard)
+  async assignRole(
+    @Payload()
+    payload: {
+      dto: { requestedRole: string };
+      user: AuthenticatedUser;
+    },
+  ) {
+    const requested = String(payload.dto?.requestedRole || "").toUpperCase();
+    // Legacy ORGANIZER maps to CONTENT_MANAGER
+    const roleMap: Record<string, EventsRole> = {
+      USER: EventsRole.USER,
+      ORGANIZER: EventsRole.CONTENT_MANAGER,
+      CONTENT_MANAGER: EventsRole.CONTENT_MANAGER,
+      ADMIN: EventsRole.ADMIN,
+    };
+
+    const targetRole = roleMap[requested];
+    if (!targetRole) {
+      throw new ForbiddenException(
+        "Invalid role. Allowed: USER, ORGANIZER, CONTENT_MANAGER",
+      );
+    }
+
+    const current = await this.userService.getProfileAndSync(payload.user);
+
+    // Self-service must not demote or replace an existing ADMIN
+    if (current?.role === EventsRole.ADMIN) {
+      return current;
+    }
+
+    // Self-service cannot escalate to ADMIN
+    if (targetRole === EventsRole.ADMIN) {
+      if (payload.user.globalRole !== "ADMIN") {
+        throw new ForbiddenException(
+          "Cannot self-assign ADMIN. Ask an existing admin.",
+        );
+      }
+    }
+
+    return this.userService.updateRole(payload.user.firebaseId, targetRole);
+  }
+
   @EventPattern("user_created")
   @UsePipes(new JoiValidationPipe(UserCreatedEventSchema))
   async handleUserCreated(

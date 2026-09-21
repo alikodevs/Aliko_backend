@@ -91,22 +91,23 @@ export class ContentController {
     @Payload()
     payload: {
       dto: UploadContentDto;
-      file: UploadedFile;
+      file?: UploadedFile;
       user: AuthenticatedUser;
     },
   ) {
+    const fileName = payload.file?.originalname || payload.dto?.contentUrl || 'N/A';
     this.logger.log(
-      `Uploading file "${payload.file.originalname}" for lesson ${payload.dto.lessonId} by user: ${payload.user.firebaseId}`,
+      `Uploading content "${fileName}" for lesson ${payload.dto.lessonId} by user: ${payload.user.firebaseId}`,
     );
     try {
       return await this.contentService.uploadFile(
         payload.dto,
-        payload.file,
+        payload.file || null,
         payload.user,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to upload file "${payload.file.originalname}" for lesson ${payload.dto.lessonId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to upload content "${fileName}" for lesson ${payload.dto.lessonId} by user ${payload.user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -243,7 +244,7 @@ export class ContentController {
     @Payload()
     payload: {
       query: string;
-      type?: ContentType;
+      type?: string;
       courseId?: number;
       user: AuthenticatedUser;
     },
@@ -252,7 +253,7 @@ export class ContentController {
       `Searching content with query: "${payload.query}" (requested by: ${payload.user.firebaseId})`,
     );
     try {
-      return await this.contentService.searchContent(payload);
+      return await this.contentService.searchContent(payload as any);
     } catch (error) {
       this.logger.error(
         `Failed to search content with query "${payload.query}" by user ${payload.user.firebaseId}: ${error.message}`,

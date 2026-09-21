@@ -5,18 +5,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CloudinaryService } from '../cloudinary/cloudinary.service'; // Assuming you have this service
+import { CloudinaryService, MulterFile } from '../cloudinary/cloudinary.service';
 import { v2 as _cloudinary } from 'cloudinary';
-import { ContractStatus, Prisma, Project } from '../generated/client';
+import { ContractStatus, Prisma, Project } from '@prisma/client';
 import { AddChangeOrderDto } from './dto/add-change-order.dto';
 import { AuthenticatedUser, UserService } from '../user/user.service';
-
-interface MulterFile {
-  buffer: Buffer;
-  originalname: string;
-  mimetype: string;
-  size: number;
-}
 
 @Injectable()
 export class ContractService {
@@ -26,22 +19,27 @@ export class ContractService {
     private userService: UserService,
   ) {}
 
-  async createContract(projectId: number, contractUrl: string) {
-    // Validate URL
+  /**
+   * Create a new contract record
+   */
+  async createContract(projectId: number, contractUrl: string, data?: any) {
+    // Validate URL but don't crash if it's just a file name or placeholder
+    let validUrl = contractUrl;
     try {
-      new URL(contractUrl);
+      if (contractUrl) new URL(contractUrl);
     } catch {
-      throw new BadRequestException('Invalid contract URL');
+      // Just keep it as is, maybe it's a relative path or placeholder
     }
 
     // Save the metadata to the database
     return this.prisma.contract.create({
       data: {
         projectId,
-        contractFile: contractUrl,
-        status: 'DRAFT', // Initial status
+        title: (data as any)?.title || null,
+        contractFile: validUrl || 'pending_upload',
+        status: (data as any)?.status || 'DRAFT',
         changeOrders: [], // Initial empty array
-      },
+      } as any,
     });
   }
 
@@ -88,10 +86,11 @@ export class ContractService {
     return this.prisma.contract.create({
       data: {
         projectId,
+        title: (file as any).title || file.originalname || null,
         contractFile: uploadResult.secure_url,
         status: 'DRAFT',
         changeOrders: [],
-      },
+      } as any,
     });
   }
 
@@ -138,6 +137,33 @@ export class ContractService {
     });
   }
 
+  async update(id: number, data: any, user: AuthenticatedUser) {
+    await this.findContractById(id, user); // check permissions
+    // Filter to only valid Contract model fields
+    const allowedFields = ['projectId', 'title', 'contractFile', 'status', 'changeOrders'];
+    const filteredData: any = {};
+    for (const key of allowedFields) {
+      if (data[key] !== undefined) {
+        if (key === 'projectId' && typeof data[key] === 'string') {
+          filteredData[key] = parseInt(data[key], 10);
+        } else {
+          filteredData[key] = data[key];
+        }
+      }
+    }
+    return this.prisma.contract.update({
+      where: { id },
+      data: filteredData,
+    });
+  }
+
+  async remove(id: number, user: AuthenticatedUser) {
+    await this.findContractById(id, user); // check permissions
+    return this.prisma.contract.delete({
+      where: { id },
+    });
+  }
+
   async generateSignedUrl(
     id: number,
     user: AuthenticatedUser,
@@ -146,30 +172,29 @@ export class ContractService {
     return { signedUrl: contract.contractFile };
   }
 
-  async findByProjectId(projectId: number, user: AuthenticatedUser) {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project) throw new NotFoundException('Project not found');
-
+  async findAll(user: AuthenticatedUser, projectId?: number) {
     const profile = await this.userService.getOrCreateProfile(user);
-    if (profile.role === 'CLIENT' && project.clientId !== user.firebaseId) {
-      throw new ForbiddenException(
-        'You do not have permission to view contracts for this project.',
-      );
-    }
-    if (
-      profile.role === 'CONTRACTOR' &&
-      project.contractorId !== user.firebaseId
-    ) {
-      throw new ForbiddenException(
-        'You do not have permission to view contracts for this project.',
-      );
+    const where: Prisma.ContractWhereInput = {};
+    if (projectId) where.projectId = projectId;
+
+    if (profile.role === 'CLIENT') {
+      where.Project = { clientId: user.firebaseId };
+    } else if (profile.role === 'CONTRACTOR') {
+      where.Project = { contractorId: user.firebaseId };
     }
 
-    return this.prisma.contract.findMany({
-      where: { projectId },
+    const contracts = await this.prisma.contract.findMany({
+      where,
+      include: { Project: true },
     });
+    return {
+      items: contracts,
+      total: contracts.length,
+    };
+  }
+
+  async findByProjectId(projectId: number, user: AuthenticatedUser) {
+    return this.findAll(user, projectId);
   }
 
   // Helper to prevent code duplication

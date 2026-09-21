@@ -93,7 +93,7 @@ export class ProgressAndAnalyticsController {
 
   @MessagePattern({ cmd: 'complete_lesson' })
   @UseGuards(RoleGuard)
-  @Roles('STUDENT')
+  @Roles('STUDENT', 'INSTRUCTOR', 'ADMIN', 'USER')
   @UsePipes(new JoiValidationPipe(CompleteLessonSchema))
   async completeLesson(
     @Payload()
@@ -121,9 +121,39 @@ export class ProgressAndAnalyticsController {
     }
   }
 
+  @MessagePattern({ cmd: 'get_lesson_status' })
+  @UseGuards(RoleGuard)
+  @Roles('STUDENT', 'INSTRUCTOR', 'ADMIN', 'USER')
+  @UsePipes(new JoiValidationPipe(CompleteLessonSchema))
+  async getLessonStatus(
+    @Payload()
+    payload: {
+      courseId: number;
+      lessonId: number;
+      user: AuthenticatedUser;
+    },
+  ) {
+    this.logger.log(
+      `Student ${payload.user.firebaseId} fetching status for lesson ${payload.lessonId} in course ${payload.courseId}`,
+    );
+    try {
+      return await this.service.getLessonStatus(
+        payload.user,
+        payload.courseId,
+        payload.lessonId,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Student ${payload.user.firebaseId} failed to fetch status for lesson ${payload.lessonId} in course ${payload.courseId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
   @MessagePattern({ cmd: 'get_my_dashboard' })
   @UseGuards(RoleGuard)
-  @Roles('STUDENT')
+  @Roles('STUDENT', 'USER')
   @UsePipes(new JoiValidationPipe(UserOnlyProgressSchema))
   async myCoursesProgress(@Payload() payload: { user: AuthenticatedUser }) {
     this.logger.log(
@@ -185,7 +215,7 @@ export class ProgressAndAnalyticsController {
 
   @MessagePattern({ cmd: 'update_content_progress' })
   @UseGuards(RoleGuard)
-  @Roles('STUDENT')
+  @Roles('STUDENT', 'INSTRUCTOR', 'ADMIN', 'USER')
   @UsePipes(new JoiValidationPipe(UpdateContentProgressSchema))
   async updateContentProgress(
     @Payload()
@@ -272,7 +302,7 @@ export class ProgressAndAnalyticsController {
 
   @MessagePattern({ cmd: 'get_student_stats' })
   @UseGuards(RoleGuard)
-  @Roles('STUDENT')
+  @Roles('STUDENT', 'USER')
   @UsePipes(new JoiValidationPipe(UserOnlyProgressSchema))
   async getStudentStats(@Payload() payload: { user: AuthenticatedUser }) {
     this.logger.log(
@@ -283,6 +313,29 @@ export class ProgressAndAnalyticsController {
     } catch (error) {
       this.logger.error(
         `Student ${payload.user.firebaseId} failed to fetch stats: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @MessagePattern({ cmd: 'get_recommended_next_lesson' })
+  @UseGuards(RoleGuard)
+  @Roles('STUDENT', 'INSTRUCTOR', 'ADMIN', 'USER')
+  async getRecommendedNextLesson(
+    @Payload() payload: { courseId: number; user: AuthenticatedUser },
+  ) {
+    this.logger.log(
+      `Fetching recommended next lesson for user ${payload.user.firebaseId} in course ${payload.courseId}`,
+    );
+    try {
+      return await this.service.getRecommendedNextLesson(
+        payload.user,
+        payload.courseId,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch recommended next lesson for user ${payload.user.firebaseId} in course ${payload.courseId}: ${error.message}`,
         error.stack,
       );
       throw error;

@@ -7,6 +7,7 @@ import { AcademyProfileGuard } from '../auth/academy-profile.guard';
 import { RoleGuard } from '../auth/role-guard/role-guard';
 import { Roles } from '../auth/role-guard/roles.decorator';
 import { JoiValidationPipe } from '../common/pipes/joi-validation.pipe';
+import { toRpcException } from '../common/utils/to-rpc-exception';
 import {
   CreateNotificationSchema,
   NotificationIdSchema,
@@ -38,7 +39,7 @@ export class NotificationsController {
         `Failed to create notification for user ${payload.dto.userId} by user ${payload.user.firebaseId}: ${error.message}`,
         error.stack,
       );
-      throw error;
+      throw toRpcException(error);
     }
   }
 
@@ -55,7 +56,26 @@ export class NotificationsController {
         `User ${payload.user.firebaseId} failed to fetch their notifications: ${error.message}`,
         error.stack,
       );
-      throw error;
+      throw toRpcException(error);
+    }
+  }
+
+  @MessagePattern({ cmd: 'get_notification_by_id' })
+  @UsePipes(new JoiValidationPipe(NotificationIdSchema))
+  async getById(
+    @Payload() payload: { id: number; user: AuthenticatedUser },
+  ) {
+    this.logger.log(
+      `User ${payload.user.firebaseId} fetching notification ${payload.id}`,
+    );
+    try {
+      return await this.service.getNotificationById(payload.user, payload.id);
+    } catch (error) {
+      this.logger.error(
+        `User ${payload.user.firebaseId} failed to fetch notification ${payload.id}: ${error.message}`,
+        error.stack,
+      );
+      throw toRpcException(error);
     }
   }
 
@@ -72,7 +92,7 @@ export class NotificationsController {
         `User ${payload.user.firebaseId} failed to mark notification ${payload.id} as read: ${error.message}`,
         error.stack,
       );
-      throw error;
+      throw toRpcException(error);
     }
   }
 
@@ -91,7 +111,7 @@ export class NotificationsController {
         `User ${payload.user.firebaseId} failed to delete notification ${payload.id}: ${error.message}`,
         error.stack,
       );
-      throw error;
+      throw toRpcException(error);
     }
   }
 
@@ -113,7 +133,7 @@ export class NotificationsController {
         `Internal: Failed to create progress notification for user ${payload.userId}: ${error.message}`,
         error.stack,
       );
-      throw error;
+      throw toRpcException(error);
     }
   }
 
@@ -141,7 +161,7 @@ export class NotificationsController {
         `Internal: Failed to notify instructors about student ${payload.studentId} progress in course ${payload.courseId}: ${error.message}`,
         error.stack,
       );
-      throw error;
+      throw toRpcException(error);
     }
   }
 }

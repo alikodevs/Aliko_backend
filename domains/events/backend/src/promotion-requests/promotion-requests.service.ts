@@ -18,15 +18,21 @@ export class PromotionRequestsService {
     @Inject("AUTH_SERVICE") private authClient: ClientProxy,
   ) {}
 
-  async create(dto: CreatePromotionRequestDto) {
+  async create(dto: CreatePromotionRequestDto, userId?: string) {
     const request = await this.prisma.promotionRequest.create({
       data: {
         companyName: dto.companyName,
         contactPerson: dto.contactPerson,
         email: dto.email,
         phoneNumber: dto.phoneNumber,
+        organization: dto.organization,
+        event_type: dto.event_type,
+        estimatedAttendees: dto.estimatedAttendees,
+        preferredDate: dto.preferredDate ? new Date(dto.preferredDate) : null,
+        location: dto.location,
         type: dto.type as any,
         message: dto.message,
+        userId: userId || null,
       },
     });
 
@@ -35,7 +41,19 @@ export class PromotionRequestsService {
       name: dto.contactPerson,
       email: dto.email,
       subject: `New Promotion Request: ${dto.companyName}`,
-      message: `Company: ${dto.companyName}\nContact: ${dto.contactPerson}\nPhone: ${dto.phoneNumber || "N/A"}\nType: ${dto.type}\n\nDetails: ${dto.message}`,
+      message: `
+        Company: ${dto.companyName}
+        Contact: ${dto.contactPerson}
+        Phone: ${dto.phoneNumber || "N/A"}
+        Type: ${dto.type}
+        Org: ${dto.organization || "N/A"}
+        Event Type: ${dto.event_type || "N/A"}
+        Estimated Attendees: ${dto.estimatedAttendees || "N/A"}
+        Preferred Date: ${dto.preferredDate || "N/A"}
+        Location: ${dto.location || "N/A"}
+
+        Details: ${dto.message}
+      `,
     });
 
     return request;
@@ -48,6 +66,13 @@ export class PromotionRequestsService {
     }
 
     return this.prisma.promotionRequest.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async findMyRequests(userId: string) {
+    return this.prisma.promotionRequest.findMany({
+      where: { userId },
       orderBy: { createdAt: "desc" },
     });
   }
@@ -69,5 +94,39 @@ export class PromotionRequestsService {
       where: { id },
       data: { status: "REVIEWED" },
     });
+  }
+
+  async convertToEvent(id: string, user: AuthenticatedUser) {
+    const profile = await this.userService.getProfileAndSync(user);
+    if (!profile || profile.role !== EventsRole.ADMIN) {
+      throw new ForbiddenException("Only admins can convert proposals.");
+    }
+
+    const request = await this.prisma.promotionRequest.findUnique({
+      where: { id },
+    });
+    if (!request) throw new NotFoundException("Proposal not found");
+
+    // Create a new Post (Event) from the proposal
+    const post = await this.prisma.post.create({
+      data: {
+        type: request.type,
+        title: `Draft: ${request.companyName} Event`,
+        excerpt: `Proposal from ${request.contactPerson} (${request.organization || request.companyName})`,
+        content: request.message,
+        status: "DRAFT",
+        authorId: user.firebaseId,
+        location: request.location,
+        eventDate: request.preferredDate,
+      },
+    });
+
+    // Mark proposal as converted
+    await this.prisma.promotionRequest.update({
+      where: { id },
+      data: { status: "CONVERTED" },
+    });
+
+    return post;
   }
 }

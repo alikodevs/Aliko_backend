@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
-import { CloudinaryService } from './cloudinary/cloudinary.service';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { InspectionsModule } from './inspections/inspections.module';
 import { UserApplicationModule } from './user-application/user-application.module';
@@ -37,6 +36,5 @@ import { AppController } from './app.controller';
     ContactModule,
   ],
   controllers: [AppController],
-  providers: [CloudinaryService],
 })
 export class AppModule {}

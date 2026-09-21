@@ -63,4 +63,9 @@ export class CreatePostDto {
   @IsString()
   @IsOptional()
   templateId?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
 }
+

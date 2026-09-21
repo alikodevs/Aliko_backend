@@ -9,7 +9,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
-import { ProjectStatus } from '../generated/client';
+import { ProjectStatus } from '@prisma/client';
 import { CommentsService } from './comments.service';
 import { AuthenticatedUser } from '../user/user.service';
 import { ConTechProfileGuard, RoleGuard, Roles } from '../auth';
@@ -452,21 +452,21 @@ export class ProjectsController {
   async getComments(
     @Payload()
     payload: {
-      projectId: number;
+      id: number;
       user: AuthenticatedUser;
     },
   ) {
     this.logger.log(
-      `Fetching comments for project ID: ${payload.projectId} (requested by: ${payload.user.firebaseId})`,
+      `Fetching comments for project ID: ${payload.id} (requested by: ${payload.user.firebaseId})`,
     );
     try {
       return await this.commentsService.findByProject(
-        payload.projectId,
+        payload.id,
         payload.user,
       );
     } catch (error: any) {
       this.logger.error(
-        `Failed to fetch comments for project ID ${payload.projectId} by user ${payload.user.firebaseId}: ${(error as Error).message}`,
+        `Failed to fetch comments for project ID ${payload.id} by user ${payload.user.firebaseId}: ${(error as Error).message}`,
         (error as Error).stack,
       );
       throw error;

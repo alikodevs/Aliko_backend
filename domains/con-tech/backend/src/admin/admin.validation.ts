@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { ContechRole } from '../generated/client';
+import { ContechRole } from '@prisma/client';
 
 export const AdminDashboardSchema = Joi.object({
   user: Joi.any().required().description('The authenticated admin user domain'),

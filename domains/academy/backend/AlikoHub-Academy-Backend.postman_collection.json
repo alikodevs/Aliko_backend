@@ -60,6 +60,58 @@
               ]
             }
           }
+        },
+        {
+          "name": "Forgot Password (Academy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{email}}\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "forgot-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reset Password (Academy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{email}}\",\"newPassword\":\"NewSecurePassword123!\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "reset-password"
+              ]
+            }
+          }
         }
       ]
     },

@@ -8,7 +8,7 @@ import { RpcException } from '@nestjs/microservices';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
-import { ProjectStatus, Prisma } from '../generated/client';
+import { ProjectStatus, Prisma } from '@prisma/client';
 import { AuthenticatedUser, UserService } from '../user/user.service';
 import { winstonLogger } from '../logger';
 
@@ -50,15 +50,15 @@ export class ProjectsService {
         await this.userService.ensureProfileExists(dto.contractorId);
 
       // Check if project with same name exists for this manager
+      const { budget, location, ...restDto } = dto;
+      const metadata = budget ? { budget } : Prisma.JsonNull;
+
       const result = await this.prisma.project.create({
         data: {
-          ...dto,
+          ...restDto,
+          site: location || restDto.site,
+          metadata: budget ? { budget } : undefined,
           manager: user.firebaseId,
-          // contractorId: user.firebaseId, // REMOVE: This was likely a placeholder bug.
-          // inspectorId: user.firebaseId, // REMOVE: Placeholder logic?
-          // Wait, if not provided in DTO, it shouldn't default to Creator unless intended.
-          // Reverting to safe logic: usage of spread ...dto takes precedence if verified, but let's be careful.
-          // The creation logic seemed to force contractorId = user.firebaseId. I should fix this.
           contractorId: dto.contractorId,
           endDate: dto.endDate ? new Date(dto.endDate) : null,
           startDate: dto.startDate ? new Date(dto.startDate) : null,
@@ -248,10 +248,14 @@ export class ProjectsService {
     if (dto.contractorId)
       await this.userService.ensureProfileExists(dto.contractorId);
 
+    const { budget, location, ...restDto } = dto;
+
     return await this.prisma.project.update({
       where: { id },
       data: {
-        ...dto,
+        ...restDto,
+        ...(location !== undefined && { site: location }),
+        ...(budget !== undefined && { metadata: { budget } }),
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
         updatedBy: user.firebaseId,
@@ -351,19 +355,57 @@ export class ProjectsService {
       where.clientId = user.firebaseId;
     }
 
-    const [totalProjects, activeProjects, completedProjects, plannedProjects] =
+    const totalProjects = await this.prisma.project.count({ where });
+    const activeProjects = await this.prisma.project.count({
+      where: { ...where, status: 'ACTIVE' },
+    });
+    const completedProjects = await this.prisma.project.count({
+      where: { ...where, status: 'COMPLETED' },
+    });
+    const plannedProjects = await this.prisma.project.count({
+      where: { ...where, status: 'PLANNED' },
+    });
+
+    // Sub-stats
+    const [overdueTasksCount, upcomingInspectionsCount, pendingContractsValue] =
       await Promise.all([
-        this.prisma.project.count({ where }),
-        this.prisma.project.count({ where: { ...where, status: 'ACTIVE' } }),
-        this.prisma.project.count({ where: { ...where, status: 'COMPLETED' } }),
-        this.prisma.project.count({ where: { ...where, status: 'PLANNED' } }),
+        this.prisma.task.count({
+          where: {
+            status: { not: 'COMPLETED' },
+            deadline: { lt: new Date() },
+            Project: where,
+          },
+        }),
+        this.prisma.inspection.count({
+          where: {
+            status: { in: ['PENDING', 'SCHEDULED'] },
+            Project: where,
+          },
+        }),
+        this.prisma.contract.findMany({
+          where: {
+            status: { in: ['DRAFT', 'PENDING_APPROVAL'] },
+            Project: where,
+          },
+          select: {
+            value: true,
+          },
+        }),
       ]);
+
+    const totalPendingValue = pendingContractsValue.reduce(
+      (acc, curr) => acc + (curr.value || 0),
+      0,
+    );
 
     return {
       total: totalProjects,
       active: activeProjects,
       completed: completedProjects,
       planned: plannedProjects,
+      overdueTasks: overdueTasksCount,
+      upcomingInspections: upcomingInspectionsCount,
+      pendingContractsValue: totalPendingValue,
     };
   }
 
@@ -391,9 +433,13 @@ export class ProjectsService {
     const isAssignedContractor =
       contechProfile.role === 'CONTRACTOR' &&
       project.contractorId === user.firebaseId;
+    const isProjectManager =
+      contechProfile.role === 'PROJECT_MANAGER' &&
+      project.manager === user.firebaseId;
+    const isOwner = project.manager === user.firebaseId; // Current creator
     const isAdmin = contechProfile.role === 'ADMIN';
 
-    if (!isAssignedContractor && !isAdmin) {
+    if (!isAssignedContractor && !isProjectManager && !isAdmin && !isOwner) {
       throw new ForbiddenException(
         'You do not have permission to update progress for this project',
       );

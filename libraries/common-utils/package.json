@@ -10,5 +10,17 @@
   "dependencies": {},
   "devDependencies": {
     "jest": "^29.4.0"
-  }
+  },
+  "types": "src/index.js",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "require": "./src/index.js",
+      "default": "./src/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ]
 }

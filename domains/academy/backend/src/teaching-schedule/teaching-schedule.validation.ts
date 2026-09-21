@@ -22,23 +22,29 @@ export const CreateTeachingScheduleSchema = Joi.object({
       .description('The ID of the course'),
     cohortId: Joi.number()
       .integer()
-      .required()
-      .description('The ID of the cohort'),
+      .optional()
+      .allow(null)
+      .description('Optional associated cohort ID'),
     title: Joi.string().required().description('The title of the session'),
     description: Joi.string()
       .optional()
       .allow('')
+      .allow(null)
       .description('Detailed description of the session'),
     startTime: Joi.date().required().description('Scheduled start time'),
     endTime: Joi.date().required().description('Scheduled end time'),
     type: Joi.string()
-      .valid('LIVE_SESSION', 'WEBINAR', 'OFFICE_HOURS', 'WORKSHOP')
+      .valid('LIVE', 'RECORDING', 'Q_AND_A', 'OFFICE_HOURS', 'WORKSHOP')
       .required()
       .description('The type of meeting'),
-    meetingLink: Joi.string()
+    isRecurring: Joi.boolean()
       .optional()
-      .allow('')
-      .description('URL link for the meeting (Zoom, Meet, etc.)'),
+      .default(false)
+      .description('Whether the schedule is recurring'),
+    recurrencePattern: Joi.string()
+      .optional()
+      .allow('', null)
+      .description('Recurrence pattern (if recurring)'),
   })
     .required()
     .description('Schedule creation details'),
@@ -54,18 +60,26 @@ export const UpdateTeachingScheduleSchema = Joi.object({
     title: Joi.string().optional().description('The updated title'),
     description: Joi.string()
       .optional()
-      .allow('')
+      .allow('', null)
       .description('The updated description'),
     startTime: Joi.date().optional().description('The updated start time'),
     endTime: Joi.date().optional().description('The updated end time'),
     type: Joi.string()
-      .valid('LIVE_SESSION', 'WEBINAR', 'OFFICE_HOURS', 'WORKSHOP')
+      .valid('LIVE', 'RECORDING', 'Q_AND_A', 'OFFICE_HOURS', 'WORKSHOP')
       .optional()
       .description('The updated type'),
-    meetingLink: Joi.string()
+    isRecurring: Joi.boolean()
       .optional()
-      .allow('')
-      .description('The updated meeting link'),
+      .description('Whether the schedule is recurring'),
+    recurrencePattern: Joi.string()
+      .optional()
+      .allow('', null)
+      .description('The updated recurrence pattern'),
+    cohortId: Joi.number()
+      .integer()
+      .optional()
+      .allow(null)
+      .description('The updated cohort ID'),
   })
     .required()
     .description('Schedule update details'),

@@ -1,0 +1,32 @@
+{
+  "name": "@alikohub/rabbitmq",
+  "version": "1.0.0",
+  "description": "Shared RabbitMQ Nest helpers for AlikoHub",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/microservices": "^11.1.6",
+    "amqp-connection-manager": "^4.1.14",
+    "amqplib": "^0.10.9"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ]
+}

@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
+import { SubmissionStatus } from '../generated/client';
 
 function assertUser(
   user?: AuthenticatedUser,
@@ -89,7 +90,7 @@ export class ProgressAndAnalyticsService {
     if (!course) throw new NotFoundException('Course not found');
 
     if (
-      academyProfile.role === 'STUDENT' &&
+      (academyProfile.role === 'STUDENT' || academyProfile.role === 'USER') &&
       requestingUser.firebaseId !== targetUserId
     ) {
       throw new ForbiddenException(
@@ -110,6 +111,27 @@ export class ProgressAndAnalyticsService {
       where: { userId: targetUserId, courseId },
       orderBy: { updatedAt: 'desc' },
     });
+  }
+
+  // --- Update enrollment progress ---
+  async updateEnrollmentProgress(
+    userId: string,
+    courseId: number,
+    percentage: number,
+  ) {
+    const enrollment = await this.prisma.enrollment.findFirst({
+      where: {
+        userId,
+        OR: [{ courseId }, { cohort: { courseId } }],
+      },
+    });
+
+    if (enrollment) {
+      await this.prisma.enrollment.update({
+        where: { id: enrollment.id },
+        data: { progress: percentage },
+      });
+    }
   }
 
   // --- Get course analytics ---
@@ -159,8 +181,13 @@ export class ProgressAndAnalyticsService {
 
     const academyProfile = await this.userService.getOrCreateProfile(user);
 
-    if (academyProfile.role !== 'STUDENT') {
-      throw new ForbiddenException('Only students can complete lessons.');
+    if (
+      academyProfile.role !== 'STUDENT' &&
+      academyProfile.role !== 'INSTRUCTOR' &&
+      academyProfile.role !== 'ADMIN' &&
+      academyProfile.role !== 'USER'
+    ) {
+      throw new ForbiddenException('Only students and instructors can complete lessons.');
     }
 
     const enrollment = await this.prisma.enrollment.findFirst({
@@ -173,7 +200,7 @@ export class ProgressAndAnalyticsService {
       throw new ForbiddenException('Not enrolled in this course.');
 
     const existing = await this.prisma.progress.findFirst({
-      where: { userId: user.firebaseId, courseId, lessonId },
+      where: { userId: user.firebaseId, courseId, lessonId, contentId: null },
     });
     if (existing) return existing;
 
@@ -199,7 +226,56 @@ export class ProgressAndAnalyticsService {
       );
     }
 
+    // Update enrollment progress percentage
+    const courseProgress = await this.getStudentCourseProgress(
+      user.firebaseId,
+      courseId,
+    );
+    await this.updateEnrollmentProgress(
+      user.firebaseId,
+      courseId,
+      courseProgress.percentage,
+    );
+
     return progress;
+  }
+
+  // --- Get lesson completion status ---
+  async getLessonStatus(
+    user: AuthenticatedUser | undefined,
+    courseId: number,
+    lessonId: number,
+  ) {
+    assertUser(user);
+
+    const academyProfile = await this.userService.getOrCreateProfile(user);
+
+    if (
+      academyProfile.role !== 'STUDENT' &&
+      academyProfile.role !== 'INSTRUCTOR' &&
+      academyProfile.role !== 'ADMIN' &&
+      academyProfile.role !== 'USER'
+    ) {
+      throw new ForbiddenException('Access denied.');
+    }
+
+    const enrollment = await this.prisma.enrollment.findFirst({
+      where: {
+        userId: user.firebaseId,
+        OR: [{ courseId }, { cohort: { courseId } }],
+      },
+    });
+    if (!enrollment)
+      throw new ForbiddenException('Not enrolled in this course.');
+
+    const existing = await this.prisma.progress.findFirst({
+      where: { userId: user.firebaseId, courseId, lessonId, contentId: null },
+    });
+
+    return {
+      completed: !!existing,
+      progress: existing || null,
+    };
   }
 
   // --- Get student's progress in a course ---
@@ -210,7 +286,13 @@ export class ProgressAndAnalyticsService {
     });
 
     const completed = await this.prisma.progress.count({
-      where: { userId, courseId, lessonId: { not: null }, status: 'COMPLETED' },
+      where: {
+        userId,
+        courseId,
+        lessonId: { not: null },
+        contentId: null, // Only count lesson completion entries
+        status: 'COMPLETED',
+      },
     });
 
     const percentage =
@@ -224,7 +306,7 @@ export class ProgressAndAnalyticsService {
 
     const academyProfile = await this.userService.getOrCreateProfile(user);
 
-    if (academyProfile.role !== 'STUDENT') {
+    if (academyProfile.role !== 'STUDENT' && academyProfile.role !== 'USER') {
       throw new ForbiddenException('Only students have dashboards.');
     }
 
@@ -255,6 +337,34 @@ export class ProgressAndAnalyticsService {
         };
       }),
     );
+  }
+
+  async getRecommendedNextLesson(user: AuthenticatedUser, courseId: number) {
+    // 1. Find all lessons in the course
+    const lessons = await this.prisma.lesson.findMany({
+      where: { module: { courseId } },
+      orderBy: [{ module: { id: 'asc' } }, { order: 'asc' }],
+    });
+
+    if (lessons.length === 0) return null;
+
+    // 2. Find completed lessons
+    const completedProgress = await this.prisma.progress.findMany({
+      where: {
+        userId: user.firebaseId,
+        courseId,
+        lessonId: { not: null },
+        status: 'COMPLETED',
+      },
+      select: { lessonId: true },
+    });
+
+    const completedLessonIds = new Set(completedProgress.map((p) => p.lessonId));
+
+    // 3. Find the first lesson that is NOT completed
+    const nextLesson = lessons.find((l) => !completedLessonIds.has(l.id));
+
+    return nextLesson || lessons[lessons.length - 1]; // Return first uncompleted or the last one if all done
   }
 
   // --- Get progress of all students for a course ---
@@ -337,8 +447,13 @@ export class ProgressAndAnalyticsService {
 
     const academyProfile = await this.userService.getOrCreateProfile(user);
 
-    if (academyProfile.role !== 'STUDENT') {
-      throw new ForbiddenException('Only students can update their progress.');
+    if (
+      academyProfile.role !== 'STUDENT' &&
+      academyProfile.role !== 'INSTRUCTOR' &&
+      academyProfile.role !== 'ADMIN' &&
+      academyProfile.role !== 'USER'
+    ) {
+      throw new ForbiddenException('Only students and instructors can update their progress.');
     }
 
     // Check if student is enrolled in the course (either directly or through a cohort)
@@ -405,7 +520,61 @@ export class ProgressAndAnalyticsService {
       });
     }
 
+    if (status === 'COMPLETED') {
+      await this.checkAndAutoCompleteLesson(user, courseId, lessonId);
+    }
+
     return progress;
+  }
+
+  async checkAndAutoCompleteLesson(
+    user: AuthenticatedUser,
+    courseId: number,
+    lessonId: number,
+  ) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        contents: true,
+        exercises: true,
+      },
+    });
+
+    if (!lesson) return;
+
+    // 1. Check if all contents are completed
+    const contentIds = lesson.contents.map((c) => c.id);
+    if (contentIds.length > 0) {
+      const completedContentsCount = await this.prisma.progress.count({
+        where: {
+          userId: user.firebaseId,
+          contentId: { in: contentIds },
+          status: 'COMPLETED',
+        },
+      });
+      if (completedContentsCount < contentIds.length) return;
+    }
+
+    // 2. Check if all auto-graded exercises are passed
+    const exerciseIds = lesson.exercises.map((e) => e.id);
+    if (exerciseIds.length > 0) {
+      const passedExercisesCount = await this.prisma.exerciseSubmission.count({
+        where: {
+          userId: user.firebaseId,
+          exerciseId: { in: exerciseIds },
+          status: SubmissionStatus.GRADED,
+          isCorrect: true,
+        },
+      });
+      if (passedExercisesCount < exerciseIds.length) return;
+    }
+
+    // All requirements met -> Auto-complete the lesson
+    try {
+      await this.completeLesson(user, courseId, lessonId);
+    } catch (error) {
+      // Ignore if already completed or other issues (best effort auto-complete)
+    }
   }
 
   // --- NEW: Get detailed progress for a student in a course ---
@@ -423,7 +592,10 @@ export class ProgressAndAnalyticsService {
     if (!course) throw new NotFoundException('Course not found');
 
     // Authorization checks
-    if (academyProfile.role === 'STUDENT' && user.firebaseId !== targetUserId) {
+    if (
+      (academyProfile.role === 'STUDENT' || academyProfile.role === 'USER') &&
+      user.firebaseId !== targetUserId
+    ) {
       throw new ForbiddenException(
         'Students can only view their own progress.',
       );
@@ -445,6 +617,7 @@ export class ProgressAndAnalyticsService {
         lessons: {
           include: {
             contents: true,
+            exercises: true,
           },
         },
       },
@@ -452,12 +625,20 @@ export class ProgressAndAnalyticsService {
     });
 
     // Get student's progress
-    const progressRecords = await this.prisma.progress.findMany({
-      where: {
-        userId: targetUserId,
-        courseId,
-      },
-    });
+    const [progressRecords, exerciseSubmissions] = await Promise.all([
+      this.prisma.progress.findMany({
+        where: {
+          userId: targetUserId,
+          courseId,
+        },
+      }),
+      this.prisma.exerciseSubmission.findMany({
+        where: {
+          userId: targetUserId,
+          exercise: { module: { courseId } },
+        },
+      }),
+    ]);
 
     // Calculate progress for each module
     const moduleProgress = await Promise.all(
@@ -477,22 +658,46 @@ export class ProgressAndAnalyticsService {
               };
             });
 
+            const exerciseProgress = lesson.exercises.map((exercise) => {
+              const submission = exerciseSubmissions.find(
+                (s) => s.exerciseId === exercise.id,
+              );
+              return {
+                exerciseId: exercise.id,
+                exerciseTitle: exercise.title,
+                exerciseType: exercise.type,
+                status: submission?.status || 'NOT_STARTED',
+                score: submission?.score,
+                isCorrect: submission?.isCorrect,
+                feedback: submission?.feedback,
+              };
+            });
+
             // Calculate lesson completion
             const completedContents = contentProgress.filter(
               (c) => c.status === 'COMPLETED',
             ).length;
-            const lessonStatus =
-              completedContents === contentProgress.length
-                ? 'COMPLETED'
-                : completedContents > 0
-                  ? 'IN_PROGRESS'
-                  : 'NOT_STARTED';
+
+            const passedExercises = exerciseProgress.filter(
+              (e) => e.status === 'GRADED' && e.isCorrect,
+            ).length;
+
+            const isLessonCompleted =
+              completedContents === contentProgress.length &&
+              passedExercises === exerciseProgress.length;
+
+            const lessonStatus = isLessonCompleted
+              ? 'COMPLETED'
+              : completedContents > 0 || passedExercises > 0
+                ? 'IN_PROGRESS'
+                : 'NOT_STARTED';
 
             return {
               lessonId: lesson.id,
               lessonTitle: lesson.title,
               status: lessonStatus,
               contents: contentProgress,
+              exercises: exerciseProgress,
             };
           }),
         );
@@ -604,7 +809,7 @@ export class ProgressAndAnalyticsService {
 
     const academyProfile = await this.userService.getOrCreateProfile(user);
 
-    if (academyProfile.role !== 'STUDENT') {
+    if (academyProfile.role !== 'STUDENT' && academyProfile.role !== 'USER') {
       throw new ForbiddenException('Only students can view these stats.');
     }
 
@@ -626,6 +831,8 @@ export class ProgressAndAnalyticsService {
         where: {
           userId: user.firebaseId,
           lessonId: { not: null },
+          contentId: null,
+          status: 'COMPLETED',
         },
       }),
       this.prisma.progress.count({

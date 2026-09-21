@@ -23,6 +23,14 @@ export const CreateEnrollmentSchema = Joi.object({
   user: Joi.any()
     .required()
     .description('The authenticated user performing the enrollment'),
+  clientIp: Joi.string()
+    .optional()
+    .allow(null)
+    .description('Client IP address for geo-based payment routing'),
+  clientCountry: Joi.string()
+    .optional()
+    .allow(null)
+    .description('Client country code from CDN headers (e.g. cf-ipcountry)'),
 }).description('Schema for creating a new course enrollment');
 
 export const EnrollmentIdSchema = Joi.object({

@@ -9,7 +9,7 @@ export class CreateEnrollmentDto {
       object.cohortId !== undefined && object.cohortId !== null,
   )
   @IsInt()
-  @Type(() => Number)
+  @Type(() => Number) 
   cohortId?: number;
 
   @IsInt()

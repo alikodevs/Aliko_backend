@@ -36,23 +36,28 @@ export class ApplicationController {
 
   @MessagePattern({ cmd: 'get_application' })
   @Get(':id')
-  findOne(@Param('id') id: string, @Payload() payload: { id: string }) {
-    return this.applicationService.findOne(resolveParam(id, payload?.id));
+  findOne(@Param('id') id: string, @Payload() payload: any) {
+    const targetId = resolveParam(id, payload, 'id');
+    return this.applicationService.findOne(targetId);
   }
 
   @MessagePattern({ cmd: 'get_user_applications' })
-  handleGetUserApplications(@Payload() payload: { userId: string }) {
-    return this.applicationService.findByUserId(payload.userId);
+  handleGetUserApplications(@Payload() payload: any) {
+    const targetUserId = resolveParam(undefined, payload, 'userId');
+    return this.applicationService.findByUserId(targetUserId);
   }
 
   @MessagePattern({ cmd: 'get_application_by_code' })
-  findByCode(@Payload() payload: { code: string }) {
-    return this.applicationService.findByCode(payload.code);
+  findByCode(@Payload() payload: any) {
+    const targetCode = resolveParam(undefined, payload, 'code');
+    return this.applicationService.findByCode(targetCode);
   }
 
   @MessagePattern({ cmd: 'update_application' })
-  update(@Payload() payload: { id: string; data: Prisma.ApplicationUpdateInput }) {
-    return this.applicationService.update(payload.id, payload.data || (payload as any));
+  update(@Payload() payload: any) {
+    const dataObj = payload.data || payload;
+    const { id, ...dataToUpdate } = dataObj;
+    return this.applicationService.update(payload.id || id, dataToUpdate);
   }
 
   @MessagePattern({ cmd: 'update_application_status' })
@@ -65,16 +70,17 @@ export class ApplicationController {
       notes?: string;
       changedBy?: string;
     },
+    // Keep decorators for HTTP fallback if needed, but only use payload for logic
     @Param('id') id?: string,
     @Body('status') status?: ApplicationStatus,
     @Body('notes') notes?: string,
     @Body('changedBy') changedBy?: string,
   ) {
     return this.applicationService.updateStatus(
-      resolveParam(id, payload.id),
-      resolveParam(status, payload.status),
-      resolveParam(notes, payload.notes),
-      resolveParam(changedBy, payload.changedBy),
+      payload.id || id as string,
+      payload.status || status as any,
+      payload.notes || notes,
+      payload.changedBy || changedBy,
     );
   }
 

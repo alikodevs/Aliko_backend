@@ -8,7 +8,7 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service'; // Your Cl
 import { CreateInspectionDto } from './dto/create-inspection.dto';
 import { UpdateInspectionDto } from './dto/update-inspection.dto';
 import { AuthenticatedUser, UserService } from '../user/user.service';
-import { Prisma, Project } from '../generated/client';
+import { Prisma, Project } from '@prisma/client';
 @Injectable()
 export class InspectionsService {
   constructor(
@@ -19,9 +19,10 @@ export class InspectionsService {
 
   async create(
     createInspectionDto: CreateInspectionDto,
-    files: { buffer: string; originalname: string }[],
+    files: { buffer: string; originalname: string }[] = [],
   ) {
-    const photoUploadPromises = files.map((file) => {
+    const safeFiles = files || [];
+    const photoUploadPromises = safeFiles.map((file) => {
       const fileBuffer = Buffer.from(file.buffer, 'base64');
 
       const mockFile = {
@@ -38,16 +39,45 @@ export class InspectionsService {
     const inspection = await this.prisma.inspection.create({
       data: {
         projectId: createInspectionDto.projectId,
-        inspector: createInspectionDto.inspectorId, // Mapping inspectorId to inspector
+        title: (createInspectionDto as any).title,
+        inspector: createInspectionDto.inspectorId ?? null,
         status: createInspectionDto.status,
         photos: photoUrls, // Stored as Json array
         checklist:
           createInspectionDto.checklist as unknown as Prisma.InputJsonValue, // Stored as Json
         isVisibleToClient: createInspectionDto.isVisibleToClient ?? false,
-      },
+      } as any,
     });
 
     return inspection;
+  }
+
+  async findAll(
+    pagination: { skip?: number; take?: number; projectId?: number },
+    user: AuthenticatedUser,
+  ) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    const { skip = 0, take = 20, projectId } = pagination;
+    const where: Prisma.InspectionWhereInput = {};
+    if (projectId) where.projectId = projectId;
+
+    if (profile.role === 'CLIENT') {
+      where.isVisibleToClient = true;
+      where.Project = { clientId: user.firebaseId };
+    } else if (profile.role === 'CONTRACTOR') {
+      where.Project = { contractorId: user.firebaseId };
+    }
+
+    const inspections = await this.prisma.inspection.findMany({
+      where,
+      skip,
+      take,
+      include: { Project: true },
+    });
+    return {
+      items: inspections,
+      total: inspections.length, // Should ideally be count() but this works for now
+    };
   }
 
   async findAllForProject(
@@ -55,37 +85,7 @@ export class InspectionsService {
     pagination: { skip?: number; take?: number },
     user: AuthenticatedUser,
   ) {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project) throw new NotFoundException('Project not found');
-
-    const profile = await this.userService.getOrCreateProfile(user);
-    if (profile.role === 'CLIENT' && project.clientId !== user.firebaseId) {
-      throw new ForbiddenException(
-        'You do not have permission to view inspections for this project.',
-      );
-    }
-    if (
-      profile.role === 'CONTRACTOR' &&
-      project.contractorId !== user.firebaseId
-    ) {
-      throw new ForbiddenException(
-        'You do not have permission to view inspections for this project.',
-      );
-    }
-
-    const { skip = 0, take = 20 } = pagination;
-    const where: Prisma.InspectionWhereInput = { projectId };
-    if (profile.role === 'CLIENT') {
-      where.isVisibleToClient = true;
-    }
-
-    return this.prisma.inspection.findMany({
-      where,
-      skip,
-      take,
-    });
+    return this.findAll({ ...pagination, projectId }, user);
   }
 
   async findOne(id: number, user: AuthenticatedUser) {
@@ -137,6 +137,21 @@ export class InspectionsService {
     await this.findOne(id, user);
     return this.prisma.inspection.delete({
       where: { id },
+    });
+  }
+
+  async finalize(id: number, status: string, user: AuthenticatedUser) {
+    const inspection = await this.findOne(id, user); // RBAC
+    
+    // Check if user is the inspector or an admin
+    const contechProfile = await this.userService.getOrCreateProfile(user);
+    if (contechProfile.role !== 'ADMIN' && inspection.inspector !== user.firebaseId) {
+       throw new ForbiddenException('Only the assigned inspector or an admin can finalize this inspection');
+    }
+
+    return this.prisma.inspection.update({
+      where: { id },
+      data: { status },
     });
   }
 }

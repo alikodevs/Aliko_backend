@@ -58,8 +58,9 @@ export class BookingController {
     @Payload() payload: any,
   ) {
     const targetId = resolveParam(id, payload?.id);
-    const resolvedData = resolvePayload(data, payload);
-    return this.bookingService.update(targetId, resolvedData);
+    const resolvedData = resolvePayload(data, payload?.data || payload);
+    const { id: ignoredId, ...updateFields } = resolvedData || {};
+    return this.bookingService.update(targetId, updateFields);
   }
 
   @Delete(':id')

@@ -1,4 +1,4 @@
-import { InspectionStatus } from '../../generated/client';
+import { InspectionStatus } from '@prisma/client';
 import {
   IsArray,
   IsEnum,
@@ -17,8 +17,12 @@ export class CreateInspectionDto {
   projectId: number;
 
   @IsString()
-  @IsNotEmpty()
-  inspectorId: string;
+  @IsOptional()
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  inspectorId?: string;
 
   @IsEnum(InspectionStatus)
   @IsOptional()

@@ -49,12 +49,19 @@ export class CoursesController {
 
   @MessagePattern({ cmd: 'find_all_courses' })
   @UsePipes(new JoiValidationPipe(FindAllCoursesSchema))
-  async findAll(@Payload() payload: { query: any; user: AuthenticatedUser }) {
+  async findAll(
+    @Payload() payload: { query: any; user: AuthenticatedUser; clientIp?: string; clientCountry?: string },
+  ) {
     this.logger.log(
       `Fetching courses with query: ${JSON.stringify(payload.query)} for user: ${payload.user?.firebaseId || 'guest'}`,
     );
     try {
-      return await this.coursesService.findAll(payload.query, payload.user);
+      return await this.coursesService.findAll(
+        payload.query,
+        payload.user,
+        payload.clientIp,
+        payload.clientCountry,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to fetch courses with query ${JSON.stringify(payload.query)}: ${error.message}`,
@@ -66,12 +73,19 @@ export class CoursesController {
 
   @MessagePattern({ cmd: 'find_course_by_id' })
   @UsePipes(new JoiValidationPipe(FindOneCourseSchema))
-  async findOne(@Payload() payload: { id: number; user?: AuthenticatedUser }) {
+  async findOne(
+    @Payload() payload: { id: number; user?: AuthenticatedUser; clientIp?: string; clientCountry?: string },
+  ) {
     this.logger.log(
       `Fetching details for course ID: ${payload.id} by user: ${payload.user?.firebaseId || 'guest'}`,
     );
     try {
-      return await this.coursesService.findOne(payload.id, payload.user);
+      return await this.coursesService.findOne(
+        payload.id,
+        payload.user,
+        payload.clientIp,
+        payload.clientCountry,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to fetch details for course ID ${payload.id} by user ${payload.user?.firebaseId || 'guest'}: ${error.message}`,
@@ -275,6 +289,44 @@ export class CoursesController {
     } catch (error) {
       this.logger.error(
         `Failed to fetch instructor courses with stats for user ${payload.user.firebaseId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @MessagePattern({ cmd: 'get_course_with_structure' })
+  @UseGuards(AcademyProfileGuard, RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN', 'STUDENT')
+  @UsePipes(new JoiValidationPipe(CourseIdSchema))
+  async getCourseWithStructure(@Payload() payload: { id: number; user: AuthenticatedUser }) {
+    this.logger.log(
+      `Fetching course with full structure for ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+    );
+    try {
+      return await this.coursesService.getCourseWithStructure(payload.id, payload.user);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch course structure for ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @MessagePattern({ cmd: 'get_my_draft_courses' })
+  @UseGuards(AcademyProfileGuard, RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  @UsePipes(new JoiValidationPipe(InstructorOnlySchema))
+  async getMyDraftCourses(@Payload() payload: { user: AuthenticatedUser }) {
+    this.logger.log(
+      `Fetching my draft courses for instructor: ${payload.user.firebaseId}`,
+    );
+    try {
+      return await this.coursesService.getInstructorDraftCourses(payload.user);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch my draft courses for instructor ${payload.user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;

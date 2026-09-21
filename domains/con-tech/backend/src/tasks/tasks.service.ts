@@ -12,7 +12,7 @@ import {
   TaskPriority as _TaskPriority,
   Prisma,
   Project,
-} from '../generated/client';
+} from '@prisma/client';
 import { AuthenticatedUser, UserService } from '../user/user.service';
 
 type FindTasksQuery = {
@@ -48,66 +48,49 @@ export class TasksService {
       );
     }
 
-    if (!dto.assignedTo)
-      throw new BadRequestException('Assigned user is required');
-    // Ensure user has a profile and is synced from Auth
-    await this.userService.ensureProfileExists(dto.assignedTo);
-    const assignee = await this.userService.getUserById(dto.assignedTo);
-    if (!assignee)
-      throw new BadRequestException('Assigned user does not exist');
+    if (dto.assignedTo) {
+      // Ensure user has a profile and is synced from Auth
+      await this.userService.ensureProfileExists(dto.assignedTo);
+      const assignee = await this.userService.getUserById(dto.assignedTo);
+      if (!assignee)
+        throw new BadRequestException('Assigned user does not exist');
+    }
 
     return await this.prisma.task.create({
       data: {
         projectId: dto.projectId,
-        description: dto.description,
+        description: dto.description ?? '',
         status: 'PENDING',
         deadline: dto.deadline ? new Date(dto.deadline) : new Date(),
-        assignedTo: dto.assignedTo,
+        assignedTo: (dto.assignedTo as any) ?? null,
         isVisibleToClient: dto.isVisibleToClient ?? false,
       },
     });
   }
 
-  async findByProject(
-    projectId: number,
-    query: FindTasksQuery,
-    user: AuthenticatedUser,
-  ) {
+  async findAll(query: FindTasksQuery, user: AuthenticatedUser) {
     const contechProfile = await this.userService.getOrCreateProfile(user);
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project) throw new NotFoundException('Project not found');
-
-    // RBAC Check
-    if (
-      contechProfile.role === 'CLIENT' &&
-      project.clientId !== user.firebaseId
-    ) {
-      throw new ForbiddenException(
-        'You do not have permission to view tasks for this project',
-      );
-    }
-    if (
-      contechProfile.role === 'CONTRACTOR' &&
-      project.contractorId !== user.firebaseId
-    ) {
-      // Contractors can only see tasks of their assigned project.
-      // Assumption: If I am the contractor of the project, I see ALL tasks? Or only assigned?
-      // Usually Contractor manages the project tasks. So checks project.contractorId is enough.
-      throw new ForbiddenException(
-        'You do not have permission to view tasks for this project',
-      );
-    }
-
     const page = query.page || 1;
     const pageSize = Math.min(query.pageSize || 20, 50);
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.TaskWhereInput = { projectId };
+    const where: Prisma.TaskWhereInput = {};
+    if (query.projectId) where.projectId = query.projectId;
     if (query.status) where.status = query.status;
+    if (query.assignedTo) where.assignedTo = query.assignedTo;
+
+    // RBAC
     if (contechProfile.role === 'CLIENT') {
       where.isVisibleToClient = true;
+      where.Project = { clientId: user.firebaseId };
+    } else if (contechProfile.role === 'CONTRACTOR') {
+      // Show tasks of projects I am the contractor for OR tasks assigned to me directly
+      where.OR = [
+        { Project: { contractorId: user.firebaseId } },
+        { assignedTo: user.firebaseId },
+      ];
+    } else if (contechProfile.role === 'PROJECT_MANAGER') {
+      where.Project = { manager: user.firebaseId };
     }
 
     const [tasks, total] = await Promise.all([
@@ -116,6 +99,7 @@ export class TasksService {
         skip,
         take: pageSize,
         orderBy: [{ deadline: 'asc' }],
+        include: { Project: true },
       }),
       this.prisma.task.count({ where }),
     ]);
@@ -130,6 +114,7 @@ export class TasksService {
 
     const enrichedTasks = tasks.map((task) => ({
       ...task,
+      project: task.Project,
       assignee: task.assignedTo
         ? assignees.find((a) => a.firebaseId === task.assignedTo) || null
         : null,
@@ -142,6 +127,14 @@ export class TasksService {
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     };
+  }
+
+  async findByProject(
+    projectId: number,
+    query: FindTasksQuery,
+    user: AuthenticatedUser,
+  ) {
+    return this.findAll({ ...query, projectId }, user);
   }
 
   async findOne(id: number, user: AuthenticatedUser) {
@@ -195,6 +188,7 @@ export class TasksService {
     const project = task.Project;
     const canUpdate =
       contechProfile.role === 'ADMIN' ||
+      project.manager === user.firebaseId ||
       project.contractorId === user.firebaseId ||
       task.assignedTo === user.firebaseId;
     if (!canUpdate)
@@ -209,12 +203,20 @@ export class TasksService {
         throw new BadRequestException('Assigned user does not exist');
     }
 
-    const updateData: Prisma.TaskUpdateInput = {
+    // Build update data, filtering out undefined fields
+    const rawData: any = {
       description: dto.description,
       status: dto.status,
       assignedTo: dto.assignedTo,
       deadline: dto.deadline ? new Date(dto.deadline) : undefined,
+      progress: dto.progress,
+      actualHours: dto.actualHours,
+      isVisibleToClient: dto.isVisibleToClient,
     };
+    const updateData: any = {};
+    for (const [key, value] of Object.entries(rawData)) {
+      if (value !== undefined) updateData[key] = value;
+    }
 
     return await this.prisma.task.update({ where: { id }, data: updateData });
   }
@@ -323,5 +325,56 @@ export class TasksService {
       blocked: blockedTasks,
       completionRate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
     };
+  }
+
+  async assignTask(id: number, userId: string, user: AuthenticatedUser) {
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      include: { Project: true },
+    });
+    if (!task) throw new NotFoundException('Task not found');
+
+    const contechProfile = await this.userService.getOrCreateProfile(user);
+    const project = task.Project;
+
+    // Only Admin or PM can assign tasks
+    if (contechProfile.role !== 'ADMIN' && project.manager !== user.firebaseId) {
+      throw new ForbiddenException('Only Admins or Project Managers can assign tasks');
+    }
+
+    await this.userService.ensureProfileExists(userId);
+    const assignee = await this.userService.getUserById(userId);
+    if (!assignee) throw new BadRequestException('Assigned user does not exist');
+
+    return this.prisma.task.update({
+      where: { id },
+      data: { assignedTo: userId },
+    });
+  }
+
+  async updateTaskStatus(id: number, status: string, user: AuthenticatedUser) {
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      include: { Project: true },
+    });
+    if (!task) throw new NotFoundException('Task not found');
+
+    const contechProfile = await this.userService.getOrCreateProfile(user);
+    const project = task.Project;
+
+    // Admin, PM, Contractor for the project, or the Assignee can update status
+    const isAssignee = task.assignedTo === user.firebaseId;
+    const isContractor = project.contractorId === user.firebaseId;
+    const isPM = project.manager === user.firebaseId;
+    const isAdmin = contechProfile.role === 'ADMIN';
+
+    if (!isAdmin && !isPM && !isContractor && !isAssignee) {
+      throw new ForbiddenException('You do not have permission to update this task status');
+    }
+
+    return this.prisma.task.update({
+      where: { id },
+      data: { status },
+    });
   }
 }

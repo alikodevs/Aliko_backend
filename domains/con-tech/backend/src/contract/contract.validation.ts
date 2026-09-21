@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { ContractStatus } from '../generated/client';
+import { ContractStatus } from '@prisma/client';
 
 export const CreateContractSchema = Joi.object({
   projectId: Joi.number()

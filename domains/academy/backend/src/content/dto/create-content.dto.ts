@@ -13,8 +13,8 @@ export class CreateContentDto {
   @IsString()
   title: string;
 
-  @IsEnum(ContentType)
-  type: ContentType;
+  @IsString()
+  type: string;
 
   @IsOptional()
   @IsUrl()

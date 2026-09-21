@@ -8,7 +8,7 @@ import {
   IsDateString,
   IsArray,
 } from 'class-validator';
-import { TaskStatus } from '../../generated/client';
+import { TaskStatus } from '@prisma/client';
 
 export class UpdateTaskDto extends PartialType(CreateTaskDto) {
   @IsOptional()

@@ -49,8 +49,9 @@ export class AvailabilityController {
     @Payload() payload: any,
   ) {
     const targetId = resolveParam(id, payload?.id);
-    const resolvedData = resolvePayload(data, payload);
-    return this.availabilityService.updateRule(targetId, resolvedData);
+    const resolvedData = resolvePayload(data, payload?.data || payload);
+    const { id: ignoredId, ...updateFields } = resolvedData || {};
+    return this.availabilityService.updateRule(targetId, updateFields);
   }
 
   @MessagePattern({ cmd: 'remove_availability_rule' })
@@ -94,8 +95,9 @@ export class AvailabilityController {
     @Payload() payload: any,
   ) {
     const targetId = resolveParam(id, payload?.id);
-    const resolvedData = resolvePayload(data, payload);
-    return this.availabilityService.updateTimeBlock(targetId, resolvedData);
+    const resolvedData = resolvePayload(data, payload?.data || payload);
+    const { id: ignoredId, ...updateFields } = resolvedData || {};
+    return this.availabilityService.updateTimeBlock(targetId, updateFields);
   }
 
   @MessagePattern({ cmd: 'remove_time_block' })

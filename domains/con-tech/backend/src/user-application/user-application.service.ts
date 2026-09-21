@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ContechRole } from '../generated/client';
+import { ContechRole } from '@prisma/client';
 
 @Injectable()
 export class UserApplicationService {

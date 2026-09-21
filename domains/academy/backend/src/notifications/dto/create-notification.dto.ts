@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsObject, IsOptional, IsString } from 'class-validator';
 
 export class CreateNotificationDto {
   @IsString()
@@ -9,4 +9,8 @@ export class CreateNotificationDto {
 
   @IsString()
   type: string;
+
+  @IsOptional()
+  @IsObject()
+  meta?: Record<string, unknown>;
 }

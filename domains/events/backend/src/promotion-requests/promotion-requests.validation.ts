@@ -14,9 +14,15 @@ export const CreatePromotionRequestSchema = Joi.object({
     .valid("EVENT", "ANNOUNCEMENT", "NEWS")
     .required()
     .description("Type of content to promote"),
+  organization: Joi.string().optional().allow("", null),
+  event_type: Joi.string().optional().allow("", null),
+  estimatedAttendees: Joi.string().optional().allow("", null),
+  preferredDate: Joi.date().optional().allow("", null),
+  location: Joi.string().optional().allow("", null),
   message: Joi.string()
     .required()
     .description("Brief description of the promotion or company"),
+  userId: Joi.string().optional().allow(null, ""),
 }).description("Schema for creating a promotion inquiry");
 
 export const PromotionRequestIdSchema = Joi.object({

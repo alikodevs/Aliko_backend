@@ -1,13 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '../generated/client';
+import { EmailService } from '../common/email.service';
 
 @Injectable()
 export class ContactService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+  ) {}
 
-  async create(data: Prisma.ContactSubmissionCreateInput) {
-    return this.prisma.contactSubmission.create({ data });
+  private formatContactData(data: any) {
+    const { userId, ...formatted } = data || {};
+    if (formatted.consultationType && typeof formatted.consultationType === 'string') {
+      formatted.consultationType = formatted.consultationType.toUpperCase();
+    }
+    return formatted;
+  }
+
+  async create(data: any) {
+    const formattedData = this.formatContactData(data);
+    const submission = await this.prisma.contactSubmission.create({ data: formattedData });
+
+    // Send confirmation email to user
+    this.emailService.sendContactConfirmation(
+      submission.email,
+      submission.fullName,
+      submission.subject,
+    ).catch(err => console.error('Failed to send contact confirmation:', err));
+
+    // Send notification to admin
+    this.emailService.sendAdminContactNotification(submission)
+      .catch(err => console.error('Failed to send admin notification:', err));
+
+    return submission;
   }
 
   async findAll() {
@@ -18,8 +43,9 @@ export class ContactService {
     return this.prisma.contactSubmission.findUnique({ where: { id } });
   }
 
-  async update(id: string, data: Prisma.ContactSubmissionUpdateInput) {
-    return this.prisma.contactSubmission.update({ where: { id }, data });
+  async update(id: string, data: any) {
+    const formattedData = this.formatContactData(data);
+    return this.prisma.contactSubmission.update({ where: { id }, data: formattedData });
   }
 
   async remove(id: string) {

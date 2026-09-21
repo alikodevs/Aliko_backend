@@ -2,7 +2,7 @@ import { Controller, Logger, UsePipes, UseFilters } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ProjectsService } from '../projects/projects.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
-import { ContechRole } from '../generated/client';
+import { ContechRole } from '@prisma/client';
 import { RpcExceptionFilter } from '../common/filters/rpc-exception.filter';
 import { JoiValidationPipe } from '../common/pipes/joi-validation.pipe';
 import { AdminDashboardSchema, ListProfilesSchema, CreateUserSchema } from './admin.validation';

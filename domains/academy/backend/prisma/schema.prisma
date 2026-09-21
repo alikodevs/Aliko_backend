@@ -30,6 +30,7 @@ model AcademyProfile {
   // NEW: Add relation to teaching schedules
   teachingSchedules TeachingSchedule[]
   submissions      ExerciseSubmission[]
+  conversationParticipants ConversationParticipant[]
 }
 
 model Course {
@@ -63,37 +64,61 @@ model Course {
   progress          Progress[]
   // NEW: Add relation to teaching schedules
   teachingSchedules TeachingSchedule[]
+  conversations     Conversation[]
 }
 
 model Cohort {
-  id          Int          @id @default(autoincrement())
-  name        String
-  courseId    Int
-  enrollments Enrollment[]
-  startDate   DateTime
-  endDate     DateTime
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                Int                @id @default(autoincrement())
+  name              String
+  courseId          Int
+  enrollments       Enrollment[]
+  startDate         DateTime
+  endDate           DateTime
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teachingSchedules TeachingSchedule[]
 }
 
 model Enrollment {
-  id            Int             @id @default(autoincrement())
-  userId        String // ID from auth service
-  cohortId      Int?
-  courseId      Int?
-  enrolledAt    DateTime        @default(now())
-  progress      Float           @default(0.0)
-  enrollmentType EnrollmentType @default(FREE)
-  paymentStatus PaymentStatus   @default(COMPLETED)
-  status        EnrollmentStatus @default(ACTIVE)
+  id             Int               @id @default(autoincrement())
+  userId         String // ID from auth service
+  cohortId       Int?
+  courseId       Int               // ALWAYS set since Cohorts also belong to a course
+  context        EnrollmentContext @default(COURSE_ONLY)
+  
+  // Cohort Management specific fields
+  cohortRole     CohortRole?       @default(STUDENT)
+  approvalStatus ApprovalStatus    @default(APPROVED)
+  
+  enrolledAt     DateTime          @default(now())
+  progress       Float             @default(0.0)
+  enrollmentType EnrollmentType    @default(FREE)
+  paymentStatus  PaymentStatus     @default(COMPLETED)
+  status         EnrollmentStatus  @default(ACTIVE)
 
   cohort  Cohort?        @relation(fields: [cohortId], references: [id], onDelete: Cascade)
-  course  Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   profile AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@unique([userId, cohortId, courseId])
+}
+
+enum EnrollmentContext {
+  COURSE_ONLY
+  COHORT_BASED
+}
+
+enum CohortRole {
+  STUDENT
+  TEACHING_ASSISTANT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum EnrollmentType {
@@ -153,7 +178,7 @@ model Lesson {
 model Content {
   id        Int         @id @default(autoincrement())
   title     String
-  type      ContentType
+  type      String
   url       String?
   body      String?
   lessonId  Int
@@ -198,8 +223,10 @@ model TeachingSchedule {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  profile AcademyProfile @relation(fields: [instructorId], references: [userId])
+  course            Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  profile           AcademyProfile @relation(fields: [instructorId], references: [userId])
+  cohortId          Int?
+  cohort            Cohort?        @relation(fields: [cohortId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
@@ -208,9 +235,49 @@ model Notification {
   message   String
   type      String
   isRead    Boolean  @default(false)
+  meta      Json?
   createdAt DateTime @default(now())
 
   profile AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model Conversation {
+  id        Int      @id @default(autoincrement())
+  pairKey   String   @unique // sorted firebaseIds joined by ':'
+  courseId  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course       Course?                   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  userId         String
+  role           AcademyRole
+  lastReadAt     DateTime?
+  joinedAt       DateTime     @default(now())
+
+  conversation Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  profile      AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             Int      @id @default(autoincrement())
+  conversationId Int
+  senderId       String
+  body           String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
 }
 
 enum LessonType {
@@ -303,4 +370,12 @@ model ExerciseSubmission {
   profile     AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@unique([userId, exerciseId])
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

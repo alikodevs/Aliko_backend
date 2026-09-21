@@ -7,15 +7,15 @@ import {
   IsDateString,
   IsArray,
 } from 'class-validator';
-import { TaskPriority } from '../../generated/client';
+import { TaskPriority } from '@prisma/client';
 
 export class CreateTaskDto {
   @IsNumber()
   projectId: number;
 
   @IsString()
-  @IsNotEmpty()
-  description: string;
+  @IsOptional()
+  description?: string;
 
   @IsEnum(TaskPriority)
   @IsOptional()

@@ -7,7 +7,17 @@ import { generateUniqueCode } from '../common/utils/code-generator.util';
 export class ApplicationService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<Prisma.ApplicationCreateInput, 'applicationCode'>) {
+  async create(data: any) {
+    const formatted = { ...data };
+    if (!formatted.userId) {
+      delete formatted.userId;
+    }
+    if (formatted.status && typeof formatted.status === 'string') {
+      formatted.status = formatted.status.toUpperCase();
+    }
+    if (formatted.consultationType && typeof formatted.consultationType === 'string') {
+      formatted.consultationType = formatted.consultationType.toUpperCase();
+    }
     const applicationCode = await generateUniqueCode(
       this.prisma,
       this.prisma.application,
@@ -17,7 +27,7 @@ export class ApplicationService {
 
     return this.prisma.$transaction(async (tx) => {
       const application = await tx.application.create({
-        data: { ...data, applicationCode },
+        data: { ...formatted, applicationCode },
       });
 
       await tx.applicationStatusLog.create({
@@ -67,24 +77,26 @@ export class ApplicationService {
 
   async updateStatus(
     id: string,
-    newStatus: ApplicationStatus,
+    newStatus: any,
     notes?: string,
     changedBy?: string,
   ) {
+    const normalizedStatus = typeof newStatus === 'string' ? newStatus.toUpperCase() : newStatus;
+    
     return this.prisma.$transaction(async (tx) => {
       const oldApp = await tx.application.findUnique({ where: { id } });
       if (!oldApp) throw new NotFoundException(`Application ${id} not found`);
 
       const updatedApp = await tx.application.update({
         where: { id },
-        data: { status: newStatus },
+        data: { status: normalizedStatus },
       });
 
       await tx.applicationStatusLog.create({
         data: {
           applicationId: id,
           oldStatus: oldApp.status,
-          newStatus,
+          newStatus: normalizedStatus,
           notes,
           changedBy,
         },
@@ -94,8 +106,10 @@ export class ApplicationService {
     });
   }
 
-  async update(id: string, data: Prisma.ApplicationUpdateInput) {
+  async update(id: string, data: any) {
     await this.findOne(id);
+    if (data.status) data.status = data.status.toUpperCase();
+    if (data.consultationType) data.consultationType = data.consultationType.toUpperCase();
     return this.prisma.application.update({ where: { id }, data });
   }
 

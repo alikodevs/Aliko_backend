@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { InspectionStatus, ChecklistItemStatus } from '../generated/client';
+import { InspectionStatus, ChecklistItemStatus } from '@prisma/client';
 
 export const CreateInspectionSchema = Joi.object({
   dto: Joi.object({
@@ -7,8 +7,13 @@ export const CreateInspectionSchema = Joi.object({
       .integer()
       .required()
       .description('The ID of the project being inspected'),
+    title: Joi.string()
+      .optional()
+      .allow('', null)
+      .description('Title of the inspection'),
     inspectorId: Joi.string()
-      .required()
+      .optional()
+      .allow('', null)
       .description('The ID of the assigned inspector'),
     status: Joi.string()
       .valid(...Object.values(InspectionStatus))

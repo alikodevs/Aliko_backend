@@ -1,27 +1,40 @@
 {
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "resolvePackageJsonExports": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
+    "module": "Node16",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
+    "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "strictNullChecks": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "types": ["jest"]
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "types": [
+      "node",
+      "jest"
+    ],
+    "rootDir": "./src",
+    "moduleResolution": "Node16",
+    "strict": false,
+    "strictPropertyInitialization": false,
+    "useUnknownInCatchVariables": false,
+    "ignoreDeprecations": "5.0"
   },
-  "exclude": ["node_modules", "dist", "src/generated"]
+  "exclude": [
+    "dist",
+    "node_modules",
+    "src/generated"
+  ],
+  "include": [
+    "src/**/*.ts"
+  ]
 }
