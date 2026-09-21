@@ -1,0 +1,14 @@
+{
+  "name": "common-data-types",
+  "version": "1.0.0",
+  "description": "Shared JS/TS data types module.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "jest": "^29.4.0"
+  }
+}

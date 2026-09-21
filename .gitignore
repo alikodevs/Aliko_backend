@@ -1,11 +1,20 @@
 # Dependency directories
 node_modules/
+**/node_modules/
 jspm_packages/
 
 # Build outputs
 dist/
+**/dist/
 build/
+**/build/
 *.tsbuildinfo
+**/*.tsbuildinfo
+.turbo/
+**/.turbo/
+
+# Frontend applications (for backend repository)
+**/frontend/
 
 # IDE files
 .vscode/
@@ -17,11 +26,39 @@ build/
 .DS_Store
 Thumbs.db
 
-# Environment and Secrets
+# Environment and Secrets (CRITICAL)
 .env
 .env.*
-! .env.example
-firebase-service-account.json
+*.env
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+**/*.pem
+*.key
+**/*.key
+*.cert
+**/*.cert
+*.crt
+**/*.crt
+*.pfx
+**/*.pfx
+*.p12
+**/*.p12
+*firebase*.json
+**/*firebase*.json
+*service-account*.json
+**/*service-account*.json
+aliko-auth-firebase-adminsdk-*.json
+**/*adminsdk*.json
+*_token*
+*token*.txt
+cookies.txt
+consultancy.env
+
+# Uploads and User Media (CRITICAL)
+uploads/
+**/uploads/
 
 # Prisma generated files
 **/generated/
@@ -32,10 +69,22 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 logs/
+**/logs/
 *.log
+**/*.log
 
-# Coverage
+# Coverage & testing debris
 coverage/
+**/coverage/
+test-image.png
+test_photo.png
+test.sql
+test.txt
+chapa_response.json
+login_response.json
+promotions.json
 
-# Docker
-.docker/
+# Scratch and analysis files
+scratch/
+test_results/
+*analysis*.md
