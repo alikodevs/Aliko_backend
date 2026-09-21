@@ -12,6 +12,8 @@ import { TeachingScheduleModule } from './teaching-schedule/teaching-schedule.mo
 import { AcademyController } from './academy-service.controller';
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { ExercisesModule } from './exercise/exercise.module';
+import { AnnouncementModule } from './announcement/announcement.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { ExercisesModule } from './exercise/exercise.module';
     TeachingScheduleModule,
     FileUploadModule,
     ExercisesModule,
+    AnnouncementModule,
+    ChatModule,
   ],
   controllers: [AcademyController],
 })

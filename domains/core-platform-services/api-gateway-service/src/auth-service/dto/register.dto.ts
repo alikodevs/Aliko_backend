@@ -37,9 +37,9 @@ export class RegisterDto {
   @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
   password?: string;
 
-  @ApiPropertyOptional({ description: 'reCAPTCHA token for bot verification' })
+  @ApiPropertyOptional({ description: 'Honeypot field for bot protection (should be empty)' })
   @IsString()
   @IsOptional()
-  captchaToken?: string;
+  _hp?: string;
 }
 

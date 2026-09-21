@@ -7,9 +7,9 @@ export class CreateContentDto {
   @IsString()
   title!: string;
 
-  @ApiProperty({ enum: ContentType })
-  @IsEnum(ContentType)
-  type!: ContentType;
+  @ApiProperty({ example: 'VIDEO' })
+  @IsString()
+  type!: string;
 
   @ApiPropertyOptional({ example: 'https://example.com/video.mp4' })
   @IsUrl()

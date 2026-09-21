@@ -3,6 +3,9 @@ import { Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 import { winstonConfig } from './winston.config';
 
+import express from 'express';
+import * as path from 'path';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: winstonConfig,
@@ -11,7 +14,20 @@ async function bootstrap() {
   // Enable CORS
   app.enableCors();
 
-  const port = process.env.PORT || 3009; // Default to 3009 for File Service
+  const uploadPath = path.resolve(process.env.UPLOAD_PATH || path.join(process.cwd(), 'uploads'));
+  app.use('/uploads', express.static(uploadPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.jfif')) {
+        res.setHeader('Content-Type', 'image/jpeg');
+      }
+      if (filePath.endsWith('.pdf')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+      }
+    }
+  }));
+
+  const port = process.env.PORT || 3010;
   // Connect TCP microservice
   app.connectMicroservice({
     transport: Transport.TCP,

@@ -59,6 +59,20 @@ export class NotificationController {
     return this.academyClient.send({ cmd: 'get_my_notifications' }, payload);
   }
 
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get notification detail by id',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, description: 'Notification detail' })
+  getNotificationById(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const payload = { id, user: req.user };
+    return this.academyClient.send({ cmd: 'get_notification_by_id' }, payload);
+  }
+
   // Authenticated user
   @Patch(':id/read')
   @ApiOperation({

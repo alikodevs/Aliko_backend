@@ -19,7 +19,14 @@ model User {
   globalRole      GlobalRole       @default(USER)
   profilePicture  String?
   bio             String?
+  phone           String?
+  location        String?
+  linkedInUrl     String?
+  portfolioUrl    String?
+  yearsOfExperience Int?
+  skills          String[]         @default([])
   status          String           @default("ACTIVE")
+  authProvider    AuthProvider      @default(EMAIL)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   academyUser     AcademyUser?
@@ -28,6 +35,8 @@ model User {
   consultancyUser ConsultancyUser?
   contechUser     ContechUser?
   eventsUser      EventsUser?
+  conshifterUser  ConshifterUser?
+  alikowashUser   AlikowashUser?
 }
 
 model Application {
@@ -60,6 +69,16 @@ model ConsultancyUser {
   user           User            @relation(fields: [userId], references: [firebaseId])
 }
 
+model AlikowashUser {
+  id        String        @id @default(cuid())
+  userId    String        @unique
+  role      AlikowashRole
+  status    String        @default("ACTIVE")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [firebaseId])
+}
+
 model AcademyUser {
   id         String      @id @default(cuid())
   userId     String      @unique
@@ -75,6 +94,7 @@ model CareersUser {
   id        String      @id @default(cuid())
   userId    String      @unique
   role      CareersRole
+  resumeUrl String?
   status    String      @default("ACTIVE")
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -99,6 +119,16 @@ model EventsUser {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   user      User       @relation(fields: [userId], references: [firebaseId])
+}
+
+model ConshifterUser {
+  id        String         @id @default(cuid())
+  userId    String         @unique
+  role      ConshifterRole
+  status    String         @default("ACTIVE")
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  user      User           @relation(fields: [userId], references: [firebaseId])
 }
 
 enum GlobalRole {
@@ -132,6 +162,8 @@ enum ContechRole {
   ADMIN
   CONTRACTOR
   CLIENT
+  PROJECT_MANAGER
+  USER
 }
 
 enum EventsRole {
@@ -144,4 +176,20 @@ enum CareersRole {
   USER
   RECRUITER
   ADMIN
+}
+
+enum ConshifterRole {
+  USER
+  ADMIN
+}
+
+enum AlikowashRole {
+  USER
+  MANAGER
+  ADMIN
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
 }

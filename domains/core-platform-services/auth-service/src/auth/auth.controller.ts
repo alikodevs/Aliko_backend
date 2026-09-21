@@ -265,6 +265,32 @@ export class AuthController {
 		}
 	}
 
+	@Post('sync/careers')
+	@MessagePattern({ cmd: 'sync_careers_user' })
+	async handleSyncCareersUser(@Body() dto: { userId: string }, @Payload() payload: { userId: string }) {
+		const data = dto || payload;
+		this.logger.log(`Syncing Careers user: ${data.userId}`);
+		try {
+			return await this.authService.syncCareersUser(data.userId);
+		} catch (error) {
+			this.logger.error(`Careers sync failed for user ${data.userId}: ${error.message}`, error.stack);
+			throw error;
+		}
+	}
+
+	@Post('update-contech-role')
+	@MessagePattern({ cmd: 'update_contech_role' })
+	async handleUpdateContechRole(@Body() dto: { userId: string; role: string }, @Payload() payload: { userId: string; role: string }) {
+		const data = dto || payload;
+		this.logger.log(`Updating ConTech role for user ${data.userId} to ${data.role}`);
+		try {
+			return await this.authService.updateContechRole(data.userId, data.role);
+		} catch (error) {
+			this.logger.error(`ConTech role update failed for user ${data.userId}: ${error.message}`, error.stack);
+			throw error;
+		}
+	}
+
 	@Post('sync/events')
 	@MessagePattern({ cmd: 'sync_events_user' })
 	async handleSyncEventsUser(@Body() dto: { userId: string }, @Payload() payload: { userId: string }) {
@@ -291,14 +317,34 @@ export class AuthController {
 		}
 	}
 
+	@Post('sync/conshifter')
+	@MessagePattern({ cmd: 'sync_conshifter_user' })
+	async handleSyncConshifterUser(@Body() dto: { userId: string }, @Payload() payload: { userId: string }) {
+		const data = dto || payload;
+		this.logger.log(`Syncing Conshifter user: ${data.userId}`);
+		try {
+			return await this.authService.syncConshifterUser(data.userId);
+		} catch (error) {
+			this.logger.error(`Conshifter sync failed for user ${data.userId}: ${error.message}`, error.stack);
+			throw error;
+		}
+	}
+
 	@Post('forgot-password')
 	@MessagePattern({ cmd: 'forgot_password' })
 	@UsePipes(new JoiValidationPipe(ForgotPasswordSchema))
-	async forgotPassword(@Body() body: { email: string }, @Payload() payload: { email: string }) {
-		const email = body?.email || payload?.email;
+	async forgotPassword(
+		@Body() body: { email: string; frontendUrl?: string; app?: string },
+		@Payload() payload: { email: string; frontendUrl?: string; app?: string },
+	) {
+		const data = body?.email ? body : payload;
+		const email = data?.email;
 		this.logger.log(`Password reset requested for: ${email}`);
 		try {
-			return await this.authService.forgotPassword(email);
+			return await this.authService.forgotPassword(email, {
+				frontendUrl: data?.frontendUrl,
+				app: data?.app,
+			});
 		} catch (error) {
 			this.logger.error(`Forgot password failed for ${email}: ${error.message}`, error.stack);
 			throw error;
@@ -309,7 +355,7 @@ export class AuthController {
 	@MessagePattern({ cmd: 'reset_password' })
 	@UsePipes(new JoiValidationPipe(ResetPasswordSchema))
 	async resetPassword(@Body() body: any, @Payload() payload: any) {
-		const data = body || payload;
+		const data = body?.newPassword || body?.token ? body : payload;
 		this.logger.log(`Processing password reset`);
 		try {
 			return await this.authService.resetPassword(data);
@@ -331,6 +377,18 @@ export class AuthController {
 			throw error;
 		}
 	}
+
+  @MessagePattern({ cmd: 'update_careers_role' })
+  async handleUpdateCareersRole(@Body() dto: { userId: string; role: string }, @Payload() payload: { userId: string; role: string }) {
+    const data = dto || payload;
+    this.logger.log(`Updating Careers role for ${data.userId} to ${data.role}`);
+    try {
+      return await this.authService.updateCareersRole(data.userId, data.role);
+    } catch (error) {
+      this.logger.error(`Failed to update Careers role for user ${data.userId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
 
 	@Patch('user/status')
 	@MessagePattern({ cmd: 'update_status' })

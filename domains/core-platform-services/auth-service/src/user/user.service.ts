@@ -9,7 +9,14 @@ export interface UserData {
 	globalRole?: string;
 	status?: string;
 	profilePicture?: string;
+	resumeUrl?: string;
 	bio?: string;
+	phone?: string;
+	location?: string;
+	linkedInUrl?: string;
+	portfolioUrl?: string;
+	yearsOfExperience?: number;
+	skills?: string[];
 	password?: string;
 }
 
@@ -43,6 +50,7 @@ export class UserService {
 				contechUser: true,
 				eventsUser: true,
 				careersUser: true,
+				conshifterUser: true,
 			}
 		});
 		this.logger.log(`User ${user ? 'found' : 'not found'} for Firebase ID: ${firebaseId}`);
@@ -59,6 +67,7 @@ export class UserService {
 				contechUser: true,
 				eventsUser: true,
 				careersUser: true,
+				conshifterUser: true,
 			}
 		});
 		this.logger.log(`User ${user ? 'found' : 'not found'} for email: ${email}`);
@@ -76,6 +85,7 @@ export class UserService {
 				contechUser: true,
 				eventsUser: true,
 				careersUser: true,
+				conshifterUser: true,
 			}
 		});
 		this.logger.log(`User ${user ? 'found' : 'not found'} for ID: ${id}`);
@@ -271,6 +281,7 @@ export class UserService {
 				contechUser: true,
 				eventsUser: true,
 				careersUser: true,
+				conshifterUser: true,
 			}
 		});
 	}
@@ -282,8 +293,26 @@ export class UserService {
 			data: {
 				firstname: data.firstname,
 				lastname: data.lastname,
+				password: data.password,
 				profilePicture: data.profilePicture,
 				bio: data.bio,
+				phone: data.phone,
+				location: data.location,
+				linkedInUrl: data.linkedInUrl,
+				portfolioUrl: data.portfolioUrl,
+				yearsOfExperience: data.yearsOfExperience,
+				skills: data.skills,
+				careersUser: data.resumeUrl ? {
+					upsert: {
+						create: {
+							resumeUrl: data.resumeUrl,
+							role: 'USER',
+						},
+						update: {
+							resumeUrl: data.resumeUrl,
+						}
+					}
+				} : undefined
 			}
 		});
 
@@ -314,8 +343,14 @@ export class UserService {
 			where: { firebaseId: userId },
 			data: {
 				contechUser: {
-					update: {
-						role: role as any // Cast to any to avoid enum type issues
+					upsert: {
+						create: {
+							role: role as any,
+							status: 'ACTIVE'
+						},
+						update: {
+							role: role as any
+						}
 					}
 				}
 			},
@@ -325,6 +360,7 @@ export class UserService {
 				contechUser: true,
 				eventsUser: true,
 				careersUser: true,
+				conshifterUser: true,
 			}
 		});
 
@@ -339,6 +375,36 @@ export class UserService {
 			data: { globalRole: role as any },
 		});
 	}
+
+  async updateCareersRole(userId: string, role: string) {
+    this.logger.log(`Updating Careers role for user ${userId} to ${role}`);
+    const user = await this.prisma.user.update({
+      where: { firebaseId: userId },
+      data: {
+        careersUser: {
+          upsert: {
+            create: {
+              role: role as any,
+              status: 'ACTIVE'
+            },
+            update: {
+              role: role as any
+            }
+          }
+        }
+      },
+      include: {
+        academyUser: true,
+        consultancyUser: true,
+        contechUser: true,
+        eventsUser: true,
+        careersUser: true,
+        conshifterUser: true,
+      }
+    });
+    this.logger.log(`Careers role updated successfully for user ${userId}`);
+    return user;
+  }
 
 	async updateStatus(firebaseId: string, status: string) {
 		this.logger.log(`Updating status for user ${firebaseId} to ${status}`);

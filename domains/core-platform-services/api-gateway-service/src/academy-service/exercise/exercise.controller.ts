@@ -40,6 +40,20 @@ export class ExercisesController {
     );
   }
 
+  @Post('bulk')
+  @ApiOperation({ summary: 'Create multiple exercises at once' })
+  async createBulk(@Request() req: any, @Body('dtos') dtos: CreateExerciseDto[]) {
+    return firstValueFrom(
+      this.academyClient.send({ cmd: 'create_bulk_exercises' }, { dtos, user: req.user }).pipe(
+        timeout(15000),
+        catchError(error => {
+          this.handleError(error, 'Bulk Create Exercises');
+          return throwError(() => error);
+        }),
+      )
+    );
+  }
+
   @Get('module/:moduleId')
   @ApiOperation({ summary: 'Find all exercises in a module' })
   async findAllByModule(@Request() req: any, @Param('moduleId') moduleId: string, @Query() query: any) {
@@ -62,6 +76,20 @@ export class ExercisesController {
         timeout(10000),
         catchError(error => {
           this.handleError(error, 'Find My Exercises');
+          return throwError(() => error);
+        }),
+      )
+    );
+  }
+
+  @Get('instructor/submissions')
+  @ApiOperation({ summary: 'Find all submissions for instructor (Grading Inbox)' })
+  async getInstructorSubmissions(@Request() req: any, @Query() query: any) {
+    return firstValueFrom(
+      this.academyClient.send({ cmd: 'find_instructor_submissions' }, { user: req.user, query }).pipe(
+        timeout(10000),
+        catchError(error => {
+          this.handleError(error, 'Find Instructor Submissions');
           return throwError(() => error);
         }),
       )

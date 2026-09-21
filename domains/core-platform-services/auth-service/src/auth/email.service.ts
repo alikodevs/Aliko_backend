@@ -1,37 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import { Injectable } from '@nestjs/common';
+import { MailService } from '@alikohub/mail';
 
 @Injectable()
 export class EmailService {
-	private readonly logger = new Logger(EmailService.name);
-	private transporter: nodemailer.Transporter | null = null;
-
-	constructor() {
-		this.initializeTransporter();
-	}
-
-	private initializeTransporter() {
-		// Check if SMTP configuration is available
-		const smtpHost = process.env.SMTP_HOST;
-		const smtpPort = process.env.SMTP_PORT;
-		const smtpUser = process.env.SMTP_USER;
-		const smtpPass = process.env.SMTP_PASS;
-
-		if (smtpHost && smtpPort && smtpUser && smtpPass) {
-			this.transporter = nodemailer.createTransport({
-				host: smtpHost,
-				port: parseInt(smtpPort, 10),
-				secure: parseInt(smtpPort, 10) === 465,
-				auth: {
-					user: smtpUser,
-					pass: smtpPass,
-				},
-			});
-			this.logger.log('SMTP transporter initialized successfully');
-		} else {
-			this.logger.warn('SMTP configuration not found. Email sending will be simulated.');
-		}
-	}
+	constructor(private readonly mailService: MailService) {}
 
 	async sendWelcomeEmail(to: string, firstname: string): Promise<boolean> {
 		const subject = 'Welcome to AlikoHub Academy!';
@@ -66,7 +38,7 @@ export class EmailService {
 							<li>Earn certificates upon course completion</li>
 						</ul>
 						<p>Ready to start learning?</p>
-						<a href="${process.env.FRONTEND_URL || 'https://academy.alikohub.com'}" class="button">Explore Courses</a>
+						<a href="${process.env.FRONTEND_URL || 'https://lms.alikohub.com'}" class="button">Explore Courses</a>
 						<p style="margin-top: 20px;">If you have any questions, feel free to reach out to our support team.</p>
 						<p>Happy learning!</p>
 						<p>The AlikoHub Academy Team</p>
@@ -196,29 +168,11 @@ export class EmailService {
 	}
 
 	private async sendEmail(to: string, subject: string, htmlContent: string): Promise<boolean> {
-		const fromEmail = process.env.SMTP_FROM || 'noreply@alikohub.com';
-
-		if (this.transporter) {
-			try {
-				const info = await this.transporter.sendMail({
-					from: `"AlikoHub Academy" <${fromEmail}>`,
-					to,
-					subject,
-					html: htmlContent,
-				});
-				this.logger.log(`Email sent successfully to ${to}. MessageId: ${info.messageId}`);
-				return true;
-			} catch (error: any) {
-				this.logger.error(`Failed to send email to ${to}: ${error.message}`);
-				return false;
-			}
-		} else {
-			// Simulate email sending when SMTP is not configured
-			this.logger.log(`[SIMULATED EMAIL] To: ${to}`);
-			this.logger.log(`[SIMULATED EMAIL] Subject: ${subject}`);
-			this.logger.log(`[SIMULATED EMAIL] Email would be sent with welcome content.`);
-			this.logger.log(`[SIMULATED EMAIL] Configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS to enable real emails.`);
-			return true;
-		}
+		return this.mailService.sendMail({
+			to,
+			subject,
+			html: htmlContent,
+			fromName: 'AlikoHub Academy',
+		});
 	}
 }

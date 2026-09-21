@@ -9,6 +9,7 @@ export enum TaskStatus {
   REVIEW = 'REVIEW',
   COMPLETED = 'COMPLETED',
   BLOCKED = 'BLOCKED',
+  TODO = 'TODO',
 }
 
 export class UpdateTaskDto extends PartialType(CreateTaskDto) {

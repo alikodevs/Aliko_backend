@@ -68,7 +68,7 @@ export class ProjectsController {
   })
   @Get('stats')
   getProjectStats(@Request() req: RequestWithUser, @Query('managerId') managerId?: string) {
-    const payload = { managerId, user: req.user };
+    const payload = { manager: managerId, user: req.user };
     return this.contechClient.send({ cmd: 'get_project_stats' }, payload);
   }
 
@@ -300,7 +300,7 @@ export class ProjectsController {
   })
   @Get(':id/comments')
   findAllComments(@Request() req: RequestWithUser, @Param('id', ParseIntPipe) id: number) {
-    const payload = { projectId: id, user: req.user };
+    const payload = { id, user: req.user };
     return this.contechClient.send({ cmd: 'get_project_comments' }, payload);
   }
 }

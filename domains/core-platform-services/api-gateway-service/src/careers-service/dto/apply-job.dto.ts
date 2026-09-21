@@ -1,4 +1,5 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean, IsArray } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ApplyJobDto {
@@ -28,7 +29,14 @@ export class ApplyJobDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  experienceYears?: number;
+  @Transform(({ value }) => (value === '' ? undefined : Number(value)))
+  @IsNumber()
+  yearsOfExperience?: number;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  location?: string;
 
   @ApiProperty({ required: false })
   @IsString()
@@ -47,6 +55,9 @@ export class ApplyJobDto {
 
   @ApiProperty({ required: false, type: [String] })
   @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.split(',').map(s => s.trim()) : value))
+  @IsArray()
+  @IsString({ each: true })
   skills?: string[];
 
   @ApiProperty({ required: false })
@@ -63,4 +74,40 @@ export class ApplyJobDto {
   @IsString()
   @IsOptional()
   additionalInfo?: string;
+
+  @ApiProperty({ required: false })
+  @Transform(({ value }) => (value === '' ? undefined : Number(value)))
+  @IsNumber()
+  @IsOptional()
+  salaryExpectation?: number;
+
+  @ApiProperty({ required: false, default: 'USD' })
+  @IsString()
+  @IsOptional()
+  salaryCurrency?: string;
+
+  @ApiProperty({ required: false })
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  @IsOptional()
+  salaryNegotiable?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  startDate?: string;
+
+  @ApiProperty({ required: false })
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  @IsOptional()
+  workAuthorized?: boolean;
+
+  @IsOptional()
+  resume?: any;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  useProfileResume?: boolean;
 }

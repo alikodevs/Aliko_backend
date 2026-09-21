@@ -48,7 +48,7 @@ export class ClientReportController {
   ) {
     const payload = {
       user: req.user,
-      id: projectId,
+      projectId: projectId,
     };
     return lastValueFrom(
       this.contechClient.send(

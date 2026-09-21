@@ -1,36 +1,28 @@
 import { Injectable, BadRequestException, HttpException } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
-import FormData = require('form-data');
+import { getFileUploadHttpBaseUrl, uploadFileHttp } from '@alikohub/file-upload-client';
 
 @Injectable()
 export class FileUploadService {
-  constructor(
-    private readonly httpService: HttpService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
 
-  async uploadFile(file: Express.Multer.File, type: 'image' | 'document' | 'video'): Promise<any> {
+  async uploadFile(
+    file: Express.Multer.File,
+    type: 'image' | 'document' | 'video',
+  ): Promise<any> {
     if (!file) throw new BadRequestException('File is required');
 
-    const formData = new FormData();
-    formData.append('file', file.buffer, file.originalname);
-    formData.append('type', type);
-
     try {
-      const serviceHost = this.configService.get('FILE_UPLOAD_SERVICE_HOST') || 'localhost';
-      const servicePort = this.configService.get('FILE_UPLOAD_SERVICE_PORT') || '3009';
-      const serviceUrl = `http://${serviceHost}:${servicePort}`;
-      
-      const response = await firstValueFrom(
-        this.httpService.post(`${serviceUrl}/files/upload`, formData, {
-          headers: {
-            ...formData.getHeaders(),
-          },
-        })
+      // Ensure base URL config is resolved (side-effect for logging/debug)
+      getFileUploadHttpBaseUrl(this.configService);
+      return await uploadFileHttp(
+        {
+          buffer: file.buffer,
+          originalname: file.originalname,
+          mimetype: file.mimetype || 'application/octet-stream',
+        },
+        this.configService,
       );
-      return response.data;
     } catch (error: any) {
       console.error(`File Upload Error (${type}):`, error.message);
       if (error.response) {

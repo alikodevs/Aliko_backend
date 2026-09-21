@@ -22,7 +22,7 @@ import { StripeWebhookController } from './webhooks/stripe-webhook.controller';
           transport: Transport.RMQ,
           options: {
             urls: [configService.get<string>('RABBITMQ_URL')],
-            // queue: 'payment_events_queue',
+            queue: 'payment_events_queue',
             queueOptions: {
               durable: true,
             },

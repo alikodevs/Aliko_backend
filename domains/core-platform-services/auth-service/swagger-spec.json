@@ -57,6 +57,40 @@
         ]
       }
     },
+    "/auth/login-google": {
+      "post": {
+        "operationId": "AuthController_loginWithGoogle",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idToken": {
+                    "type": "string"
+                  }
+                },
+                "required": ["idToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User successfully logged in with Google."
+          },
+          "401": {
+            "description": "Invalid or expired Google ID token."
+          }
+        },
+        "summary": "Login a user via Google SSO",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/auth/verify": {
       "post": {
         "operationId": "AuthController_verify",

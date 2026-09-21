@@ -1,5 +1,5 @@
-import { IsString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsObject, IsOptional, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateNotificationDto {
   @ApiProperty({
@@ -22,4 +22,12 @@ export class CreateNotificationDto {
   })
   @IsString()
   type!: string;
+
+  @ApiPropertyOptional({
+    description: 'Optional structured details linked to this notification',
+    example: { courseId: 1, assignmentId: 5 },
+  })
+  @IsOptional()
+  @IsObject()
+  meta?: Record<string, unknown>;
 }

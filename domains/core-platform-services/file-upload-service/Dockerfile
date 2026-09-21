@@ -1,37 +1,93 @@
-# Stage 1: Build the application
+# Monorepo-aware build (docker-compose context = repository root)
 FROM node:22 AS builder
+WORKDIR /app
 
-WORKDIR /usr/src/app
+COPY package.json package-lock.json ./
+COPY scripts ./scripts
+COPY domains/academy/backend/package.json ./domains/academy/backend/
+COPY domains/alikowash/backend/package.json ./domains/alikowash/backend/
+COPY domains/con-tech/backend/package.json ./domains/con-tech/backend/
+COPY domains/con-tech/frontend/package.json ./domains/con-tech/frontend/
+COPY domains/conshifter/backend/package.json ./domains/conshifter/backend/
+COPY domains/consultancy/backend/package.json ./domains/consultancy/backend/
+COPY domains/consultancy/frontend/package.json ./domains/consultancy/frontend/
+COPY domains/core-platform-services/api-gateway-service/package.json ./domains/core-platform-services/api-gateway-service/
+COPY domains/core-platform-services/auth-service/package.json ./domains/core-platform-services/auth-service/
+COPY domains/core-platform-services/careers-service/backend/package.json ./domains/core-platform-services/careers-service/backend/
+COPY domains/core-platform-services/careers-service/frontend/package.json ./domains/core-platform-services/careers-service/frontend/
+COPY domains/core-platform-services/file-upload-service/package.json ./domains/core-platform-services/file-upload-service/
+COPY domains/core-platform-services/payment-service/package.json ./domains/core-platform-services/payment-service/
+COPY domains/events/backend/package.json ./domains/events/backend/
+COPY domains/events/frontend/package.json ./domains/events/frontend/
+COPY libraries/auth-client/package.json ./libraries/auth-client/
+COPY libraries/cloudinary/package.json ./libraries/cloudinary/
+COPY libraries/common-data-types/package.json ./libraries/common-data-types/
+COPY libraries/common-utils/package.json ./libraries/common-utils/
+COPY libraries/file-upload-client/package.json ./libraries/file-upload-client/
+COPY libraries/firebase-admin/package.json ./libraries/firebase-admin/
+COPY libraries/logger/package.json ./libraries/logger/
+COPY libraries/mail/package.json ./libraries/mail/
+COPY libraries/notification/package.json ./libraries/notification/
+COPY libraries/payment-client/package.json ./libraries/payment-client/
+COPY libraries/rabbitmq/package.json ./libraries/rabbitmq/
+COPY libraries/ui-libraries/package.json ./libraries/ui-libraries/
+COPY libraries/validation/package.json ./libraries/validation/
+COPY libraries ./libraries
 
-# Copy package files and install dependencies
-COPY package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 
-# Copy source code
-COPY . .
+RUN for d in libraries/*/ ; do \
+  if [ -f "$d/package.json" ] && grep -q '"build"' "$d/package.json"; then \
+    (cd "$d" && npm run build) || true; \
+  fi; \
+done
 
-# Build the application
-RUN npm run build
+COPY domains/core-platform-services/file-upload-service ./domains/core-platform-services/file-upload-service
 
-# Stage 2: Create the production image
+WORKDIR /app/domains/core-platform-services/file-upload-service
+RUN npx tsc -p tsconfig.build.json
+
 FROM node:22-slim
-RUN apt-get update -y && apt-get install -y openssl curl
+RUN apt-get update -y && apt-get install -y openssl curl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
 
-WORKDIR /usr/src/app
+COPY package.json package-lock.json ./
+COPY scripts ./scripts
+COPY domains/academy/backend/package.json ./domains/academy/backend/
+COPY domains/alikowash/backend/package.json ./domains/alikowash/backend/
+COPY domains/con-tech/backend/package.json ./domains/con-tech/backend/
+COPY domains/con-tech/frontend/package.json ./domains/con-tech/frontend/
+COPY domains/conshifter/backend/package.json ./domains/conshifter/backend/
+COPY domains/consultancy/backend/package.json ./domains/consultancy/backend/
+COPY domains/consultancy/frontend/package.json ./domains/consultancy/frontend/
+COPY domains/core-platform-services/api-gateway-service/package.json ./domains/core-platform-services/api-gateway-service/
+COPY domains/core-platform-services/auth-service/package.json ./domains/core-platform-services/auth-service/
+COPY domains/core-platform-services/careers-service/backend/package.json ./domains/core-platform-services/careers-service/backend/
+COPY domains/core-platform-services/careers-service/frontend/package.json ./domains/core-platform-services/careers-service/frontend/
+COPY domains/core-platform-services/file-upload-service/package.json ./domains/core-platform-services/file-upload-service/
+COPY domains/core-platform-services/payment-service/package.json ./domains/core-platform-services/payment-service/
+COPY domains/events/backend/package.json ./domains/events/backend/
+COPY domains/events/frontend/package.json ./domains/events/frontend/
+COPY libraries/auth-client/package.json ./libraries/auth-client/
+COPY libraries/cloudinary/package.json ./libraries/cloudinary/
+COPY libraries/common-data-types/package.json ./libraries/common-data-types/
+COPY libraries/common-utils/package.json ./libraries/common-utils/
+COPY libraries/file-upload-client/package.json ./libraries/file-upload-client/
+COPY libraries/firebase-admin/package.json ./libraries/firebase-admin/
+COPY libraries/logger/package.json ./libraries/logger/
+COPY libraries/mail/package.json ./libraries/mail/
+COPY libraries/notification/package.json ./libraries/notification/
+COPY libraries/payment-client/package.json ./libraries/payment-client/
+COPY libraries/rabbitmq/package.json ./libraries/rabbitmq/
+COPY libraries/ui-libraries/package.json ./libraries/ui-libraries/
+COPY libraries/validation/package.json ./libraries/validation/
+COPY libraries ./libraries
 
-# Copy package files and install only production dependencies
-COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm install --legacy-peer-deps --omit=dev
 
-# Copy the built application from the builder stage
-COPY --from=builder /usr/src/app/dist ./dist
-COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /app/libraries ./libraries
+COPY --from=builder /app/domains/core-platform-services/file-upload-service/dist ./domains/core-platform-services/file-upload-service/dist
 
-# Create uploads directory
-RUN mkdir -p /app/uploads
-
-# Expose the port
+WORKDIR /app/domains/core-platform-services/file-upload-service
 EXPOSE 3009
-
-# Command to run the application
 CMD ["node", "dist/main"]

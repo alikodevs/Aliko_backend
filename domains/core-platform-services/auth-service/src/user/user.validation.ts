@@ -6,7 +6,7 @@ export const GetUserProfileSchema = Joi.object({
 
 export const UpdateUserProfileSchema = Joi.object({
   firebaseId: Joi.string().required().description('Firebase UID of the user to update'),
-  dto: Joi.object().required().description('Updated profile data'),
+  dto: Joi.object().required().unknown().description('Updated profile data'),
 }).description('Schema for updating user profile');
 
 export const GetUsersByIdsSchema = Joi.object({

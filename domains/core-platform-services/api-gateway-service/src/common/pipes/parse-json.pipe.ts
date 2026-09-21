@@ -2,10 +2,9 @@ import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class ParseJsonPipe implements PipeTransform {
-  transform(value: string) {
-    if (typeof value !== 'string') {
-      throw new BadRequestException('The field must be a JSON string.');
-    }
+  transform(value: any) {
+    if (!value) return null;
+    if (typeof value !== 'string') return value;
     try {
       return JSON.parse(value);
     } catch (error) {

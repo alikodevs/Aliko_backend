@@ -4,7 +4,7 @@ import { IStorageProvider, FileResponse } from './storage.interface';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Express } from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class LocalDiskProvider implements IStorageProvider {
@@ -31,22 +31,20 @@ export class LocalDiskProvider implements IStorageProvider {
 
   async upload(file: Express.Multer.File, folder: string = 'misc'): Promise<FileResponse> {
     try {
-      // Create type-specific folder inside uploads
-      // folder argument usually comes as 'alikohub/images', we want just 'images' locally
-      const subFolder = folder.split('/').pop() || 'misc';
-      const targetDir = path.join(this.uploadDir, subFolder);
+      // Use the full folder path, creating any parent directories as needed
+      const targetDir = path.join(this.uploadDir, folder);
 
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, { recursive: true });
       }
 
-      const filename = `${uuidv4()}${path.extname(file.originalname)}`;
+      const filename = `${randomUUID()}${path.extname(file.originalname)}`;
       const filePath = path.join(targetDir, filename);
 
       await fs.promises.writeFile(filePath, file.buffer);
 
-      const url = `${this.hostUrl}/uploads/${subFolder}/${filename}`;
-      const publicId = `${subFolder}/${filename}`; // ID is relative path for deletion
+      const url = `${this.hostUrl}/uploads/${folder}/${filename}`;
+      const publicId = `${folder}/${filename}`; 
 
       return {
         url,

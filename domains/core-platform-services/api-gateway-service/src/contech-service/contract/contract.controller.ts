@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
@@ -36,6 +37,16 @@ import {
 export class ContractController {
   constructor(@Inject('CONTECH_SERVICE') private contechClient: ClientProxy) {}
 
+  @Post()
+  @ApiOperation({ summary: 'Create a new contract' })
+  createContract(@Request() req: RequestWithUser, @Body() data: any) {
+    const payload = {
+      user: req.user,
+      ...data,
+    };
+    return this.contechClient.send({ cmd: 'create_contract' }, payload);
+  }
+
   @Post('upload')
   @UseInterceptors(FileInterceptor('contractFile'))
   @ApiConsumes('multipart/form-data')
@@ -55,7 +66,6 @@ export class ContractController {
     @UploadedFile() file: Express.Multer.File,
     @Body('projectId', ParseIntPipe) projectId: number,
   ) {
-    // Serialize file as base64 for microservice transport
     const serializedFile = {
       buffer: file.buffer.toString('base64'),
       originalname: file.originalname,
@@ -68,9 +78,34 @@ export class ContractController {
       projectId,
       file: serializedFile,
     };
-    return lastValueFrom(
-      this.contechClient.send({ cmd: 'uploadContract' }, payload),
-    );
+    return this.contechClient.send({ cmd: 'uploadContract' }, payload);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update a contract' })
+  @ApiParam({ name: 'id', description: 'Contract ID', type: Number })
+  updateContract(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() data: any,
+  ) {
+    const payload = {
+      user: req.user,
+      id,
+      ...data,
+    };
+    return this.contechClient.send({ cmd: 'update_contract' }, payload);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a contract' })
+  @ApiParam({ name: 'id', description: 'Contract ID', type: Number })
+  removeContract(@Request() req: RequestWithUser, @Param('id', ParseIntPipe) id: number) {
+    const payload = {
+      user: req.user,
+      id,
+    };
+    return this.contechClient.send({ cmd: 'remove_contract' }, payload);
   }
 
   @Patch(':id/status')
@@ -87,9 +122,7 @@ export class ContractController {
       id,
       ...updateContractStatusDto,
     };
-    return lastValueFrom(
-      this.contechClient.send({ cmd: 'updateContractStatus' }, payload),
-    );
+    return this.contechClient.send({ cmd: 'updateContractStatus' }, payload);
   }
 
   @Post(':id/change-orders')
@@ -106,9 +139,7 @@ export class ContractController {
       id,
       addChangeOrderDto,
     };
-    return lastValueFrom(
-      this.contechClient.send({ cmd: 'addChangeOrder' }, payload),
-    );
+    return this.contechClient.send({ cmd: 'addChangeOrder' }, payload);
   }
 
   @Get(':id/view')
@@ -119,9 +150,16 @@ export class ContractController {
       user: req.user,
       id,
     };
-    return lastValueFrom(
-      this.contechClient.send({ cmd: 'getContractViewUrl' }, payload),
-    );
+    return this.contechClient.send({ cmd: 'getContractViewUrl' }, payload);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all contracts for a user' })
+  findAllContracts(@Request() req: RequestWithUser) {
+    const payload = {
+      user: req.user,
+    };
+    return this.contechClient.send({ cmd: 'find_all_contracts' }, payload);
   }
 
   @Get('project/:projectId')
@@ -135,8 +173,6 @@ export class ContractController {
       user: req.user,
       projectId,
     };
-    return lastValueFrom(
-      this.contechClient.send({ cmd: 'getContractsByProjectId' }, payload),
-    );
+    return this.contechClient.send({ cmd: 'getContractsByProjectId' }, payload);
   }
 }

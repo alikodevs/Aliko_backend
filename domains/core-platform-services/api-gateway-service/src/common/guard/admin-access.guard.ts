@@ -6,8 +6,15 @@ export class AdminAccessGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    if (!user || user.globalRole !== 'ADMIN') {
-      throw new UnauthorizedException('Only administrators can access this resource');
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
+    const isGlobalAdmin = user.globalRole === 'ADMIN';
+    const isCareersAdmin = user.careersRole === 'ADMIN' || user.careersRole === 'RECRUITER';
+
+    if (!isGlobalAdmin && !isCareersAdmin) {
+      throw new UnauthorizedException('Only administrators or recruiters can access this resource');
     }
 
     return true;

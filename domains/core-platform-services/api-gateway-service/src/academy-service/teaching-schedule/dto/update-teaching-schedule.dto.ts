@@ -58,4 +58,12 @@ export class UpdateTeachingScheduleDto {
   @IsOptional()
   @IsString()
   recurrencePattern?: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated associated cohort ID',
+    example: 1,
+  })
+  @IsOptional()
+  @IsNumber()
+  cohortId?: number;
 }

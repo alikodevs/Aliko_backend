@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nest start",
     "start:dev": "nest start --watch",
-    "build": "nest build",
+    "build": "npx tsc -p tsconfig.json && if [ -d src/generated ]; then cp -a src/generated dist/generated; fi",
     "test": "jest --passWithNoTests"
   },
   "dependencies": {
@@ -30,7 +30,11 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "prisma": "6.15.0",
-    "winston": "^3.14.0"
+    "winston": "^3.14.0",
+    "@alikohub/mail": "*",
+    "@alikohub/logger": "*",
+    "@alikohub/rabbitmq": "*",
+    "@alikohub/firebase-admin": "*"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.2.3",

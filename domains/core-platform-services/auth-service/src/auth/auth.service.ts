@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Argon2Service } from './argon2.service';
 import { EmailService } from './email.service';
-import { AcademyRole, ContechRole, EventsRole, GlobalRole, CareersRole, ConsultancyRole } from '../generated/client';
+import { AcademyRole, ContechRole, EventsRole, GlobalRole, CareersRole, ConsultancyRole, ConshifterRole, AlikowashRole } from '../generated/client';
 import { RabbitMQService } from '../rabbitmq.service';
 
 @Injectable()
@@ -23,6 +23,8 @@ export class AuthService {
 		@Inject('ACADEMY_SERVICE') private readonly academyClient: ClientProxy,
 		@Inject('CONTECH_SERVICE') private readonly contechClient: ClientProxy,
 		@Inject('EVENTS_SERVICE') private readonly eventsClient: ClientProxy,
+		@Inject('ALIKOWASH_SERVICE') private readonly alikowashClient: ClientProxy,
+		@Inject('CONSHIFTER_SERVICE') private readonly conshifterClient: ClientProxy,
 		private readonly rabbitMQService: RabbitMQService,
 	) {}
 
@@ -107,6 +109,33 @@ export class AuthService {
                 }
             });
 
+            // Create local CareersUser record with default USER role
+            await this.prisma.careersUser.create({
+                data: {
+                    userId: userRecord.uid,
+                    role: CareersRole.USER,
+                    status: 'ACTIVE',
+                }
+            });
+
+            // Create local ConshifterUser record with default USER role
+            await this.prisma.conshifterUser.create({
+                data: {
+                    userId: userRecord.uid,
+                    role: ConshifterRole.USER,
+                    status: 'ACTIVE',
+                }
+            });
+
+            // Create local AlikowashUser record with default USER role
+            await this.prisma.alikowashUser.create({
+                data: {
+                    userId: userRecord.uid,
+                    role: AlikowashRole.USER,
+                    status: 'ACTIVE',
+                }
+            });
+
 			user = await this.userService.findByFirebaseId(userRecord.uid);
 			this.logger.log(`User created in database: ${user.id}`);
 			
@@ -121,6 +150,20 @@ export class AuthService {
 					role: user.globalRole,
 				}
 			});
+
+			// Also emit via TCP to individual services
+			const eventPayload = {
+				userId: user.firebaseId,
+				email: user.email,
+				firstname: user.firstname,
+				lastname: user.lastname,
+				role: user.globalRole,
+			};
+			this.academyClient.emit('user_created', eventPayload);
+			this.contechClient.emit('user_created', eventPayload);
+			this.eventsClient.emit('user_created', eventPayload);
+			this.alikowashClient.emit('user_created', eventPayload);
+			this.conshifterClient.emit('user_created', eventPayload);
 		}
 
 		// Issue Firebase custom token
@@ -238,6 +281,12 @@ export class AuthService {
 				await tx.consultancyUser.create({
 					data: { userId: userRecord.uid, role: ConsultancyRole.USER, status: 'ACTIVE' }
 				});
+				await tx.conshifterUser.create({
+					data: { userId: userRecord.uid, role: ConshifterRole.USER, status: 'ACTIVE' }
+				});
+				await tx.alikowashUser.create({
+					data: { userId: userRecord.uid, role: AlikowashRole.USER, status: 'ACTIVE' }
+				});
 
 				this.logger.log(`Recruiter successfully created in database with ID: ${newUser.id}`);
 				
@@ -330,6 +379,12 @@ export class AuthService {
 				await tx.consultancyUser.create({
 					data: { userId: userRecord.uid, role: ConsultancyRole.USER, status: 'ACTIVE' }
 				});
+				await tx.conshifterUser.create({
+					data: { userId: userRecord.uid, role: ConshifterRole.USER, status: 'ACTIVE' }
+				});
+				await tx.alikowashUser.create({
+					data: { userId: userRecord.uid, role: AlikowashRole.USER, status: 'ACTIVE' }
+				});
 
 				this.logger.log(`ConTech user successfully created in database with ID: ${newUser.id}`);
 				
@@ -417,6 +472,12 @@ export class AuthService {
 				await tx.consultancyUser.create({
 					data: { userId: userRecord.uid, role: ConsultancyRole.USER, status: 'ACTIVE' }
 				});
+				await tx.conshifterUser.create({
+					data: { userId: userRecord.uid, role: ConshifterRole.USER, status: 'ACTIVE' }
+				});
+				await tx.alikowashUser.create({
+					data: { userId: userRecord.uid, role: AlikowashRole.USER, status: 'ACTIVE' }
+				});
 
 				this.logger.log(`Events user successfully created in database with ID: ${newUser.id}`);
 				
@@ -453,18 +514,22 @@ export class AuthService {
 		}
 
 		// Verify password using Argon2
-		if (user.password && dto.password) {
-			const isPasswordValid = await this.argon2Service.verify(user.password, dto.password);
-			if (!isPasswordValid) {
-				throw new RpcException({
-					statusCode: HttpStatus.UNAUTHORIZED,
-					message: 'Invalid credentials',
-					error: 'Unauthorized',
-				});
-			}
-		} else {
-			this.logger.warn(`User ${user.id} has no password set or no password provided in login attempt`);
-			// In production, we might want to enforce passwords or handle social logins separately
+		if (!user.password || !dto.password) {
+			this.logger.warn(`Login failed: password missing for user ID ${user.id} (DB password set: ${!!user.password}, DTO password provided: ${!!dto.password})`);
+			throw new RpcException({
+				statusCode: HttpStatus.UNAUTHORIZED,
+				message: 'Invalid credentials',
+				error: 'Unauthorized',
+			});
+		}
+
+		const isPasswordValid = await this.argon2Service.verify(user.password, dto.password);
+		if (!isPasswordValid) {
+			throw new RpcException({
+				statusCode: HttpStatus.UNAUTHORIZED,
+				message: 'Invalid credentials',
+				error: 'Unauthorized',
+			});
 		}
 
 		// Register user with Firebase Auth (email/password) - or just get existing
@@ -524,6 +589,16 @@ export class AuthService {
 			plain.careersStatus = user.careersUser.status;
 		}
 
+		if (user.conshifterUser) {
+			plain.conshifterRole = user.conshifterUser.role;
+			plain.conshifterStatus = user.conshifterUser.status;
+		}
+
+		if (user.alikowashUser) {
+			plain.alikowashRole = user.alikowashUser.role;
+			plain.alikowashStatus = user.alikowashUser.status;
+		}
+
 		return plain;
 	}
 
@@ -548,6 +623,10 @@ export class AuthService {
 			eventsStatus: user.eventsUser?.status,
 			careersRole: user.careersUser?.role,
 			careersStatus: user.careersUser?.status,
+			conshifterRole: user.conshifterUser?.role,
+			conshifterStatus: user.conshifterUser?.status,
+			alikowashRole: user.alikowashUser?.role,
+			alikowashStatus: user.alikowashUser?.status,
 		};
 
 		const accessToken = this.jwtService.sign(payload);
@@ -563,75 +642,120 @@ export class AuthService {
 	}
 
 	async loginWithGoogle(idToken: string) {
-		// Verify Google ID token with Firebase Admin
+		this.logger.log('Processing Google login');
 		const firebase = this.firebaseService.getAuth();
 		let decoded;
 		try {
 			decoded = await firebase.verifyIdToken(idToken);
-		} catch (e) {
-			throw new Error('Invalid Google ID token');
+		} catch (e: any) {
+			this.logger.error(`Google ID token verification failed: ${e.message}`);
+			const detail = String(e?.message || '');
+			const audienceMismatch = detail.includes('incorrect "aud"')
+				? ' Firebase project mismatch: the client ID token and auth-service credentials must be from the same Firebase project.'
+				: '';
+			throw new RpcException({
+				statusCode: HttpStatus.UNAUTHORIZED,
+				message: `Invalid or expired Google ID token.${audienceMismatch}`,
+				error: 'Unauthorized',
+			});
 		}
 
 		// Find or create user in Prisma
 		let user: any = await this.userService.findByFirebaseId(decoded.uid);
+		let isNewUser = false;
+
 		if (!user) {
-			user = await this.userService.createOrUpdateUser({
-				firebaseId: decoded.uid,
-				email: decoded.email,
-				firstname: decoded.name?.split(' ')[0] || '',
-				lastname: decoded.name?.split(' ')[1] || '',
-				globalRole: GlobalRole.USER,
-				status: 'ACTIVE',
-			});
-            
-            // Create local AcademyUser record with default USER role
-            await this.prisma.academyUser.create({
-                data: {
-                    userId: decoded.uid,
-                    role: AcademyRole.USER,
-                    status: 'ACTIVE',
-                }
-            });
+			isNewUser = true;
+			this.logger.log(`New Google user detected, creating account for: ${decoded.email}`);
 
-            // Create local ContechUser record with default USER role
-            await this.prisma.contechUser.create({
-                data: {
-                    userId: decoded.uid,
-                    role: ContechRole.CLIENT,
-                    status: 'ACTIVE',
-                }
-            });
+			// Parse name from Google profile
+			const nameParts = (decoded.name || '').split(' ');
+			const firstname = nameParts[0] || decoded.email?.split('@')[0] || 'User';
+			const lastname = nameParts.slice(1).join(' ') || '';
 
-            // Create local EventsUser record with default USER role
-            await this.prisma.eventsUser.create({
-                data: {
-                    userId: decoded.uid,
-                    role: EventsRole.USER,
-                    status: 'ACTIVE',
-                }
-            });
+			try {
+				await this.prisma.$transaction(async (tx) => {
+					// Create main user record
+					await tx.user.create({
+						data: {
+							firebaseId: decoded.uid,
+							email: decoded.email,
+							firstname,
+							lastname,
+							profilePicture: decoded.picture || null,
+							globalRole: GlobalRole.USER,
+							authProvider: 'GOOGLE',
+							status: 'ACTIVE',
+						}
+					});
 
-            // Create local ConsultancyUser record with default USER role
-            await this.prisma.consultancyUser.create({
-                data: {
-                    userId: decoded.uid,
-                    role: ConsultancyRole.USER,
-                    status: 'ACTIVE',
-                }
-            });
+					// Create all domain user records atomically
+					await tx.academyUser.create({
+						data: { userId: decoded.uid, role: AcademyRole.USER, status: 'ACTIVE' }
+					});
+					await tx.contechUser.create({
+						data: { userId: decoded.uid, role: ContechRole.CLIENT, status: 'ACTIVE' }
+					});
+					await tx.eventsUser.create({
+						data: { userId: decoded.uid, role: EventsRole.USER, status: 'ACTIVE' }
+					});
+					await tx.consultancyUser.create({
+						data: { userId: decoded.uid, role: ConsultancyRole.USER, status: 'ACTIVE' }
+					});
+					await tx.careersUser.create({
+						data: { userId: decoded.uid, role: CareersRole.USER, status: 'ACTIVE' }
+					});
+					await tx.conshifterUser.create({
+						data: { userId: decoded.uid, role: ConshifterRole.USER, status: 'ACTIVE' }
+					});
+					await tx.alikowashUser.create({
+						data: { userId: decoded.uid, role: AlikowashRole.USER, status: 'ACTIVE' }
+					});
+				});
 
-			// Re-fetch to get relations
-			user = await this.userService.findByFirebaseId(decoded.uid);
-			
-			// Emit user_created event to all services
-			const eventPayload = {
-				userId: user.firebaseId,
-				email: user.email,
-				role: 'USER'
-			};
-			this.academyClient.emit('user_created', eventPayload);
-			this.contechClient.emit('user_created', eventPayload);
-			this.eventsClient.emit('user_created', eventPayload);
+				// Re-fetch to get all relations
+				user = await this.userService.findByFirebaseId(decoded.uid);
+				this.logger.log(`Google user created in database: ${user.id}`);
+
+				// Broadcast user_created event via RabbitMQ
+				await this.rabbitMQService.publishToExchange('user_events', {
+					pattern: 'user_created',
+					data: {
+						userId: user.firebaseId,
+						email: user.email,
+						firstname: user.firstname,
+						lastname: user.lastname,
+						role: user.globalRole,
+						authProvider: 'GOOGLE',
+					}
+				});
+
+				// Also emit via TCP to individual services
+				const eventPayload = {
+					userId: user.firebaseId,
+					email: user.email,
+					firstname: user.firstname,
+					lastname: user.lastname,
+					role: user.globalRole,
+				};
+				this.academyClient.emit('user_created', eventPayload);
+				this.contechClient.emit('user_created', eventPayload);
+				this.eventsClient.emit('user_created', eventPayload);
+				this.alikowashClient.emit('user_created', eventPayload);
+				this.conshifterClient.emit('user_created', eventPayload);
+
+				// Send welcome email (async, don't block login)
+				this.emailService.sendWelcomeEmail(decoded.email, firstname).catch((error) => {
+					this.logger.error(`Failed to send welcome email to ${decoded.email}: ${error.message}`);
+				});
+			} catch (error: any) {
+				this.logger.error(`Failed to create Google user ${decoded.email}: ${error.message}`, error.stack);
+				throw new RpcException({
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					message: 'Failed to create user account from Google sign-in',
+					error: 'Internal Server Error',
+				});
+			}
 		}
 
 		// Generate JWT tokens
@@ -641,6 +765,7 @@ export class AuthService {
 			user: this.toPlain(user),
 			...tokens,
 			firebaseIdToken: idToken,
+			isNewUser,
 		};
 	}
 
@@ -1047,7 +1172,73 @@ export class AuthService {
 		};
 	}
 
-	async forgotPassword(email: string) {
+	/**
+	 * Resolve the frontend base URL used in the reset email link.
+	 * Login verifies the local Argon2 hash — so the link must land on OUR
+	 * reset page (not Firebase's hosted page), which calls /reset-password
+	 * and updates both Firebase + local DB.
+	 */
+	private resolvePasswordResetFrontendUrl(input?: {
+		frontendUrl?: string;
+		app?: string;
+	}): string {
+		const allowed = [
+			process.env.ACADEMY_FRONTEND_URL,
+			process.env.EVENTS_FRONTEND_URL,
+			process.env.FRONTEND_URL,
+			'https://lms.alikohub.com',
+			'https://www.lms.alikohub.com',
+			'https://academy.alikohub.com',
+			'https://events.alikohub.com',
+			'http://localhost:5173',
+			'http://localhost:3000',
+			'http://127.0.0.1:5173',
+		].filter(Boolean) as string[];
+
+		const byApp: Record<string, string | undefined> = {
+			academy: process.env.ACADEMY_FRONTEND_URL || 'https://lms.alikohub.com',
+			events: process.env.EVENTS_FRONTEND_URL || 'https://events.alikohub.com',
+		};
+
+		if (input?.frontendUrl) {
+			try {
+				const parsed = new URL(input.frontendUrl);
+				const normalized = `${parsed.protocol}//${parsed.host}`;
+				const ok = allowed.some((a) => {
+					try {
+						const allowedUrl = new URL(a);
+						return (
+							allowedUrl.protocol === parsed.protocol &&
+							allowedUrl.host === parsed.host
+						);
+					} catch {
+						return false;
+					}
+				});
+				if (ok) return normalized.replace(/\/$/, '');
+				this.logger.warn(
+					`Rejected frontendUrl for password reset: ${input.frontendUrl}`,
+				);
+			} catch {
+				this.logger.warn(`Invalid frontendUrl for password reset: ${input.frontendUrl}`);
+			}
+		}
+
+		if (input?.app && byApp[input.app.toLowerCase()]) {
+			return byApp[input.app.toLowerCase()]!.replace(/\/$/, '');
+		}
+
+		return (
+			process.env.FRONTEND_URL ||
+			process.env.ACADEMY_FRONTEND_URL ||
+			'https://lms.alikohub.com'
+		).replace(/\/$/, '');
+	}
+
+	async forgotPassword(
+		email: string,
+		options?: { frontendUrl?: string; app?: string },
+	) {
 		this.logger.log(`Password reset request for email: ${email}`);
 		const user = await this.userService.findByEmail(email);
 		if (!user) {
@@ -1056,17 +1247,26 @@ export class AuthService {
 		}
 
 		try {
-			const firebase = this.firebaseService.getAuth();
-			// FRONTEND_URL should be defined in your environment
-			const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-			const actionCodeSettings = {
-				url: `${frontendUrl}/reset-password`,
-				handleCodeInApp: true,
-			};
-			const resetLink = await firebase.generatePasswordResetLink(email, actionCodeSettings);
-			
-			await this.emailService.sendPasswordResetEmail(email, user.firstname, resetLink);
-			
+			const frontendUrl = this.resolvePasswordResetFrontendUrl(options);
+			// Signed token — NOT Firebase oobCode. Login uses local Argon2, so
+			// Firebase-hosted reset alone leaves the DB password stale.
+			const token = await this.jwtService.signAsync(
+				{
+					email: user.email,
+					firebaseId: user.firebaseId,
+					purpose: 'password-reset',
+				},
+				{ expiresIn: '1h' },
+			);
+			const resetLink = `${frontendUrl}/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(user.email)}`;
+
+			await this.emailService.sendPasswordResetEmail(
+				email,
+				user.firstname,
+				resetLink,
+			);
+			this.logger.log(`Password reset email sent for ${email} (frontend: ${frontendUrl})`);
+
 			return { message: 'If an account exists with this email, a reset link has been sent.' };
 		} catch (error: any) {
 			this.logger.error(`Failed to generate password reset link for ${email}: ${error.message}`);
@@ -1078,10 +1278,58 @@ export class AuthService {
 		}
 	}
 
-	async resetPassword(payload: { email: string; newPassword: string }) {
-		this.logger.log(`Processing password reset for: ${payload.email}`);
+	async resetPassword(payload: {
+		email?: string;
+		newPassword: string;
+		token?: string;
+	}) {
+		this.logger.log(
+			`Processing password reset for: ${payload.email || '(from token)'}`,
+		);
 		try {
-			const user = await this.userService.findByEmail(payload.email);
+			if (!payload.token) {
+				throw new RpcException({
+					statusCode: HttpStatus.BAD_REQUEST,
+					message: 'Reset token is required. Use the link from your email.',
+					error: 'Bad Request',
+				});
+			}
+
+			let tokenPayload: {
+				email?: string;
+				firebaseId?: string;
+				purpose?: string;
+			};
+			try {
+				tokenPayload = await this.jwtService.verifyAsync(payload.token);
+			} catch {
+				throw new RpcException({
+					statusCode: HttpStatus.BAD_REQUEST,
+					message: 'Invalid or expired reset token. Please request a new link.',
+					error: 'Bad Request',
+				});
+			}
+
+			if (tokenPayload.purpose !== 'password-reset' || !tokenPayload.email) {
+				throw new RpcException({
+					statusCode: HttpStatus.BAD_REQUEST,
+					message: 'Invalid reset token.',
+					error: 'Bad Request',
+				});
+			}
+
+			if (
+				payload.email &&
+				payload.email.toLowerCase() !== tokenPayload.email.toLowerCase()
+			) {
+				throw new RpcException({
+					statusCode: HttpStatus.BAD_REQUEST,
+					message: 'Email does not match the reset token.',
+					error: 'Bad Request',
+				});
+			}
+
+			const user = await this.userService.findByEmail(tokenPayload.email);
 			if (!user) {
 				throw new RpcException({
 					statusCode: HttpStatus.NOT_FOUND,
@@ -1095,11 +1343,13 @@ export class AuthService {
 			await firebase.updateUser(user.firebaseId, {
 				password: payload.newPassword,
 			});
-			
-			// Sync with local DB
+
+			// Sync with local DB (required — login verifies Argon2, not Firebase)
 			const hashedPassword = await this.argon2Service.hash(payload.newPassword);
-			await this.userService.updateProfile(user.firebaseId, { password: hashedPassword });
-			
+			await this.userService.updateProfile(user.firebaseId, {
+				password: hashedPassword,
+			});
+
 			return { message: 'Password reset successfully' };
 		} catch (error: any) {
 			this.logger.error(`Password reset failed: ${error.message}`);
@@ -1192,6 +1442,43 @@ export class AuthService {
 		return eventsUser;
 	}
 
+	async syncCareersUser(userId: string) {
+		const user = await this.userService.findByFirebaseId(userId);
+		if (!user) {
+			throw new RpcException({
+				statusCode: HttpStatus.NOT_FOUND,
+				message: 'User not found in Auth Service',
+				error: 'Not Found',
+			});
+		}
+
+		let careersUser = await this.prisma.careersUser.findUnique({
+			where: { userId: user.firebaseId },
+		});
+
+		const isAdmin = user.globalRole === GlobalRole.ADMIN;
+		const targetRole = isAdmin ? CareersRole.ADMIN : (careersUser?.role || CareersRole.USER);
+
+		if (!careersUser) {
+			careersUser = await this.prisma.careersUser.create({
+				data: {
+					userId: user.firebaseId,
+					role: targetRole,
+					status: 'ACTIVE',
+				}
+			});
+			this.logger.log(`Created CareersUser record for user: ${user.firebaseId} with role: ${targetRole}`);
+		} else if (isAdmin && careersUser.role !== CareersRole.ADMIN) {
+			careersUser = await this.prisma.careersUser.update({
+				where: { userId: user.firebaseId },
+				data: { role: CareersRole.ADMIN }
+			});
+			this.logger.log(`Automatically promoted Careers user ${user.firebaseId} to ADMIN because of global role`);
+		}
+
+		return careersUser;
+	}
+
 	async syncAcademyUser(userId: string) {
 		const user = await this.userService.findByFirebaseId(userId);
 		if (!user) {
@@ -1232,9 +1519,62 @@ export class AuthService {
 		};
 	}
 
+	async syncConshifterUser(userId: string) {
+		const user = await this.userService.findByFirebaseId(userId);
+		if (!user) {
+			throw new RpcException({
+				statusCode: HttpStatus.NOT_FOUND,
+				message: 'User not found in Auth Service',
+				error: 'Not Found',
+			});
+		}
+
+		let conshifterUser = await this.prisma.conshifterUser.findUnique({
+			where: { userId: user.firebaseId },
+		});
+
+		const isAdmin = user.globalRole === GlobalRole.ADMIN;
+		const targetRole = isAdmin ? ConshifterRole.ADMIN : (conshifterUser?.role || ConshifterRole.USER);
+
+		if (!conshifterUser) {
+			conshifterUser = await this.prisma.conshifterUser.create({
+				data: {
+					userId: user.firebaseId,
+					role: targetRole,
+					status: 'ACTIVE',
+				}
+			});
+			this.logger.log(`Created ConshifterUser record for user: ${user.firebaseId} with role: ${targetRole}`);
+		} else if (isAdmin && conshifterUser.role !== ConshifterRole.ADMIN) {
+			conshifterUser = await this.prisma.conshifterUser.update({
+				where: { userId: user.firebaseId },
+				data: { role: ConshifterRole.ADMIN }
+			});
+			this.logger.log(`Automatically promoted Conshifter user ${user.firebaseId} to ADMIN because of global role`);
+		}
+
+		return {
+			userId: user.firebaseId,
+			role: conshifterUser.role,
+			status: conshifterUser.status,
+		};
+	}
+
 	async sendContactEmail(dto: any) {
 		return this.emailService.sendContactEmail(dto);
 	}
+
+	async updateContechRole(userId: string, role: string) {
+		this.logger.log(`Updating ConTech role for user ${userId} to ${role}`);
+		const user = await this.userService.updateContechRole(userId, role);
+		return { message: 'ConTech role updated successfully', user: this.toPlain(user) };
+	}
+
+  async updateCareersRole(userId: string, role: string) {
+    this.logger.log(`Updating Careers role for user ${userId} to ${role}`);
+    const user = await this.userService.updateCareersRole(userId, role);
+    return { message: 'Careers role updated successfully', user: this.toPlain(user) };
+  }
 
 	async updateStatus(firebaseId: string, status: string) {
 		const user = await this.userService.updateStatus(firebaseId, status);

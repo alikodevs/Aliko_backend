@@ -55,28 +55,73 @@ export class StripeService implements PaymentServiceInterface {
 
   async verifyWebhook(payload: any, signature: string): Promise<WebhookVerificationResult> {
     try {
+      const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+
+      if (!webhookSecret || webhookSecret === 'whsec_test_secret_123') {
+        this.logger.warn('STRIPE_WEBHOOK_SECRET is not configured! Set it in .env with the value from Stripe Dashboard.');
+      }
+
       const event = this.stripe.webhooks.constructEvent(
         payload,
         signature,
-        this.configService.get<string>('STRIPE_WEBHOOK_SECRET'),
+        webhookSecret,
       );
 
-      if (event.type === 'checkout.session.completed') {
-        const session = event.data.object as Stripe.Checkout.Session;
-        return {
-          isValid: true,
-          status: 'COMPLETED',
-          providerReference: session.id,
-          amount: session.amount_total / 100,
-        };
-      }
+      this.logger.log(`Stripe event received: ${event.type} (ID: ${event.id})`);
 
-      return {
-        isValid: true, // Signature was valid but event not handled here
-        status: 'PENDING',
-        providerReference: '',
-        amount: 0,
-      };
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object as Stripe.Checkout.Session;
+          return {
+            isValid: true,
+            status: 'COMPLETED',
+            providerReference: session.id,
+            amount: session.amount_total / 100,
+          };
+        }
+
+        case 'checkout.session.expired': {
+          const session = event.data.object as Stripe.Checkout.Session;
+          this.logger.warn(`Checkout session expired: ${session.id}`);
+          return {
+            isValid: true,
+            status: 'CANCELLED',
+            providerReference: session.id,
+            amount: 0,
+          };
+        }
+
+        case 'payment_intent.payment_failed': {
+          const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          this.logger.warn(`Payment failed: ${paymentIntent.id} — ${paymentIntent.last_payment_error?.message}`);
+          return {
+            isValid: true,
+            status: 'FAILED',
+            providerReference: paymentIntent.id,
+            amount: paymentIntent.amount / 100,
+          };
+        }
+
+        case 'charge.refunded': {
+          const charge = event.data.object as Stripe.Charge;
+          this.logger.log(`Charge refunded: ${charge.id}, amount refunded: ${charge.amount_refunded / 100}`);
+          return {
+            isValid: true,
+            status: 'REFUNDED',
+            providerReference: charge.payment_intent as string,
+            amount: charge.amount_refunded / 100,
+          };
+        }
+
+        default:
+          this.logger.log(`Unhandled Stripe event type: ${event.type}`);
+          return {
+            isValid: true, // Signature was valid but event not handled here
+            status: 'PENDING',
+            providerReference: '',
+            amount: 0,
+          };
+      }
     } catch (error) {
       this.logger.error(`Stripe webhook verification error: ${error.message}`);
       return {

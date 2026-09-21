@@ -9,6 +9,7 @@ import { FirebaseModule } from '../firebase/firebase.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RolesGuard } from './roles/roles.guard';
 import { EmailService } from './email.service';
+import { MailModule } from '@alikohub/mail';
 
 import { JwtModule } from '@nestjs/jwt';
 import { Argon2Service } from './argon2.service';
@@ -19,6 +20,7 @@ import { Argon2Service } from './argon2.service';
     UserModule, 
     FirebaseModule, 
     PrismaModule,
+    MailModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key',
       signOptions: { expiresIn: '1h' },
@@ -53,6 +55,28 @@ import { Argon2Service } from './argon2.service';
           options: {
             host: configService.get('EVENTS_SERVICE_HOST') || 'localhost',
             port: parseInt(configService.get('EVENTS_SERVICE_PORT')) || 3004,
+          },
+        }),
+        inject: [ConfigService],
+      },
+      {
+        name: 'ALIKOWASH_SERVICE',
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: configService.get('ALIKOWASH_SERVICE_HOST') || 'localhost',
+            port: parseInt(configService.get('ALIKOWASH_SERVICE_PORT')) || 3013,
+          },
+        }),
+        inject: [ConfigService],
+      },
+      {
+        name: 'CONSHIFTER_SERVICE',
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: configService.get('CONSHIFTER_SERVICE_HOST') || 'localhost',
+            port: parseInt(configService.get('CONSHIFTER_SERVICE_PORT')) || 3014,
           },
         }),
         inject: [ConfigService],

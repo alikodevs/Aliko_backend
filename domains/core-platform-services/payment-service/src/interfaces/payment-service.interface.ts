@@ -16,7 +16,7 @@ export interface InitSessionResponse {
 
 export interface WebhookVerificationResult {
   isValid: boolean;
-  status: 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'PENDING';
+  status: 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'PENDING' | 'REFUNDED';
   providerReference: string;
   amount: number; // For double checking
 }

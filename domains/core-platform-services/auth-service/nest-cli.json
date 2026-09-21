@@ -3,8 +3,13 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "assets": [
-      { "include": "generated/**/*", "watchAssets": true }
+      {
+        "include": "generated/**/*",
+        "watchAssets": true
+      }
     ],
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "builder": "tsc",
+    "webpack": false
   }
 }

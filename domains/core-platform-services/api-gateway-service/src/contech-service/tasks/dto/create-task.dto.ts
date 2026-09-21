@@ -7,6 +7,7 @@ import {
   IsDateString,
   IsArray,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum TaskPriority {
@@ -21,6 +22,7 @@ export class CreateTaskDto {
     description: 'ID of the project this task belongs to',
     example: 1,
   })
+  @Type(() => Number)
   @IsNumber()
   projectId!: number;
 
@@ -29,8 +31,8 @@ export class CreateTaskDto {
     example: 'Design homepage layout',
   })
   @IsString()
-  @IsNotEmpty()
-  description!: string;
+  @IsOptional()
+  description?: string;
 
   @ApiPropertyOptional({
     description: 'Priority of the task',
@@ -61,6 +63,7 @@ export class CreateTaskDto {
     description: 'Estimated hours to complete the task',
     example: 10,
   })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   estimatedHours?: number;

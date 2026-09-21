@@ -20,6 +20,6 @@ export class ContactController {
   @ApiResponse({ status: 201, description: 'Contact form submitted' })
   @Post()
   submitContact(@Body() dto: any) {
-    return this.contechClient.send({ cmd: 'submit_contact' }, dto);
+    return this.contechClient.send({ cmd: 'send_contact_inquiry' }, dto);
   }
 }

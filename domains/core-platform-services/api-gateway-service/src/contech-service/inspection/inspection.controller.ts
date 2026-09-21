@@ -43,46 +43,44 @@ export class InspectionController {
   constructor(@Inject('CONTECH_SERVICE') private contechClient: ClientProxy) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new inspection with photos' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    description: 'Create inspection payload with photos',
-    schema: {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'string',
-          description: 'JSON string of CreateInspectionDto',
-        },
-        photos: {
-          type: 'array',
-          items: { type: 'string', format: 'binary' },
-          description: 'List of images',
-        },
-      },
-    },
-  })
+  @ApiOperation({ summary: 'Create a new inspection' })
+  @ApiConsumes('application/json', 'multipart/form-data')
   @UseInterceptors(FilesInterceptor('photos', 10))
   create(
     @Request() req: RequestWithUser,
-    @UploadedFiles() files: Array<Express.Multer.File>,
-    @Body('data', ParseJsonPipe) createInspectionDto: CreateInspectionDto,
+    @UploadedFiles() files?: Array<Express.Multer.File>,
+    @Body() body?: any,
   ) {
-    if (!files || files.length === 0) {
-      throw new BadRequestException('At least one photo must be uploaded.');
+    // Handle both multipart (body.data is JSON string) and raw JSON
+    let createInspectionDto = body;
+    if (body?.data) {
+      createInspectionDto = typeof body.data === 'string' ? JSON.parse(body.data) : body.data;
     }
-    const serializedFiles = files.map((file) => ({
+
+    const serializedFiles = files?.map((file) => ({
       originalname: file.originalname,
       buffer: file.buffer.toString('base64'),
-    }));
+    })) || [];
 
     const payload = {
       user: req.user,
       dto: createInspectionDto,
       files: serializedFiles,
     };
+    return this.contechClient.send({ cmd: 'create_Inspection' }, payload);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all inspections for a user with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAll(
+    @Request() req: RequestWithUser,
+    @Query() pagination: PaginationDto,
+  ) {
+    const payload = { user: req.user, pagination };
     return lastValueFrom(
-      this.contechClient.send({ cmd: 'create_Inspection' }, payload),
+      this.contechClient.send({ cmd: 'find_all_inspections' }, payload),
     );
   }
 
@@ -98,7 +96,7 @@ export class InspectionController {
     @Param('projectId', ParseIntPipe) projectId: number,
     @Query() paginationDto: PaginationDto,
   ) {
-    const payload = { user: req.user, projectId, paginationDto };
+    const payload = { user: req.user, projectId, pagination: paginationDto };
     return lastValueFrom(
       this.contechClient.send({ cmd: 'findAllInspections' }, payload),
     );
@@ -131,5 +129,18 @@ export class InspectionController {
   remove(@Request() req: RequestWithUser, @Param('id', ParseIntPipe) id: number) {
     const payload = { user: req.user, id };
     return lastValueFrom(this.contechClient.send('removeInspection', payload));
+  }
+
+  @Patch(':id/finalize')
+  @ApiOperation({ summary: 'Finalize an inspection' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({ schema: { properties: { status: { type: 'string', example: 'PASSED' } } } })
+  finalize(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body('status') status: string,
+  ) {
+    const payload = { user: req.user, id, status };
+    return lastValueFrom(this.contechClient.send('finalizeInspection', payload));
   }
 }

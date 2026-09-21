@@ -2,7 +2,7 @@ import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateEventDto {
-  @ApiProperty({ enum: ['EVENT', 'ANNOUNCEMENT', 'NEWS'] })
+  @ApiProperty({ enum: ['EVENT', 'SOCIAL_EVENT', 'ANNOUNCEMENT', 'NEWS'] })
   @IsString()
   @IsNotEmpty()
   type!: string;
@@ -30,6 +30,10 @@ export class CreateEventDto {
 
   @IsString()
   @IsOptional()
+  endEventDate?: string;
+
+  @IsString()
+  @IsOptional()
   startTime?: string;
 
   @IsString()
@@ -38,9 +42,41 @@ export class CreateEventDto {
 
   @IsString()
   @IsOptional()
+  timezone?: string;
+
+  @IsString()
+  @IsOptional()
   location?: string;
 
   @IsString()
   @IsOptional()
+  locationAddress?: string;
+
+  @IsString()
+  @IsOptional()
+  locationMapUrl?: string;
+
+  @IsString()
+  @IsOptional()
   externalLink?: string;
+
+  @IsString()
+  @IsOptional()
+  hostName?: string;
+
+  @IsString()
+  @IsOptional()
+  privacy?: string;
+
+  @IsString()
+  @IsOptional()
+  templateId?: string;
+
+  @IsString()
+  @IsOptional()
+  slug?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
 }

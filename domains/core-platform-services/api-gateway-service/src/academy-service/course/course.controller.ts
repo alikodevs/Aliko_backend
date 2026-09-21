@@ -15,6 +15,7 @@ import {
   ParseIntPipe,
   UseInterceptors,
   UploadedFile,
+  Headers,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { RequestWithUser } from '../../common/types/request-with-user.interface';
@@ -85,8 +86,21 @@ export class CourseController {
     required: false,
     description: 'Query parameters (pagination, filters, etc.)',
   })
-  findAllCourses(@Request() req: RequestWithUser, @Query() query: any) {
-    const payload = { query, user: req.user! };
+  findAllCourses(
+    @Request() req: RequestWithUser,
+    @Query() query: any,
+    @Headers('cf-ipcountry') cfCountry?: string,
+  ) {
+    const clientIp =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+      (req.headers['x-real-ip'] as string) ||
+      req.ip;
+    const payload = {
+      query,
+      user: req.user!,
+      clientIp,
+      clientCountry: cfCountry || undefined,
+    };
     return this.academyClient.send({ cmd: 'find_all_courses' }, payload);
   }
 
@@ -184,9 +198,32 @@ export class CourseController {
   @ApiResponse({ status: 404, description: 'Course not found' })
   @ApiResponse({ status: 403, description: 'Access denied' })
   @ApiParam({ name: 'id', type: Number })
-  findCourseById(@Request() req: RequestWithUser, @Param('id', ParseIntPipe) id: number) {
-    const payload = { id, user: req.user! };
+  findCourseById(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Headers('cf-ipcountry') cfCountry?: string,
+  ) {
+    const clientIp =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+      (req.headers['x-real-ip'] as string) ||
+      req.ip;
+    const payload = {
+      id,
+      user: req.user!,
+      clientIp,
+      clientCountry: cfCountry || undefined,
+    };
     return this.academyClient.send({ cmd: 'find_course_by_id' }, payload);
+  }
+
+  // Get full course structure for instructors/admins
+  @Get(':id/structure')
+  @UseGuards(AuthGuard, TeacherAccessGuard)
+  @ApiOperation({ summary: 'Get full course structure (modules, lessons, content) for management' })
+  @ApiResponse({ status: 200, description: 'Full course structure' })
+  @ApiParam({ name: 'id', type: Number })
+  getCourseStructure(@Request() req: RequestWithUser, @Param('id', ParseIntPipe) id: number) {
+    return this.academyClient.send({ cmd: 'get_course_with_structure' }, { id, user: req.user });
   }
 
   // Update a course

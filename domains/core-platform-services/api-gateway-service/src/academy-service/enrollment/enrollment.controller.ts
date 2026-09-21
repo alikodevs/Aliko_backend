@@ -74,14 +74,77 @@ export class EnrollmentController {
       }
     }
 
+    const clientIp =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+      (req.headers['x-real-ip'] as string) ||
+      (req.headers['cf-connecting-ip'] as string) ||
+      req.ip;
+    const clientCountry = (req.headers['cf-ipcountry'] as string) || undefined;
+
     const payload = {
       dto: createEnrollmentDto,
       user: req.user,
+      clientIp,
+      clientCountry,
     };
 
     return this.academyClient
       .send({ cmd: 'create_enrollment' }, payload)
       .toPromise();
+  }
+
+  // Create Self-Paced Course Enrollment
+  @Post('course/:courseId')
+  @ApiOperation({
+    summary: 'Enroll in a self-paced course',
+    description: '👤 Enroll directly into a course without a cohort',
+  })
+  @ApiResponse({ status: 201, description: 'Enrollment created successfully' })
+  @ApiParam({ name: 'courseId', type: Number })
+  async enrollInCourse(
+    @Request() req: RequestWithUser,
+    @Param('courseId', ParseIntPipe) courseId: number,
+  ) {
+    const payload = {
+      dto: { courseId },
+      user: req.user,
+    };
+    return this.academyClient.send({ cmd: 'create_enrollment' }, payload).toPromise();
+  }
+
+  // Create Cohort Enrollment
+  @Post('cohort/:cohortId')
+  @ApiOperation({
+    summary: 'Enroll in a cohort',
+    description: '👤 Enroll into a specific instructor-led cohort',
+  })
+  @ApiResponse({ status: 201, description: 'Enrollment created successfully' })
+  @ApiParam({ name: 'cohortId', type: Number })
+  // Note: Since a cohort belongs to a course, the frontend or microservice usually needs to resolve courseId
+  // The backend already validates cohort's association. We should require `courseId` in the body if the backend doesn't resolve it automatically,
+  // but let's assume `create_enrollment` in academy backend needs courseId passed. Actually, I need to provide `courseId` in the body here.
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        courseId: { type: 'number', description: 'ID of the course the cohort belongs to' }
+      },
+      required: ['courseId']
+    }
+  })
+  async enrollInCohort(
+    @Request() req: RequestWithUser,
+    @Param('cohortId', ParseIntPipe) cohortId: number,
+    @Body() body: { courseId: number },
+  ) {
+    if (!body?.courseId) {
+      throw new BadRequestException('courseId is required in the request body');
+    }
+    const payload = {
+      dto: { courseId: body.courseId, cohortId },
+      user: req.user,
+    };
+    return this.academyClient.send({ cmd: 'create_enrollment' }, payload).toPromise();
   }
 
   // Admin / Instructor

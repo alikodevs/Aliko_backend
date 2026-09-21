@@ -1,9 +1,10 @@
 import { Global, Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { createAuthClientAsync } from '@alikohub/auth-client';
+import { createPaymentClientAsync } from '@alikohub/payment-client';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { CaptchaModule } from './common/captcha/captcha.module';
 import { UserModule } from './auth-service/user/user.module';
 import { AcademyServiceModule } from './academy-service';
 import { ConTechServiceModule } from './contech-service/contech-service.module';
@@ -15,6 +16,8 @@ import { HealthModule } from './health/health.module';
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { HttpClientProxy } from './common/clients/http-client.proxy';
 import { PaymentServiceModule } from './payment-service/payment.module';
+import { AlikowashModule } from './alikowash-service/alikowash.module';
+import { ConshifterServiceModule } from './conshifter-service/conshifter-service.module';
 
 @Global()
 @Module({
@@ -23,7 +26,7 @@ import { PaymentServiceModule } from './payment-service/payment.module';
     HttpModule,
     ThrottlerModule.forRoot([{
       ttl: 60000, 
-      limit: 10, 
+      limit: 100, 
     }]),
     ClientsModule.registerAsync([
       {
@@ -74,30 +77,8 @@ import { PaymentServiceModule } from './payment-service/payment.module';
           },
         }),
       },
-      {
-        name: 'AUTH_SERVICE',
-        imports: [ConfigModule],
-        inject: [ConfigService],
-        useFactory: (configService: ConfigService) => ({
-          transport: Transport.TCP,
-          options: {
-            host: configService.get('AUTH_SERVICE_HOST') || 'localhost',
-            port: parseInt(configService.get('AUTH_TCP_PORT') || '3011', 10),
-          },
-        }),
-      },
-      {
-        name: 'PAYMENT_SERVICE',
-        imports: [ConfigModule],
-        inject: [ConfigService],
-        useFactory: (configService: ConfigService) => ({
-          transport: Transport.TCP,
-          options: {
-            host: configService.get('PAYMENT_SERVICE_HOST') || 'localhost',
-            port: Number(configService.get('PAYMENT_SERVICE_PORT')) || 3012,
-          },
-        }),
-      },
+      createAuthClientAsync(),
+      createPaymentClientAsync(),
       {
         name: 'CONSULTANCY_SERVICE',
         imports: [ConfigModule],
@@ -106,20 +87,45 @@ import { PaymentServiceModule } from './payment-service/payment.module';
           transport: Transport.TCP,
           options: {
             host: configService.get('CONSULTANCY_SERVICE_HOST') || 'localhost',
-            port: configService.get('CONSULTANCY_SERVICE_PORT') || 3006,
+            port: Number(configService.get('CONSULTANCY_SERVICE_PORT')) || 3016,
+          },
+        }),
+      },
+      {
+        name: 'ALIKOWASH_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: configService.get('ALIKOWASH_SERVICE_HOST') || 'localhost',
+            port: parseInt(configService.get('ALIKOWASH_SERVICE_PORT') || '3013', 10),
+          },
+        }),
+      },
+      {
+        name: 'CONSHIFTER_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: configService.get('CONSHIFTER_SERVICE_HOST') || 'localhost',
+            port: parseInt(configService.get('CONSHIFTER_SERVICE_PORT') || '3014', 10),
           },
         }),
       },
     ]),
-    CaptchaModule,
+    FileUploadModule,
     UserModule,
     AcademyServiceModule,
     ConTechServiceModule,
     EventsServiceModule,
     CareersServiceModule,
     ConsultancyServiceModule,
-    FileUploadModule,
     PaymentServiceModule,
+    AlikowashModule,
+    ConshifterServiceModule,
     HealthModule,
   ],
   providers: [

@@ -61,6 +61,22 @@ export class ProgressAndAnalyticsController {
     );
   }
 
+  @Get('course/:courseId/lesson/:lessonId/complete')
+  @ApiOperation({ summary: 'Get lesson completion status for the current user' })
+  @ApiParam({ name: 'courseId', type: Number })
+  @ApiParam({ name: 'lessonId', type: Number })
+  getLessonStatus(
+    @Request() req: RequestWithUser,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('lessonId', ParseIntPipe) lessonId: number,
+  ) {
+    const user = this.ensureUser(req);
+    return this.academyClient.send(
+      { cmd: 'get_lesson_status' },
+      { user, courseId, lessonId },
+    );
+  }
+
   @Get('course/:courseId/analytics')
   @ApiOperation({
     summary: 'Get course analytics',
@@ -129,5 +145,33 @@ export class ProgressAndAnalyticsController {
   studentStats(@Request() req: RequestWithUser) {
     const user = this.ensureUser(req);
     return this.academyClient.send({ cmd: 'get_student_stats' }, { user });
+  }
+
+  @Get('course/:courseId/next-recommended')
+  @ApiOperation({ summary: 'Get the recommended next lesson to take in a course' })
+  @ApiParam({ name: 'courseId', type: Number })
+  getRecommendedNextLesson(
+    @Request() req: RequestWithUser,
+    @Param('courseId', ParseIntPipe) courseId: number,
+  ) {
+    const user = this.ensureUser(req);
+    return this.academyClient.send(
+      { cmd: 'get_recommended_next_lesson' },
+      { user, courseId },
+    );
+  }
+
+  @Get('course/:courseId/report')
+  @ApiOperation({ summary: "Get currently logged-in student's detailed grade/progress report" })
+  @ApiParam({ name: 'courseId', type: Number })
+  getDetailedCourseReport(
+    @Request() req: RequestWithUser,
+    @Param('courseId', ParseIntPipe) courseId: number,
+  ) {
+    const user = this.ensureUser(req);
+    return this.academyClient.send(
+      { cmd: 'get_detailed_student_progress' },
+      { user, courseId, targetUserId: user.firebaseId },
+    );
   }
 }

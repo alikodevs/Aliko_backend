@@ -10,11 +10,22 @@ import {
 	UpdateContechRoleSchema
 } from './user.validation';
 
+import { ClientProxy } from '@nestjs/microservices';
+import { Inject } from '@nestjs/common';
+// ... existing imports ...
+
 @Controller()
 @UseFilters(RpcExceptionFilter)
 export class UserController {
 	private readonly logger = new Logger(UserController.name);
-	constructor(private readonly userService: UserService) {}
+	constructor(
+		private readonly userService: UserService,
+		@Inject('ACADEMY_SERVICE') private readonly academyClient: ClientProxy,
+		@Inject('CONTECH_SERVICE') private readonly contechClient: ClientProxy,
+		@Inject('EVENTS_SERVICE') private readonly eventsClient: ClientProxy,
+		@Inject('ALIKOWASH_SERVICE') private readonly alikowashClient: ClientProxy,
+		@Inject('CONSHIFTER_SERVICE') private readonly conshifterClient: ClientProxy,
+	) {}
 
 	@Post('get-all-users')
 	@MessagePattern({ cmd: 'get_all_users' })
@@ -49,8 +60,24 @@ export class UserController {
 		const data = body || payload;
 		this.logger.log(`Updating profile for user: ${data.firebaseId}`);
 		try {
-			return await this.userService.updateProfile(data.firebaseId, data.dto);
-		} catch (error) {
+			const updatedUser = await this.userService.updateProfile(data.firebaseId, data.dto);
+			
+			// Broadcast update event
+			const eventPayload = {
+				userId: updatedUser.firebaseId,
+				email: updatedUser.email,
+				firstname: updatedUser.firstname,
+				lastname: updatedUser.lastname,
+				role: updatedUser.globalRole,
+			};
+			this.academyClient.emit('user_updated', eventPayload);
+			this.contechClient.emit('user_updated', eventPayload);
+			this.eventsClient.emit('user_updated', eventPayload);
+			this.alikowashClient.emit('user_updated', eventPayload);
+			this.conshifterClient.emit('user_updated', eventPayload);
+
+			return updatedUser;
+		} catch (error: any) {
 			this.logger.error(`Failed to update profile for user ${data.firebaseId}: ${error.message}`, error.stack);
 			throw error;
 		}
@@ -63,8 +90,24 @@ export class UserController {
 		const data = body || payload;
 		this.logger.log(`Updating user by ID (FirebaseId): ${data.firebaseId}`);
 		try {
-			return await this.userService.updateProfile(data.firebaseId, data.dto);
-		} catch (error) {
+			const updatedUser = await this.userService.updateProfile(data.firebaseId, data.dto);
+			
+			// Broadcast update event
+			const eventPayload = {
+				userId: updatedUser.firebaseId,
+				email: updatedUser.email,
+				firstname: updatedUser.firstname,
+				lastname: updatedUser.lastname,
+				role: updatedUser.globalRole,
+			};
+			this.academyClient.emit('user_updated', eventPayload);
+			this.contechClient.emit('user_updated', eventPayload);
+			this.eventsClient.emit('user_updated', eventPayload);
+			this.alikowashClient.emit('user_updated', eventPayload);
+			this.conshifterClient.emit('user_updated', eventPayload);
+
+			return updatedUser;
+		} catch (error: any) {
 			this.logger.error(`Failed to update user ID ${data.firebaseId}: ${error.message}`, error.stack);
 			throw error;
 		}
@@ -77,8 +120,17 @@ export class UserController {
 		const data = body || payload;
 		this.logger.log(`Deleting profile for user: ${data.firebaseId}`);
 		try {
-			return await this.userService.deleteProfile(data.firebaseId);
-		} catch (error) {
+			const result = await this.userService.deleteProfile(data.firebaseId);
+			
+			// Broadcast deletion event
+			this.academyClient.emit('user_deleted', { userId: data.firebaseId });
+			this.contechClient.emit('user_deleted', { userId: data.firebaseId });
+			this.eventsClient.emit('user_deleted', { userId: data.firebaseId });
+			this.alikowashClient.emit('user_deleted', { userId: data.firebaseId });
+			this.conshifterClient.emit('user_deleted', { userId: data.firebaseId });
+
+			return result;
+		} catch (error: any) {
 			this.logger.error(`Failed to delete profile for user ${data.firebaseId}: ${error.message}`, error.stack);
 			throw error;
 		}

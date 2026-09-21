@@ -1,4 +1,4 @@
-import { Controller, Post, UseInterceptors, UploadedFile, Inject, BadRequestException, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Param, UseInterceptors, UploadedFile, Inject, BadRequestException, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiConsumes, ApiBody, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '../common/guard/firebase_auth.guard';
@@ -13,6 +13,7 @@ export class FileUploadController {
     private readonly fileUploadService: FileUploadService
   ) {}
 
+  @Public()
   @Post('image')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
   @ApiConsumes('multipart/form-data')
@@ -52,22 +53,32 @@ export class FileUploadController {
     return this.fileUploadService.uploadFile(file, 'document');
   }
 
+  @Public()
   @Post('video')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 100 * 1024 * 1024 } }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload a video' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
-    },
-  })
   async uploadVideo(@UploadedFile() file: Express.Multer.File) {
     return this.fileUploadService.uploadFile(file, 'video');
+  }
+
+  @Public()
+  @Post(':type')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }))
+  async uploadGenericFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Param('type') type: string,
+  ) {
+    const resolvedType = type === 'document' ? 'document' : (type === 'video' ? 'video' : 'image');
+    return this.fileUploadService.uploadFile(file, resolvedType as any);
+  }
+
+  @Public()
+  @Post()
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }))
+  async uploadDefaultFile(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.fileUploadService.uploadFile(file, 'image');
   }
 }

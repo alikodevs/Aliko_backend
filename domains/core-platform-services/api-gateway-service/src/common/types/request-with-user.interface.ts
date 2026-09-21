@@ -11,6 +11,13 @@ export type AuthenticatedUser = {
   careersRole?: string;
   careersStatus?: string;
   activeRole?: string;
+  academyRole?: string;
+  academyActiveRole?: string;
+  academyUser?: {
+    role?: string;
+    activeRole?: string | null;
+    status?: string;
+  };
 };
 
 export interface RequestWithUser extends Request {

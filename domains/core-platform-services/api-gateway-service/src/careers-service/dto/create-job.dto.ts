@@ -1,4 +1,5 @@
-import { IsString, IsEnum, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsNotEmpty, IsArray, IsNumber, IsBoolean } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum JobType {
@@ -26,17 +27,17 @@ export class CreateJobDto {
   @IsNotEmpty()
   description!: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsString()
-  @IsNotEmpty()
-  requirements!: string;
+  @IsOptional()
+  requirements?: string;
 
   @ApiProperty({ required: false })
   @IsString()
   @IsOptional()
   salaryRange?: string;
 
-  @ApiProperty({ required: false, default: 'Remote' })
+  @ApiProperty({ required: false })
   @IsString()
   @IsOptional()
   location?: string;
@@ -50,4 +51,113 @@ export class CreateJobDto {
   @IsEnum(JobStatus)
   @IsOptional()
   status?: JobStatus;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  ventureId?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  ventureName?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  department?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  level?: string;
+
+  @ApiProperty({ type: [String], required: false })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.split(',').map(s => s.trim()).filter(Boolean) : value))
+  @IsArray()
+  @IsString({ each: true })
+  responsibilities?: string[];
+
+  @ApiProperty({ type: [String], required: false })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.split(',').map(s => s.trim()).filter(Boolean) : value))
+  @IsArray()
+  @IsString({ each: true })
+  qualifications?: string[];
+
+  @ApiProperty({ type: [String], required: false })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.split(',').map(s => s.trim()).filter(Boolean) : value))
+  @IsArray()
+  @IsString({ each: true })
+  preferredQualifications?: string[];
+
+  @ApiProperty({ type: [String], required: false })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.split(',').map(s => s.trim()).filter(Boolean) : value))
+  @IsArray()
+  @IsString({ each: true })
+  benefits?: string[];
+
+  @ApiProperty({ type: [String], required: false })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.split(',').map(s => s.trim()).filter(Boolean) : value))
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @Transform(({ value }) => (value === '' || value === null || value === undefined ? undefined : parseInt(value, 10)))
+  @IsNumber()
+  salaryMin?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @Transform(({ value }) => (value === '' || value === null || value === undefined ? undefined : parseInt(value, 10)))
+  @IsNumber()
+  salaryMax?: number;
+
+  @ApiProperty({ required: false, default: 'USD' })
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
+  @ApiProperty({ required: false, default: 'REMOTE' })
+  @IsString()
+  @IsOptional()
+  workMode?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  featured?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  urgent?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  employmentType?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  region?: string;
 }

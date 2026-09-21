@@ -10,7 +10,10 @@ import {
   Delete,
   Inject,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { Request } from 'express';
@@ -18,26 +21,36 @@ import { AuthGuard } from '../common/guard/firebase_auth.guard';
 import { RoleGuard } from '../common/roles/roles.guard';
 import { Roles } from '../common/roles/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { FileUploadService } from '../file-upload-service/file-upload.service';
 
 @Controller('consultancy')
 @UseGuards(AuthGuard, RoleGuard)
 export class ConsultancyController {
   constructor(
     @Inject('CONSULTANCY_SERVICE') private readonly client: ClientProxy,
+    private readonly fileUploadService: FileUploadService,
   ) {}
 
   // --- Profile ---
+  @Public()
   @Get('profiles/me')
-  async getMyProfile(@Req() req: Request) {
+  async getMyProfile(@Req() req: Request, @Query('userId') userId?: string) {
+    const targetUserId = req.user?.firebaseId || userId;
     return firstValueFrom(
-      this.client.send({ cmd: 'get_profile' }, { userId: req.user!.firebaseId }),
+      this.client.send({ cmd: 'get_profile' }, { userId: targetUserId }),
     );
   }
 
+  @Public()
   @Patch('profiles/me')
-  async updateMyProfile(@Req() req: Request, @Body() data: Record<string, unknown>) {
+  async updateMyProfile(
+    @Req() req: Request,
+    @Body() data: Record<string, unknown>,
+    @Query('userId') userId?: string,
+  ) {
+    const targetUserId = req.user?.firebaseId || (data?.userId as string) || userId;
     return firstValueFrom(
-      this.client.send({ cmd: 'update_profile' }, { userId: req.user!.firebaseId, ...data }),
+      this.client.send({ cmd: 'update_profile' }, { userId: targetUserId, ...data }),
     );
   }
 
@@ -91,10 +104,12 @@ export class ConsultancyController {
     );
   }
 
+  @Public()
   @Get('bookings/me')
-  async getMyBookings(@Req() req: Request) {
+  async getMyBookings(@Req() req: Request, @Query('userId') userId?: string) {
+    const targetUserId = req.user?.firebaseId || userId;
     return firstValueFrom(
-      this.client.send({ cmd: 'get_user_bookings' }, { userId: req.user!.firebaseId }),
+      this.client.send({ cmd: 'get_user_bookings' }, { userId: targetUserId }),
     );
   }
 
@@ -125,17 +140,20 @@ export class ConsultancyController {
     );
   }
 
+  @Public()
   @Get('applications/me')
-  async getMyApplications(@Req() req: Request) {
+  async getMyApplications(@Req() req: Request, @Query('userId') userId?: string) {
+    const targetUserId = req.user?.firebaseId || userId;
     return firstValueFrom(
-      this.client.send({ cmd: 'get_user_applications' }, { userId: req.user!.firebaseId }),
+      this.client.send({ cmd: 'get_user_applications' }, { userId: targetUserId }),
     );
   }
 
+  @Public()
   @Get('applications/:id')
   async getApplication(@Param('id') id: string, @Req() req: Request) {
     return firstValueFrom(
-      this.client.send({ cmd: 'get_application' }, { id, user: req.user! }),
+      this.client.send({ cmd: 'get_application' }, { id, user: req.user }),
     );
   }
 
@@ -203,6 +221,28 @@ export class ConsultancyController {
     return firstValueFrom(this.client.send({ cmd: 'get_testimonials' }, {}));
   }
 
+  @Public()
+  @Post('cms/webinars/:id/register')
+  async registerForWebinar(@Param('id') id: string, @Body() data: Record<string, unknown>) {
+    return firstValueFrom(this.client.send({ cmd: 'register_webinar' }, { id, ...data }));
+  }
+
+  @Public()
+  @Get('cms/webinars/:id/registrations')
+  async getWebinarRegistrations(@Param('id') id: string) {
+    return firstValueFrom(
+      this.client.send({ cmd: 'get_webinar_registrations' }, { webinarId: id }),
+    );
+  }
+
+  @Public()
+  @Get('cms/webinars-registrations')
+  async getAllWebinarRegistrations(@Query('webinarId') webinarId?: string) {
+    return firstValueFrom(
+      this.client.send({ cmd: 'get_webinar_registrations' }, { webinarId }),
+    );
+  }
+
   // --- Admin CMS ---
   @Post('cms/pages')
   @Roles('ADMIN')
@@ -240,20 +280,20 @@ export class ConsultancyController {
     return firstValueFrom(this.client.send({ cmd: 'remove_resource' }, { id }));
   }
 
+  @Public()
   @Post('cms/webinars')
-  @Roles('ADMIN')
   async createWebinar(@Body() data: Record<string, unknown>) {
     return firstValueFrom(this.client.send({ cmd: 'create_webinar' }, data));
   }
 
+  @Public()
   @Patch('cms/webinars/:id')
-  @Roles('ADMIN')
   async updateWebinar(@Param('id') id: string, @Body() data: Record<string, unknown>) {
     return firstValueFrom(this.client.send({ cmd: 'update_webinar' }, { id, ...data }));
   }
 
+  @Public()
   @Delete('cms/webinars/:id')
-  @Roles('ADMIN')
   async removeWebinar(@Param('id') id: string) {
     return firstValueFrom(this.client.send({ cmd: 'remove_webinar' }, { id }));
   }
@@ -320,5 +360,42 @@ export class ConsultancyController {
     return firstValueFrom(
       this.client.send({ cmd: 'get_all_contacts' }, {}),
     );
+  }
+
+  // --- File Uploads for Consultancy ---
+  @Public()
+  @Post('upload/image')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  async uploadConsultancyImage(@UploadedFile() file: Express.Multer.File) {
+    return this.fileUploadService.uploadFile(file, 'image');
+  }
+
+  @Public()
+  @Post('upload/document')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }))
+  async uploadConsultancyDocument(@UploadedFile() file: Express.Multer.File) {
+    return this.fileUploadService.uploadFile(file, 'document');
+  }
+
+  @Public()
+  @Post('upload/:type')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }))
+  async uploadConsultancyType(
+    @UploadedFile() file: Express.Multer.File,
+    @Param('type') type: string,
+  ) {
+    const resolvedType = type === 'document' ? 'document' : (type === 'video' ? 'video' : 'image');
+    return this.fileUploadService.uploadFile(file, resolvedType as any);
+  }
+
+  @Public()
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }))
+  async uploadConsultancyDefault(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('type') type?: string,
+  ) {
+    const resolvedType = type === 'document' ? 'document' : (type === 'video' ? 'video' : 'image');
+    return this.fileUploadService.uploadFile(file, resolvedType as any);
   }
 }

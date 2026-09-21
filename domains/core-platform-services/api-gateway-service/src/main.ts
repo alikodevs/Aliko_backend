@@ -10,6 +10,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
+import express from 'express';
+import * as path from 'path';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { UserModule } from './auth-service/user/user.module';
 import { ConTechServiceModule } from './contech-service/contech-service.module';
@@ -31,6 +33,10 @@ async function bootstrap() {
   // Enable CORS
   // Enable CORS with explicit origins for production
   const allowedOrigins = [
+    'https://lms.alikohub.com',
+    'https://www.lms.alikohub.com',
+    'http://lms.alikohub.com',
+    'http://www.lms.alikohub.com',
     'https://www.academy.alikohub.com',
     'https://academy.alikohub.com',
     'http://www.academy.alikohub.com',
@@ -57,21 +63,46 @@ async function bootstrap() {
     'http://www.consultancy.alikohub.com',
     'http://localhost:3000',
     'http://localhost:3001',
+    'http://localhost:3003',
     'http://localhost:3006',
+    'http://localhost:8080',
+    'http://localhost:8081',
+    'http://localhost:8082',
+    'http://localhost:8083',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:8081',
+    'http://127.0.0.1:8082',
+    'http://127.0.0.1:8083',
     'http://116.203.122.210:8080',
     'http://116.203.122.210:8081',
+    'http://116.203.122.210:8082',
+    'http://116.203.122.210:8083',
+    'http://localhost:3004',
+    'http://localhost:3008',
+    'http://localhost:3005',
+    'http://116.203.122.210:3004',
+    'http://116.203.122.210:3005',
+    'http://116.203.122.210:8081',
+    'http://116.203.122.210:3002',
+    'http://116.203.122.210:3003',
+    'https://alikowash.alikohub.com',
+    'https://www.alikowash.alikohub.com',
+    'http://alikowash.alikohub.com',
+    'http://www.alikowash.alikohub.com',
   ];
 
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+    origin: (requestOrigin, callback) => {
+      if (!requestOrigin) return callback(null, true);
+      const isAllowed =
+        allowedOrigins.includes(requestOrigin) ||
+        /\.alikohub\.com$/.test(new URL(requestOrigin).hostname) ||
+        requestOrigin.includes('localhost') ||
+        requestOrigin.includes('127.0.0.1');
+      if (isAllowed) {
         callback(null, true);
       } else {
-        logger.warn(`CORS blocked for origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
+        callback(null, true);
       }
     },
     credentials: true,
@@ -86,16 +117,24 @@ async function bootstrap() {
       'Access-Control-Allow-Origin',
       'Access-Control-Allow-Credentials',
       'x-apollo-operation-name',
-      'apollo-require-preflight'
+      'apollo-require-preflight',
+      'cf-ipcountry',
+      'x-forwarded-for'
     ],
     exposedHeaders: ['Set-Cookie', 'Authorization'],
     maxAge: 3600, // 1 hour cache for preflight
   });
 
+  const uploadPath = path.resolve(process.env.UPLOAD_PATH || '/root/Home-Project/uploads');
+  app.use('/uploads', express.static(uploadPath));
+  app.use('/consultancy/uploads', express.static(uploadPath));
+  app.use('/api/uploads', express.static(uploadPath));
+  app.use('/api/consultancy/uploads', express.static(uploadPath));
+
   // Global validation pipe with detailed error messages
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
-    forbidNonWhitelisted: true,
+    forbidNonWhitelisted: false,
     transform: true,
     transformOptions: {
       enableImplicitConversion: true,
@@ -175,7 +214,7 @@ async function bootstrap() {
   });
   SwaggerModule.setup('api-docs/academy', app, academyDocument);
 
-  const port = process.env.PORT ?? 3006;
+  const port = process.env.API_GATEWAY_PORT || 3006;
   await app.listen(port, '0.0.0.0');
   logger.log(`🚀 API Gateway running on http://localhost:${port}`);
   logger.log(`📚 Swagger docs available at http://localhost:${port}/api-docs`);

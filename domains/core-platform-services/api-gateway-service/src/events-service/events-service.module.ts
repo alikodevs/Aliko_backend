@@ -4,8 +4,9 @@ import { RolesModule } from './roles/roles.module';
 
 @Module({
     imports: [
-        EventsModule,
+        // Roles first so /events/profile and /events/user-role are not swallowed by PublicEvents :id
         RolesModule,
+        EventsModule,
     ],
 })
 export class EventsServiceModule { }

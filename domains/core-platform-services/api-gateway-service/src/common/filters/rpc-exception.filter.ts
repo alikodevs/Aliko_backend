@@ -72,6 +72,21 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       error = typeof rawError === 'string' ? rawError : (statusCode === 500 ? 'Internal Server Error' : 'Microservice Error');
       
       details = exc.details || exc.response?.details || exc.error?.details || null;
+
+      // Infer status from message when microservice dropped the HttpException status
+      if (statusCode === HttpStatus.INTERNAL_SERVER_ERROR && typeof message === 'string') {
+        const lower = message.toLowerCase();
+        if (lower.includes('forbidden') || lower.includes('not allowed') || lower.includes('permission denied')) {
+          statusCode = HttpStatus.FORBIDDEN;
+          error = 'Forbidden';
+        } else if (lower.includes('not found')) {
+          statusCode = HttpStatus.NOT_FOUND;
+          error = 'Not Found';
+        } else if (lower.includes('unauthorized')) {
+          statusCode = HttpStatus.UNAUTHORIZED;
+          error = 'Unauthorized';
+        }
+      }
       
       // Handle connection errors
       if (exc.code === 'ECONNREFUSED' || exc.code === 'ECONNRESET' || exc.message?.includes('EAI_AGAIN')) {
@@ -122,10 +137,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         console.error('[CRITICAL] Internal Error (Primitive Type):', exception);
       }
       
+      /*
       // Security: Do not leak internal error messages for 500 errors to the client in production
       if (process.env.NODE_ENV === 'production') {
         message = 'An unexpected error occurred on our server. Our team has been notified.';
       }
+      */
     } else {
       this.logger.warn(logMessage);
     }

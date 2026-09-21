@@ -35,6 +35,7 @@ export class ConTechProfileController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
   @Get()
+  @Get('me')
   getProfile(@Request() req: RequestWithUser) {
     const payload = { user: req.user };
     return this.contechClient.send({ cmd: 'get_contech_profile' }, payload);

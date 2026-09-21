@@ -67,13 +67,16 @@ export const UserIdentitySchema = Joi.object({
 
 export const ForgotPasswordSchema = Joi.object({
   email: Joi.string().email().required().trim().description('User email addressed'),
+  frontendUrl: Joi.string().uri().optional().description('Frontend origin for the reset link'),
+  app: Joi.string().valid('academy', 'events').optional().description('Which product frontend to link'),
 }).description('Schema for password reset request');
 
 export const ResetPasswordSchema = Joi.object({
-  email: Joi.string().email().required().trim().description('User email address'),
+  token: Joi.string().required().description('Reset token from the email link'),
   newPassword: Joi.string()
     .min(8)
     .regex(passwordRegex)
     .required()
     .description('New password'),
+  email: Joi.string().email().optional().trim().description('Optional email (must match token)'),
 }).description('Schema for confirming password reset');

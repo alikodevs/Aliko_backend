@@ -46,6 +46,17 @@ export class TasksController {
     return this.contechClient.send({ cmd: 'create_task' }, payload);
   }
 
+  @Get()
+  @ApiOperation({ summary: 'Get all tasks for a user' })
+  @ApiQuery({ name: 'query', required: false, type: Object })
+  findAllTasks(@Request() req: RequestWithUser, @Query() query: any) {
+    const payload = {
+      query,
+      user: req.user,
+    };
+    return this.contechClient.send({ cmd: 'find_all_tasks' }, payload);
+  }
+
   @Get('project/:projectId')
   @ApiOperation({ summary: 'Get all tasks for a project' })
   @ApiParam({ name: 'projectId', description: 'Project ID', type: Number })
@@ -129,5 +140,42 @@ export class TasksController {
       user: req.user,
     };
     return this.contechClient.send({ cmd: 'update_task_progress' }, payload);
+  }
+
+  @Patch(':id/assign')
+  @ApiOperation({ summary: 'Assign task to a user' })
+  @ApiParam({ name: 'id', description: 'Task ID', type: Number })
+  @ApiBody({ schema: { properties: { userId: { type: 'string', example: 'firebase-uid' } } } })
+  assignTask(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body('userId') userId: string,
+  ) {
+    return this.contechClient.send({ cmd: 'assign_task' }, { id, userId, user: req.user });
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Update task status' })
+  @ApiParam({ name: 'id', description: 'Task ID', type: Number })
+  @ApiBody({ schema: { properties: { status: { type: 'string', example: 'COMPLETED' } } } })
+  updateStatus(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body('status') status: string,
+  ) {
+    return this.contechClient.send({ cmd: 'update_task_status' }, { id, status, user: req.user });
+  }
+
+  @Get('my-tasks')
+  @ApiOperation({ summary: 'Get tasks assigned to the current user' })
+  findMyTasks(@Request() req: RequestWithUser, @Query() query: any) {
+    if (!req.user) {
+      throw new Error('User not authenticated');
+    }
+    const payload = {
+      query: { ...query, assignedTo: req.user.firebaseId },
+      user: req.user,
+    };
+    return this.contechClient.send({ cmd: 'find_all_tasks' }, payload);
   }
 }

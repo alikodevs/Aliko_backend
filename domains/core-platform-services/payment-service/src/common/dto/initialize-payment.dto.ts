@@ -7,8 +7,8 @@ export class InitializePaymentDto {
   amount: number;
 
   @IsString()
-  @IsNotEmpty()
-  currency: string;
+  @IsOptional()
+  currency?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -23,8 +23,8 @@ export class InitializePaymentDto {
   lastName?: string;
 
   @IsEnum(PaymentProvider)
-  @IsNotEmpty()
-  provider: PaymentProvider;
+  @IsOptional()
+  provider?: PaymentProvider;
 
   @IsString()
   @IsOptional()

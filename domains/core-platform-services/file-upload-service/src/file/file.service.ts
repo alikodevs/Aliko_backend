@@ -27,30 +27,19 @@ export class FileService {
   }
 
   private validateFile(file: Express.Multer.File, type: string) {
-    const allowedMimeTypes: Record<string, string[]> = {
-      image: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-      document: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-      video: ['video/mp4', 'video/webm'],
-    };
-
-    const allowed = allowedMimeTypes[type];
-    if (!allowed) {
-      throw new BadRequestException(`Invalid file type category: ${type}`);
-    }
-
-    if (!allowed.includes(file.mimetype)) {
-      throw new BadRequestException(`Invalid file format for ${type}. Allowed: ${allowed.join(', ')}`);
-    }
-
-    // Size limits (can be enforced by Multer, but good to double check)
+    // Permanent fix: Allow all file formats. 
+    // We only keep the size check to prevent server abuse.
+    
     const limits: Record<string, number> = {
-      image: 5 * 1024 * 1024, // 5MB
-      document: 10 * 1024 * 1024, // 10MB
+      image: 10 * 1024 * 1024, // 10MB
+      document: 50 * 1024 * 1024, // 50MB
       video: 100 * 1024 * 1024, // 100MB
     };
 
-    if (file.size > (limits[type] || 5 * 1024 * 1024)) {
-      throw new BadRequestException(`File too large for ${type}`);
+    const maxLimit = limits[type] || 50 * 1024 * 1024;
+    
+    if (file.size > maxLimit) {
+      throw new BadRequestException(`File too large for ${type}. Max allowed: ${maxLimit / (1024 * 1024)}MB`);
     }
   }
 

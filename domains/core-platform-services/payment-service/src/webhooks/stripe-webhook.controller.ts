@@ -31,15 +31,38 @@ export class StripeWebhookController {
     const verification = await this.stripeService.verifyWebhook(rawData, signature);
 
     if (verification.isValid) {
-      if (verification.status === 'COMPLETED') {
-        await this.transactionService.handleWebhookSuccess(verification.providerReference, verification.amount);
-      } else if (verification.status === 'FAILED' || verification.status === 'CANCELLED') {
-          // Stripe sessions can expire or be cancelled
+      this.logger.log(`Stripe webhook verified. Event status: ${verification.status}, Provider ref: ${verification.providerReference}`);
+
+      switch (verification.status) {
+        case 'COMPLETED':
+          await this.transactionService.handleWebhookSuccess(verification.providerReference, verification.amount);
+          this.logger.log(`Payment completed for session: ${verification.providerReference}`);
+          break;
+
+        case 'FAILED':
+        case 'CANCELLED':
           await this.transactionService.handleWebhookFailure(verification.providerReference);
+          this.logger.warn(`Payment ${verification.status.toLowerCase()} for session: ${verification.providerReference}`);
+          break;
+
+        case 'REFUNDED':
+          this.logger.log(`Payment refunded for charge: ${verification.providerReference}`);
+          // Refunds are handled via status update — the providerReference here is the charge ID
+          await this.transactionService.handleWebhookFailure(verification.providerReference);
+          break;
+
+        case 'PENDING':
+          this.logger.log(`Unhandled but valid Stripe event received`);
+          break;
+
+        default:
+          this.logger.log(`Unknown verification status: ${verification.status}`);
       }
+
       return { received: true };
     }
 
+    this.logger.warn('Stripe webhook signature verification failed');
     return { received: false, error: 'Invalid signature' };
   }
 }

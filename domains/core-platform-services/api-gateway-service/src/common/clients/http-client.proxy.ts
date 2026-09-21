@@ -94,6 +94,7 @@ export class HttpClientProxy extends ClientProxy {
       'sync_contech_user': 'sync/contech',
       'sync_events_user': 'sync/events',
       'sync_academy_user': 'sync/academy',
+      'sync_conshifter_user': 'sync/conshifter',
       'send_contact_email': 'contact/email',
       'update_status': 'user/status',
       'delete_user': 'user',

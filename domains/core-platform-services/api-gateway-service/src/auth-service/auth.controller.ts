@@ -5,11 +5,11 @@ import { AuthGuard } from '../common/guard/firebase_auth.guard';
 import { RoleGuard } from '../common/roles/roles.guard';
 import { AdminAccessGuard } from '../common/guard/admin-access.guard';
 import { Roles } from '../common/roles/roles.decorator';
-import { CaptchaService } from '../common/captcha/captcha.service';
+import { SelectRoleDto, TeacherApplicationDto, SwitchRoleDto, InstructorApplicationDto } from './dto/academy-roles.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { SelectRoleDto, TeacherApplicationDto, SwitchRoleDto, InstructorApplicationDto } from './dto/academy-roles.dto';
 import { catchError, timeout } from 'rxjs/operators';
+import { Throttle } from '@nestjs/throttler';
 import { throwError, TimeoutError, firstValueFrom } from 'rxjs';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import * as Joi from 'joi';
@@ -24,7 +24,6 @@ export class AuthController {
 
   constructor(
     @Inject('AUTH_SERVICE') private authClient: ClientProxy,
-    private readonly captchaService: CaptchaService,
     private readonly fileUploadService: FileUploadService,
   ) {}
 
@@ -58,6 +57,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'User login' })
   @ApiBody({ type: LoginDto })
@@ -70,18 +70,23 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto) {
     this.logger.log(`Login attempt for: ${loginDto.email}`);
     
-    return firstValueFrom(
+    this.logger.log(`Sending login command to auth service for: ${loginDto.email}`);
+    const result = await firstValueFrom(
       this.authClient.send({ cmd: 'login' }, loginDto).pipe(
         timeout(30000),
         catchError(error => {
+          this.logger.error(`Login error caught: ${error.message}`);
           this.handleError(error, 'Login');
           return throwError(() => error);
         }),
       )
     );
+    this.logger.log(`Login response received for: ${loginDto.email}`);
+    return result;
   }
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'User registration' })
   @ApiBody({ type: RegisterDto })
@@ -92,19 +97,23 @@ export class AuthController {
     firstname: Joi.string().required().pattern(/^[A-Za-z\s]+$/).trim().messages({'string.pattern.base': 'firstname must contain only alphabetic characters'}),
     lastname: Joi.string().optional().allow(null, '').pattern(/^[A-Za-z\s]*$/).trim().messages({'string.pattern.base': 'lastname must contain only alphabetic characters'}),
     password: Joi.string().min(8).regex(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/).required().messages({'string.pattern.base': 'Password too weak'}),
-    captchaToken: Joi.string().optional()
+    _hp: Joi.string().optional().allow(null, '')
   })))
   async register(@Body() registerDto: RegisterDto) {
     this.logger.log(`Registration attempt for: ${registerDto.email}`);
     
-    // TEST-04 Fix: Validate CAPTCHA if configured
-    const captchaValid = await this.captchaService.verifyCaptcha(registerDto.captchaToken);
-    if (captchaValid === false) {
-      throw new BadRequestException('CAPTCHA validation failed. Please complete the CAPTCHA challenge.');
+    // Honeypot check: If the hidden field is filled, it's highly likely a bot.
+    if (registerDto._hp) {
+      this.logger.warn(`Honeypot field filled for: ${registerDto.email}. Bot detected!`);
+      // We return 201 Created but don't actually process it to fool the bot.
+      return { 
+        statusCode: HttpStatus.CREATED,
+        message: 'Registration successful' 
+      };
     }
 
-    // Remove captchaToken before sending to auth service
-    const { captchaToken, ...authPayload } = registerDto;
+    // Remove honeypot field before sending to auth service
+    const { _hp, ...authPayload } = registerDto;
     
     return firstValueFrom(
       this.authClient.send({ cmd: 'register' }, authPayload).pipe(
@@ -440,11 +449,16 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request password reset email' })
   @UsePipes(new JoiValidationPipe(Joi.object({
-    email: Joi.string().email().required().trim()
+    email: Joi.string().email().required().trim(),
+    frontendUrl: Joi.string().uri().optional(),
+    app: Joi.string().valid('academy', 'events').optional(),
   })))
-  async forgotPassword(@Body() body: { email: string }) {
+  async forgotPassword(@Body() body: { email: string; frontendUrl?: string; app?: string }) {
     return firstValueFrom(
-      this.authClient.send({ cmd: 'forgot_password' }, body).pipe(
+      this.authClient.send(
+        { cmd: 'forgot_password' },
+        { ...body, app: body.app || 'events' },
+      ).pipe(
         timeout(10000),
         catchError(error => {
           this.handleError(error, 'Forgot Password');
@@ -456,10 +470,11 @@ export class AuthController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update password using reset link' })
+  @ApiOperation({ summary: 'Update password using reset link token' })
   @UsePipes(new JoiValidationPipe(Joi.object({
-    email: Joi.string().email().required().trim(),
-    newPassword: Joi.string().min(8).regex(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/).required()
+    token: Joi.string().required(),
+    newPassword: Joi.string().min(8).regex(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/).required(),
+    email: Joi.string().email().optional().trim(),
   })))
   async resetPassword(@Body() body: any) {
     return firstValueFrom(
@@ -484,6 +499,39 @@ export class AuthController {
         timeout(30000),
         catchError(error => {
           this.handleError(error, 'Create ConTech User');
+          return throwError(() => error);
+        }),
+      )
+    );
+  }
+
+  @Post('recruiter')
+  @UseGuards(AuthGuard, AdminAccessGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a Careers recruiter (Admin only)' })
+  @ApiResponse({ status: 201, description: 'Recruiter created successfully' })
+  async createRecruiter(@Body() dto: any) {
+    return firstValueFrom(
+      this.authClient.send({ cmd: 'create_recruiter' }, dto).pipe(
+        timeout(30000),
+        catchError(error => {
+          this.handleError(error, 'Create Recruiter');
+          return throwError(() => error);
+        }),
+      )
+    );
+  }
+
+  @Post('sync/careers')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sync Careers profile for current user' })
+  async syncCareersProfile(@Request() req: any) {
+    return firstValueFrom(
+      this.authClient.send({ cmd: 'sync_careers_user' }, { userId: req.user.firebaseId }).pipe(
+        timeout(10000),
+        catchError(error => {
+          this.handleError(error, 'Sync Careers Profile');
           return throwError(() => error);
         }),
       )

@@ -6,6 +6,7 @@ import {
   IsInt,
   IsNumber,
 } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateCourseDto {
@@ -53,6 +54,8 @@ export class CreateCourseDto {
   outcomes?: string[];
 
   @ApiPropertyOptional({ example: 40 })
+  @Type(() => Number)
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsInt()
   @IsOptional()
   estimatedTime?: number;
@@ -63,24 +66,32 @@ export class CreateCourseDto {
   targetLevel?: string;
 
   @ApiPropertyOptional({ example: 0 })
+  @Type(() => Number)
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsInt()
   @IsOptional()
   enrolledNum?: number;
 
   @ApiPropertyOptional({ example: 4.5 })
+  @Type(() => Number)
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsNumber()
   @IsOptional()
   rating?: number;
 
   @ApiPropertyOptional({ example: 499.99 })
+  @Type(() => Number)
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsNumber()
   @IsOptional()
-  price?: number;
+  price?: number | null;
 
   @ApiPropertyOptional({ example: 49.99 })
+  @Type(() => Number)
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsNumber()
   @IsOptional()
-  priceInUsd?: number;
+  priceInUsd?: number | null;
 
   @ApiPropertyOptional({ example: ['Prerequisite 1'] })
   @IsOptional()
