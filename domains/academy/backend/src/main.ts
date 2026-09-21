@@ -4,6 +4,7 @@ import { Transport } from '@nestjs/microservices';
 import * as dotenv from 'dotenv';
 import { ValidationPipe } from '@nestjs/common';
 import { RpcExceptionFilter } from './common/filters/rpc-exception.filter';
+import { createFanoutMicroserviceOptions } from '@alikohub/rabbitmq';
 
 dotenv.config(); // Load .env variables first
 
@@ -31,31 +32,22 @@ async function bootstrap() {
   const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://localhost';
   if (process.env.RABBITMQ_ENABLED !== 'false') {
     try {
-      app.connectMicroservice({
-        transport: Transport.RMQ,
-        options: {
+      app.connectMicroservice(
+        createFanoutMicroserviceOptions({
           urls: [rabbitmqUrl],
           queue: 'academy_user_events',
           exchange: 'user_events',
-          exchangeType: 'fanout',
-          queueOptions: {
-            durable: false,
-          },
-        },
-      });
-      // Add connection for Payment Events
-      app.connectMicroservice({
-        transport: Transport.RMQ,
-        options: {
+          durable: false,
+        }),
+      );
+      app.connectMicroservice(
+        createFanoutMicroserviceOptions({
           urls: [rabbitmqUrl],
           queue: 'academy_payment_fulfillment',
           exchange: 'payment_events',
-          exchangeType: 'fanout',
-          queueOptions: {
-            durable: true,
-          },
-        },
-      });
+          durable: true,
+        }),
+      );
       console.log(`Academy: RabbitMQ transports configured for ${rabbitmqUrl}`);
     } catch (e) {
       console.warn(`Academy: RabbitMQ transport not available: ${e.message}`);
@@ -80,7 +72,7 @@ async function bootstrap() {
 
   // Start microservice listeners
   await app.startAllMicroservices();
-  const HTTP_PORT = 4005; // Separate port for health checks
+  const HTTP_PORT = parseInt(process.env.HTTP_PORT as string, 10) || 4025; // Separate port for health checks
   await app.listen(HTTP_PORT, '0.0.0.0');
 
   console.log(`Academy microservice: TCP port ${PORT}, HTTP port ${HTTP_PORT}`);
