@@ -1,0 +1,278 @@
+{
+	"info": {
+		"_postman_id": "conshifter-api-collection",
+		"name": "Conshifter API",
+		"description": "API collection for Conshifter microservice integrated via API Gateway.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Events",
+			"item": [
+				{
+					"name": "Get All Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/conshifter/events",
+							"host": ["{{base_url}}"],
+							"path": ["conshifter", "events"]
+						}
+					}
+				},
+				{
+					"name": "Create Event (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "title", "value": "Tech Summit 2024", "type": "text" },
+								{ "key": "slug", "value": "tech-summit-2024", "type": "text" },
+								{ "key": "description", "value": "Annual tech conference", "type": "text" },
+								{ "key": "eventType", "value": "CONFERENCE", "type": "text" },
+								{ "key": "startDate", "value": "2024-10-01T09:00:00Z", "type": "text" },
+								{ "key": "isVirtual", "value": "true", "type": "text" },
+								{ "key": "image", "type": "file", "src": [] }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/conshifter/admin/events",
+							"host": ["{{base_url}}"],
+							"path": ["conshifter", "admin", "events"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Organizations",
+			"item": [
+				{
+					"name": "Get All Organizations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/conshifter/organizations",
+							"host": ["{{base_url}}"],
+							"path": ["conshifter", "organizations"]
+						}
+					}
+				},
+				{
+					"name": "Submit Organization (Public)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "name", "value": "OpenAI", "type": "text" },
+								{ "key": "slug", "value": "openai", "type": "text" },
+								{ "key": "type", "value": "STARTUP", "type": "text" },
+								{ "key": "region", "value": "California", "type": "text" },
+								{ "key": "country", "value": "USA", "type": "text" },
+								{ "key": "focusTags", "value": "[\"AI\", \"ML\"]", "type": "text" },
+								{ "key": "logo", "type": "file", "src": [] }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/conshifter/organizations",
+							"host": ["{{base_url}}"],
+							"path": ["conshifter", "organizations"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Partners",
+			"item": [
+				{
+					"name": "Get All Partners",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/conshifter/partners",
+							"host": ["{{base_url}}"],
+							"path": ["conshifter", "partners"]
+						}
+					}
+				},
+				{
+					"name": "Create Partner (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "name", "value": "Microsoft", "type": "text" },
+								{ "key": "website", "value": "https://microsoft.com", "type": "text" },
+								{ "key": "orderIndex", "value": "1", "type": "text" },
+								{ "key": "logo", "type": "file", "src": [] }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/conshifter/partners",
+							"host": ["{{base_url}}"],
+							"path": ["conshifter", "partners"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Programs",
+			"item": [
+				{
+					"name": "Get All Programs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/conshifter/programs",
+							"host": ["{{base_url}}"],
+							"path": ["conshifter", "programs"]
+						}
+					}
+				},
+				{
+					"name": "Create Program (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{ "key": "token", "value": "{{token}}", "type": "string" }
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "name", "value": "Conshifter Academy", "type": "text" },
+								{ "key": "slug", "value": "conshifter-academy", "type": "text" },
+								{ "key": "description", "value": "Training for construction professionals", "type": "text" },
+								{ "key": "isActive", "value": "true", "type": "text" },
+								{ "key": "orderIndex", "value": "1", "type": "text" },
+								{ "key": "icon", "type": "file", "src": [] }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/conshifter/programs",
+							"host": ["{{base_url}}"],
+							"path": ["conshifter", "programs"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Applications",
+			"item": [
+				{
+					"name": "Submit Application",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organizationName\": \"Future Tech\",\n    \"organizationType\": \"STARTUP\",\n    \"contactName\": \"John Smith\",\n    \"contactEmail\": \"john@futuretech.com\",\n    \"country\": \"Ethiopia\",\n    \"region\": \"Addis Ababa\",\n    \"tier\": \"MEMBER\"\n}",
+							"options": {
+								"raw": { "language": "json" }
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/conshifter/applications",
+							"host": ["{{base_url}}"],
+							"path": ["conshifter", "applications"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin Utils",
+			"item": [
+				{
+					"name": "Dashboard Counts",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{ "key": "token", "value": "{{token}}", "type": "string" }
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/conshifter/admin/dashboard/counts",
+							"host": ["{{base_url}}"],
+							"path": ["conshifter", "admin", "dashboard", "counts"]
+						}
+					}
+				},
+				{
+					"name": "Generic Upload",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{ "key": "token", "value": "{{token}}", "type": "string" }
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "type", "value": "image", "type": "text" },
+								{ "key": "file", "type": "file", "src": [] }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/conshifter/upload",
+							"host": ["{{base_url}}"],
+							"path": ["conshifter", "upload"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3006"
+		},
+		{
+			"key": "token",
+			"value": "Bearer Token Here"
+		}
+	]
+}

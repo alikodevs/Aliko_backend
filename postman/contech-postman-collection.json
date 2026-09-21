@@ -1,0 +1,1052 @@
+{
+	"info": {
+		"_postman_id": "e4f8d5a2-8b3c-4d1e-9f0a-7b2c1d3e4f5a",
+		"name": "Con-Tech Service API - AlikoHub",
+		"description": "Comprehensive API collection for the Construction Technology (Con-Tech) service, including Projects, Tasks, Contracts, Inspections, and Admin management.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "01. Auth & Profile",
+			"item": [
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"profile"
+							]
+						},
+						"description": "Fetch current user's Con-Tech profile and linked data."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile (Alias)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/profile/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"profile",
+								"me"
+							]
+						},
+						"description": "Fetch current user's Con-Tech profile using the /me alias."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Profile",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"profile"
+							]
+						},
+						"description": "Initialize a Con-Tech profile for the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"bio\": \"Experienced construction manager\",\n    \"companyName\": \"BuildIt Ltd\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Select Role",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"CONTRACTOR\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/profile/select-role",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"profile",
+								"select-role"
+							]
+						},
+						"description": "Choose a specific role (CLIENT, CONTRACTOR, PROJECT_MANAGER, ADMIN, USER)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "02. Projects",
+			"item": [
+				{
+					"name": "Get All Projects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/projects",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Project (ADMIN)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Smart City Phase 1\",\n    \"description\": \"Urban development project\",\n    \"startDate\": \"2025-06-01\",\n    \"endDate\": \"2026-06-01\",\n    \"budget\": 5000000,\n    \"location\": \"Addis Ababa\",\n    \"contractorId\": \"some_contractor_uuid\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Project Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/projects/stats?managerId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects",
+								"stats"
+							],
+							"query": [
+								{
+									"key": "managerId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Project by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/projects/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Project Details (ADMIN)",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Smart City Phase 1 - Updated\",\n    \"budget\": 5500000\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Project Status",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"ACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects/:id/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects",
+								":id",
+								"status"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Project Progress",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"progress\": 45,\n    \"notes\": \"Foundation work completed successfully.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects/:id/progress",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects",
+								":id",
+								"progress"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Project Update (Summary)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"text\": \"Weekly summary: Cement poured for block A.\",\n    \"isVisibleToClient\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects/:id/updates",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects",
+								":id",
+								"updates"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Project Document",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "title",
+									"value": "Site Plan v1",
+									"type": "text"
+								},
+								{
+									"key": "fileType",
+									"value": "PDF",
+									"type": "text"
+								},
+								{
+									"key": "isVisibleToClient",
+									"value": "true",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects/:id/documents",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects",
+								":id",
+								"documents"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Project Comment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Great progress this week!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects/:id/comments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects",
+								":id",
+								"comments"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "03. Tasks",
+			"item": [
+				{
+					"name": "Create Task",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"projectId\": 1,\n    \"description\": \"Install electrical wiring in Block A\",\n    \"priority\": \"HIGH\",\n    \"assignedTo\": \"contractor_uuid\",\n    \"deadline\": \"2025-08-15\",\n    \"estimatedHours\": 40\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tasks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tasks by Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/project/:projectId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tasks",
+								"project",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Task Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/stats?projectId=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tasks",
+								"stats"
+							],
+							"query": [
+								{
+									"key": "projectId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Task Progress",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"progress\": 75\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/:id/progress",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tasks",
+								":id",
+								"progress"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "04. Contracts",
+			"item": [
+				{
+					"name": "Upload Contract",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "projectId",
+									"value": "1",
+									"type": "text"
+								},
+								{
+									"key": "contractFile",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/contracts/upload",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contracts",
+								"upload"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Contract Status",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"APPROVED\",\n    \"comment\": \"Verified by Legal\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/contracts/:id/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contracts",
+								":id",
+								"status"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contracts for Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/contracts/project/:projectId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contracts",
+								"project",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "05. Inspections",
+			"item": [
+				{
+					"name": "Create Inspection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "data",
+									"value": "{\"projectId\": 1, \"title\": \"Electrical Safety Check\", \"notes\": \"Found issues in Block B\"}",
+									"type": "text"
+								},
+								{
+									"key": "photos",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/inspections",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"inspections"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Inspections by Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/inspections/project/:projectId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"inspections",
+								"project",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "06. Milestones",
+			"item": [
+				{
+					"name": "Create Milestone",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"projectId\": 1,\n    \"title\": \"Foundation Complete\",\n    \"dueDate\": \"2025-07-01\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/milestones",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"milestones"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Milestone for Review",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/milestones/:id/submit",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"milestones",
+								":id",
+								"submit"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Milestone Review",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"APPROVED\",\n    \"comment\": \"Verified on site.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/milestones/:id/review",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"milestones",
+								":id",
+								"review"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "07. Client Reports",
+			"item": [
+				{
+					"name": "Create Client Report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"projectId\": 1,\n    \"summary\": \"Work is 20% complete and on schedule.\",\n    \"recommendations\": \"Proceed with next phase.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/client-reports",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"client-reports"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Reports for Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/client-reports/projects/:projectId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"client-reports",
+								"projects",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "08. Admin",
+			"item": [
+				{
+					"name": "Admin Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/contech/admin/dashboard",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contech",
+								"admin",
+								"dashboard"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List ConTech Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/contech/admin/users?role=CLIENT&page=1&pageSize=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contech",
+								"admin",
+								"users"
+							],
+							"query": [
+								{
+									"key": "role",
+									"value": "CLIENT"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"newuser@example.com\",\n    \"role\": \"CONTRACTOR\",\n    \"name\": \"John Doe\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/contech/admin/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contech",
+								"admin",
+								"users"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "09. Public / Contact",
+			"item": [
+				{
+					"name": "Submit Contact Form",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Interested Investor\",\n    \"email\": \"investor@example.com\",\n    \"message\": \"I'd like to learn more about the Smart City project.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/contech/contact",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contech",
+								"contact"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{currentToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3006",
+			"type": "string"
+		},
+		{
+			"key": "adminEmail",
+			"value": "admin@alikohub.com",
+			"type": "string"
+		},
+		{
+			"key": "contractorEmail",
+			"value": "contractor@gmail.com",
+			"type": "string"
+		},
+		{
+			"key": "clientEmail",
+			"value": "client@gmail.com",
+			"type": "string"
+		},
+		{
+			"key": "testPassword",
+			"value": "12345678",
+			"type": "string"
+		},
+		{
+			"key": "adminToken",
+			"value": "YOUR_ADMIN_TOKEN_HERE",
+			"type": "string"
+		},
+		{
+			"key": "contractorToken",
+			"value": "YOUR_CONTRACTOR_TOKEN_HERE",
+			"type": "string"
+		},
+		{
+			"key": "clientToken",
+			"value": "YOUR_CLIENT_TOKEN_HERE",
+			"type": "string"
+		},
+		{
+			"key": "currentToken",
+			"value": "{{adminToken}}",
+			"type": "string"
+		}
+	]
+}

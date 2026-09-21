@@ -1,0 +1,439 @@
+{
+	"info": {
+		"_postman_id": "e4f8d5a2-8b3c-4d1e-9f0a-7b2c1d3e4f5a",
+		"name": "Con-Tech Service API - AlikoHub (Updated)",
+		"description": "Comprehensive API collection for the Construction Technology (Con-Tech) service, including Projects, Tasks, Contracts, Inspections, and Admin management.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "00. Authentication",
+			"item": [
+				{
+					"name": "Login (Admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.accessToken) {",
+									"    pm.collectionVariables.set(\"currentToken\", jsonData.accessToken);",
+									"    pm.collectionVariables.set(\"adminToken\", jsonData.accessToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin2@test.alikohub.com\",\n    \"password\": \"SecurePassword123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login (Contractor)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.accessToken) {",
+									"    pm.collectionVariables.set(\"currentToken\", jsonData.accessToken);",
+									"    pm.collectionVariables.set(\"contractorToken\", jsonData.accessToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"contractor2@test.alikohub.com\",\n    \"password\": \"SecurePassword123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login (Client)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.accessToken) {",
+									"    pm.collectionVariables.set(\"currentToken\", jsonData.accessToken);",
+									"    pm.collectionVariables.set(\"clientToken\", jsonData.accessToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"client2@test.alikohub.com\",\n    \"password\": \"SecurePassword123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "01. Profile",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"bio\": \"Experienced construction professional\",\n    \"phone\": \"+251911223344\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/contech/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contech",
+								"profile"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "02. Projects",
+			"item": [
+				{
+					"name": "Get All Projects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/projects",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Project by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/projects/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Project (ADMIN)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Smart City Phase 1\",\n    \"description\": \"Urban development project\",\n    \"startDate\": \"2026-06-01\",\n    \"endDate\": \"2027-06-01\",\n    \"budget\": 5000000,\n    \"location\": \"Addis Ababa\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"projects"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "03. Tasks",
+			"item": [
+				{
+					"name": "Get Project Tasks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/project/:projectId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tasks",
+								"project",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Task",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"projectId\": 1,\n    \"title\": \"Electrical Wiring Block A\",\n    \"description\": \"Installation of main cables\",\n    \"priority\": \"HIGH\",\n    \"deadline\": \"2026-08-15\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tasks"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "04. Contracts",
+			"item": [
+				{
+					"name": "Get Project Contracts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/contracts/project/:projectId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contracts",
+								"project",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "05. Inspections",
+			"item": [
+				{
+					"name": "Get Project Inspections",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/inspections/project/:projectId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"inspections",
+								"project",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "06. Admin",
+			"item": [
+				{
+					"name": "List Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/contech/admin/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contech",
+								"admin",
+								"users"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{currentToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://api.consultancy.alikohub.com",
+			"type": "string"
+		},
+		{
+			"key": "adminToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "contractorToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "clientToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "currentToken",
+			"value": "{{adminToken}}",
+			"type": "string"
+		}
+	]
+}

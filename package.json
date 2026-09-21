@@ -7,27 +7,53 @@
     "domains/*/backend",
     "domains/*/frontend",
     "domains/core-platform-services/*",
-    "libraries/*"
+    "libraries/*",
+    "domains/core-platform-services/*/backend",
+    "domains/core-platform-services/*/frontend"
   ],
-  "main": "domains/general/frontend/index.js",
+  "main": "start-all.js",
   "scripts": {
     "start": "node start-all.js",
     "dev": "node start-all.js --sync",
     "sync": "node start-all.js --sync",
     "build": "node start-all.js --build",
     "full-start": "node start-all.js --sync --build",
+    "infra:up": "docker compose -f docker-compose.db.yml up -d",
+    "infra:down": "docker compose -f docker-compose.db.yml down",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart ecosystem.config.cjs",
+    "pm2:status": "pm2 status",
+    "pm2:logs": "pm2 logs",
     "docker-start": "docker-compose up -d",
     "docker-stop": "docker-compose down",
-    "docker-build": "docker-compose build"
+    "docker-build": "node scripts/safe-docker-build.js",
+    "docker-vps-build": "node scripts/safe-docker-build.js -f docker-compose.vps.yml build",
+    "test:libraries": "jest --config libraries/jest.config.cjs --runInBand",
+    "test:academy:e2e": "npm run test:e2e --workspace=academy-backend",
+    "test:e2e": "npm run test:libraries && npm run test:academy:e2e",
+    "postinstall": "node scripts/postinstall.cjs"
   },
   "dependencies": {
-    "nx": "^21.2.2",
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
     "@nestjs/microservices": "^11.1.6",
-    "react-router-dom": "^7.6.3",
+    "argon2": "^0.44.0",
+    "firebase-admin": "^13.7.0",
+    "nx": "^21.2.2",
+    "pg": "^8.20.0",
     "react-icons": "^5.5.0",
-    "tailwind-scrollbar": "^4.0.2",
-    "ts-jest": "^29.4.0"
+    "react-router-dom": "^7.6.3",
+    "tailwind-scrollbar": "^4.0.2"
+  },
+  "overrides": {
+    "uuid": "^9.0.1",
+    "typescript": "6.0.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.11",
+    "typescript": "6.0.3"
   }
 }

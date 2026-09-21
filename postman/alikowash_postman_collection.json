@@ -1,0 +1,886 @@
+{
+	"info": {
+		"_postman_id": "alikowash-api-collection-v2",
+		"name": "Alikowash API v2",
+		"description": "API collection for Alikowash microservice with full CRUD operations via API Gateway.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Projects",
+			"item": [
+				{
+					"name": "Get All Projects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/projects",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "projects"]
+						}
+					}
+				},
+				{
+					"name": "Get Project By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/projects/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "projects", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Project (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Village Borehole #1\",\n    \"location\": \"Rural Central\",\n    \"yearGc\": \"2024\",\n    \"systemType\": \"Borehole\",\n    \"capacityM3\": 500,\n    \"tags\": [\"water\", \"rural\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/projects",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "projects"]
+						}
+					}
+				},
+				{
+					"name": "Update Project (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Project Title\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/projects/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "projects", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Project (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/projects/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "projects", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Partners",
+			"item": [
+				{
+					"name": "Get All Partners",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/partners",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "partners"]
+						}
+					}
+				},
+				{
+					"name": "Get Partner By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/partners/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "partners", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Partner (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orgName\": \"Global Water Init\",\n    \"role\": \"Sponsor\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/partners",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "partners"]
+						}
+					}
+				},
+				{
+					"name": "Update Partner (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"Strategic Partner\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/partners/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "partners", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Partner (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/partners/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "partners", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Stories",
+			"item": [
+				{
+					"name": "Get All Stories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/stories",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "stories"]
+						}
+					}
+				},
+				{
+					"name": "Get Story By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/stories/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "stories", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Story (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"projectName\": \"Impact Story 2024\",\n    \"storyText\": \"How we changed lives with clean water access.\",\n    \"year\": 2024\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/stories",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "stories"]
+						}
+					}
+				},
+				{
+					"name": "Update Story (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"isPublished\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/stories/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "stories", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Story (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/stories/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "stories", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Donations",
+			"item": [
+				{
+					"name": "Submit Donation Request",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"donorName\": \"Alice Smith\",\n    \"email\": \"alice@example.com\",\n    \"amount\": 100,\n    \"currency\": \"USD\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/donations",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "donations"]
+						}
+					}
+				},
+				{
+					"name": "Get All Donations (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/donations",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "donations"]
+						}
+					}
+				},
+				{
+					"name": "Get Donation By ID (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/donations/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "donations", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Donation Status (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"completed\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/donations/:id/status",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "donations", ":id", "status"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Donation Record (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/donations/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "donations", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Team Members",
+			"item": [
+				{
+					"name": "Get All Team",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/team",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "team"]
+						}
+					}
+				},
+				{
+					"name": "Get Member By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/team/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "team", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Member (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Jane Doe\",\n    \"role\": \"Operations Lead\",\n    \"bio\": \"Expert in logistics.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/team",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "team"]
+						}
+					}
+				},
+				{
+					"name": "Update Member (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayOrder\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/team/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "team", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Member (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/team/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "team", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Contacts & Settings",
+			"item": [
+				{
+					"name": "Submit Contact Inquiry",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"message\": \"Interested in partnership.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/contacts",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "contacts"]
+						}
+					}
+				},
+				{
+					"name": "Get All Settings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/settings",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "settings"]
+						}
+					}
+				},
+				{
+					"name": "Upsert Site Setting (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"key\": \"homepage_hero\",\n    \"value\": {\n        \"title\": \"Clean Water Everywhere\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/settings",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "settings"]
+						}
+					}
+				},
+				{
+					"name": "Get Setting By Key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/settings/:key",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "settings", ":key"],
+							"variable": [
+								{
+									"key": "key",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Setting (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/settings/:key",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "settings", ":key"],
+							"variable": [
+								{
+									"key": "key",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Profile & Auth",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/profile/me",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "profile", "me"]
+						}
+					}
+				},
+				{
+					"name": "Get All Profiles (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/alikowash/admin/users",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "admin", "users"]
+						}
+					}
+				},
+				{
+					"name": "Update User Role (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"MANAGER\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/alikowash/admin/users/:id/role",
+							"host": ["{{base_url}}"],
+							"path": ["alikowash", "admin", "users", ":id", "role"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://api.alikohub_api_gateway.com"
+		},
+		{
+			"key": "token",
+			"value": "Bearer Token Here"
+		}
+	]
+}

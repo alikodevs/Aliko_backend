@@ -61,11 +61,20 @@ const services = [
     portVar: 'EVENTS_SERVICE_PORT',
     hasPrisma: true
   },
-  { 
-    name: 'home-backend', 
-    path: './domains/Home/backend/dist/main.js', 
-    portVar: 'HOME_SERVICE_PORT' 
+  {
+    name: 'payment-service',
+    path: './domains/core-platform-services/payment-service/dist/main.js',
+    dbVar: 'PAYMENT_DATABASE_URL',
+    portVar: 'PAYMENT_SERVICE_PORT',
+    hasPrisma: true
   },
+  {
+    name: 'conshifter-backend',
+    path: './domains/conshifter/backend/dist/main.js',
+    dbVar: 'CONSHIFTER_DATABASE_URL',
+    portVar: 'CONSHIFTER_SERVICE_PORT',
+    hasPrisma: true
+  }
 ];
 
 console.log('--- AlikoHub Microservices Orchestrator ---');
@@ -75,9 +84,21 @@ if (shouldBuild) console.log('>> Mode: Rebuild Enabled');
 async function start() {
   for (const service of services) {
     const serviceRoot = path.resolve(__dirname, service.path.split('/dist/')[0]);
-    const entryPoint = path.resolve(__dirname, service.path);
+    let entryPoint = path.resolve(__dirname, service.path);
+    if (!fs.existsSync(entryPoint)) {
+      const altEntryPoint = entryPoint.endsWith('/dist/src/main.js')
+        ? entryPoint.replace('/dist/src/main.js', '/dist/main.js')
+        : entryPoint.replace('/dist/main.js', '/dist/src/main.js');
+      if (fs.existsSync(altEntryPoint)) {
+        entryPoint = altEntryPoint;
+      }
+    }
 
-    // 1. Sync Database if flag is set and service has Prisma
+    // 3. Verify entry point exists
+    if (!fs.existsSync(entryPoint)) {
+      console.error(`[${service.name}] ERROR: Entry point not found: ${entryPoint}. Did you run build?`);
+      continue;
+    }
     if (shouldSync && service.hasPrisma) {
       console.log(`[${service.name}] Syncing database schema...`);
       try {
@@ -127,12 +148,6 @@ async function start() {
         console.error(`[${service.name}] ERROR during build. Skipping startup.`);
         continue;
       }
-    }
-
-    // 3. Verify entry point exists
-    if (!fs.existsSync(entryPoint)) {
-      console.error(`[${service.name}] ERROR: Entry point not found: ${entryPoint}. Did you run build?`);
-      continue;
     }
 
     // 4. Prepare environment variables and start

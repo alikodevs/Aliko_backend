@@ -1,0 +1,365 @@
+{
+  "info": {
+    "name": "AlikoHub Careers Platform API",
+    "description": "Postman collection exactly reflecting the frontend API operations for Alikohub Careers Services.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3006", "type": "string" },
+    { "key": "token", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "1. Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"email\":\"admin@alikohub.com\",\"password\":\"securepassword\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/auth/login", "host": [ "{{base_url}}" ], "path": [ "auth", "login" ] }
+          }
+        },
+        {
+          "name": "2. Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"email\":\"newuser@alikohub.com\",\"password\":\"securepass\",\"fullName\":\"New User\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/auth/register", "host": [ "{{base_url}}" ], "path": [ "auth", "register" ] }
+          }
+        },
+        {
+          "name": "3. Logout",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/auth/logout", "host": [ "{{base_url}}" ], "path": [ "auth", "logout" ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "Get All Jobs",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/careers/jobs", "host": [ "{{base_url}}" ], "path": [ "careers", "jobs" ] } }
+        },
+        {
+          "name": "Get Job by ID",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/careers/jobs/1", "host": [ "{{base_url}}" ], "path": [ "careers", "jobs", "1" ] } }
+        },
+        {
+          "name": "Creates Job",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"title\":\"Software Engineer\",\"description\":\"Job Description...\",\"companyId\":\"COMPANY_ID\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/jobs", "host": [ "{{base_url}}" ], "path": [ "careers", "jobs" ] }
+          }
+        },
+        {
+          "name": "Update Job",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "PATCH",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"title\":\"Senior Software Engineer\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/jobs/1", "host": [ "{{base_url}}" ], "path": [ "careers", "jobs", "1" ] }
+          }
+        },
+        {
+          "name": "Apply To Job",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "formdata", "formdata": [ { "key": "resume", "type": "file" }, { "key": "coverLetter", "value": "I am a great fit.", "type": "text" } ] },
+            "url": { "raw": "{{base_url}}/careers/jobs/1/apply", "host": [ "{{base_url}}" ], "path": [ "careers", "jobs", "1", "apply" ] }
+          }
+        },
+        {
+          "name": "Delete Job",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/careers/jobs/1", "host": [ "{{base_url}}" ], "path": [ "careers", "jobs", "1" ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "Submit Application",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"jobId\": 1}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/applications", "host": [ "{{base_url}}" ], "path": [ "careers", "applications" ] }
+          }
+        },
+        {
+          "name": "Get My Applications",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/careers/applications?userId=user123", "host": [ "{{base_url}}" ], "path": [ "careers", "applications" ], "query": [ { "key": "userId", "value": "user123" } ] }
+          }
+        },
+        {
+          "name": "Get All Applications",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/careers/applications/all", "host": [ "{{base_url}}" ], "path": [ "careers", "applications", "all" ] }
+          }
+        },
+        {
+          "name": "Update Application Status",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "PUT",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"status\":\"ACCEPTED\",\"adminNotes\":\"Good\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/applications/1/status", "host": [ "{{base_url}}" ], "path": [ "careers", "applications", "1", "status" ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ventures",
+      "item": [
+        {
+          "name": "Get All Ventures",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/careers/ventures", "host": [ "{{base_url}}" ], "path": [ "careers", "ventures" ] } }
+        },
+        {
+          "name": "Get Venture by ID or Slug",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/careers/ventures/some-slug", "host": [ "{{base_url}}" ], "path": [ "careers", "ventures", "some-slug" ] } }
+        },
+        {
+          "name": "Create Venture",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"name\":\"New Venture\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/ventures", "host": [ "{{base_url}}" ], "path": [ "careers", "ventures" ] }
+          }
+        },
+        {
+          "name": "Update Venture",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "PUT",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"name\":\"Updated Venture\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/ventures/1", "host": [ "{{base_url}}" ], "path": [ "careers", "ventures", "1" ] }
+          }
+        },
+        {
+          "name": "Delete Venture",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/careers/ventures/1", "host": [ "{{base_url}}" ], "path": [ "careers", "ventures", "1" ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Companies",
+      "item": [
+        {
+          "name": "Get All Companies",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/careers/companies", "host": [ "{{base_url}}" ], "path": [ "careers", "companies" ] } }
+        },
+        {
+          "name": "Get Company by ID or Slug",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/careers/companies/some-slug", "host": [ "{{base_url}}" ], "path": [ "careers", "companies", "some-slug" ] } }
+        },
+        {
+          "name": "Create Company",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"name\":\"New Company\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/companies", "host": [ "{{base_url}}" ], "path": [ "careers", "companies" ] }
+          }
+        },
+        {
+          "name": "Update Company",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "PUT",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"name\":\"Updated Company\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/companies/1", "host": [ "{{base_url}}" ], "path": [ "careers", "companies", "1" ] }
+          }
+        },
+        {
+          "name": "Delete Company",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/careers/companies/1", "host": [ "{{base_url}}" ], "path": [ "careers", "companies", "1" ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users & Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/users/profile", "host": [ "{{base_url}}" ], "path": [ "users", "profile" ] }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "PATCH",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"firstName\":\"John\",\"lastName\":\"Doe\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/users/profile", "host": [ "{{base_url}}" ], "path": [ "users", "profile" ] }
+          }
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/users/all", "host": [ "{{base_url}}" ], "path": [ "users", "all" ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Community & Contact",
+      "item": [
+        {
+          "name": "Join Community",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"email\":\"join@alikohub.com\",\"fullName\":\"John Doe\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/community/join", "host": [ "{{base_url}}" ], "path": [ "careers", "community", "join" ] }
+          }
+        },
+        {
+          "name": "Get All Community Members",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/careers/community/members", "host": [ "{{base_url}}" ], "path": [ "careers", "community", "members" ] }
+          }
+        },
+        {
+          "name": "Submit Contact",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"name\":\"John Doe\", \"email\":\"contact@alikohub.com\", \"message\":\"Hello!\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/contact", "host": [ "{{base_url}}" ], "path": [ "careers", "contact" ] }
+          }
+        },
+        {
+          "name": "Get All Contact Submissions",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/careers/contact/submissions", "host": [ "{{base_url}}" ], "path": [ "careers", "contact", "submissions" ] }
+          }
+        },
+        {
+          "name": "Mark Contact Read",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "PUT",
+            "header": [],
+            "url": { "raw": "{{base_url}}/careers/contact/submissions/1/read", "host": [ "{{base_url}}" ], "path": [ "careers", "contact", "submissions", "1", "read" ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Content",
+      "item": [
+        {
+          "name": "Get All Content",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/careers/content", "host": [ "{{base_url}}" ], "path": [ "careers", "content" ] } }
+        },
+        {
+          "name": "Get Content by Slug",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/careers/content/slug-val", "host": [ "{{base_url}}" ], "path": [ "careers", "content", "slug-val" ] } }
+        },
+        {
+          "name": "Create Content",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"title\":\"New Article\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/content", "host": [ "{{base_url}}" ], "path": [ "careers", "content" ] }
+          }
+        },
+        {
+          "name": "Update Content",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "PUT",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"title\":\"Updated Article\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/content/1", "host": [ "{{base_url}}" ], "path": [ "careers", "content", "1" ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recruiters Admin",
+      "item": [
+        {
+          "name": "Create Recruiter",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"email\":\"recruiter@alikohub.com\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/admin/recruiters", "host": [ "{{base_url}}" ], "path": [ "careers", "admin", "recruiters" ] }
+          }
+        },
+        {
+          "name": "Update Recruiter Role",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+            "method": "PATCH",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\"role\":\"RECRUITER\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/careers/admin/recruiters/1/role", "host": [ "{{base_url}}" ], "path": [ "careers", "admin", "recruiters", "1", "role" ] }
+          }
+        }
+      ]
+    }
+  ]
+}
