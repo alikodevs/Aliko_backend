@@ -32,3 +32,27 @@ export const AnnouncementIdSchema = Joi.object({
   user: Joi.any().required().description('The authenticated user'),
 }).description('Schema for operations requiring a single announcement ID');
 
+export const FindOneAnnouncementSchema = Joi.object({
+  id: Joi.number()
+    .integer()
+    .required()
+    .description('The unique identifier of the announcement'),
+  user: Joi.any().optional().description('The authenticated user'),
+}).description('Schema for fetching a single announcement');
+
+export const UpdateAnnouncementSchema = Joi.object({
+  id: Joi.number()
+    .integer()
+    .required()
+    .description('The unique identifier of the announcement'),
+  dto: Joi.object({
+    title: Joi.string().optional().description('The updated title'),
+    content: Joi.string().optional().description('The updated content'),
+  })
+    .required()
+    .min(1)
+    .description('Announcement update details'),
+  user: Joi.any().required().description('The authenticated user (Instructor or Admin)'),
+}).description('Schema for updating an existing announcement');
+
+

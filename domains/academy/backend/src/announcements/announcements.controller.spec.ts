@@ -21,6 +21,8 @@ describe('AnnouncementsController', () => {
     service = {
       create: jest.fn(),
       findAll: jest.fn(),
+      findOne: jest.fn(),
+      update: jest.fn(),
       remove: jest.fn(),
     };
 
@@ -46,6 +48,56 @@ describe('AnnouncementsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('findOne', () => {
+    it('should call announcementsService.findOne and return result', async () => {
+      const mockResult = { id: 1, title: 'Announcement', content: 'Content' };
+      service.findOne.mockResolvedValue(mockResult);
+
+      const payload = { id: 1 };
+      const result = await controller.findOne(payload);
+
+      expect(service.findOne).toHaveBeenCalledWith(1);
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should throw error if announcementsService.findOne throws', async () => {
+      const error = new Error('Not found');
+      service.findOne.mockRejectedValue(error);
+
+      const payload = { id: 999 };
+      await expect(controller.findOne(payload)).rejects.toThrow('Not found');
+    });
+  });
+
+  describe('update', () => {
+    it('should call announcementsService.update and return result', async () => {
+      const mockResult = { id: 1, title: 'Updated Title', content: 'Updated Content' };
+      service.update.mockResolvedValue(mockResult);
+
+      const payload = {
+        id: 1,
+        dto: { title: 'Updated Title' },
+        user: mockUser,
+      };
+      const result = await controller.update(payload);
+
+      expect(service.update).toHaveBeenCalledWith(1, { title: 'Updated Title' }, mockUser);
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should throw error if announcementsService.update throws', async () => {
+      const error = new Error('Update error');
+      service.update.mockRejectedValue(error);
+
+      const payload = {
+        id: 1,
+        dto: { title: 'Updated Title' },
+        user: mockUser,
+      };
+      await expect(controller.update(payload)).rejects.toThrow('Update error');
+    });
   });
 
   describe('remove', () => {

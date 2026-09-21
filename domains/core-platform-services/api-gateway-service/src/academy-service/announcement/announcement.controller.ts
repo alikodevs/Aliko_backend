@@ -6,7 +6,9 @@ import {
   Inject,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
+  Put,
   Query,
   UseGuards,
   Request,
@@ -18,6 +20,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { RequestWithUser } from '../../common/types/request-with-user.interface';
 import { AuthGuard } from '../../common/guard/firebase_auth.guard';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
+import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -105,6 +108,90 @@ export class AnnouncementController {
         timeout(10000),
         catchError((error) => {
           this.handleError(error, 'Academy Find All Announcements');
+          return throwError(() => error);
+        }),
+      ),
+    );
+  }
+
+  // Get announcement by ID
+  @Get(':id')
+  @ApiOperation({ summary: 'Get announcement by ID' })
+  @ApiParam({ name: 'id', type: Number, description: 'Announcement ID' })
+  @ApiResponse({ status: 200, description: 'Announcement retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Announcement not found' })
+  async findOneAnnouncement(@Param('id', ParseIntPipe) id: number) {
+    const payload = {
+      id,
+    };
+    return firstValueFrom(
+      this.academyClient.send({ cmd: 'find_announcement_by_id' }, payload).pipe(
+        timeout(10000),
+        catchError((error) => {
+          this.handleError(error, 'Academy Find Announcement By ID');
+          return throwError(() => error);
+        }),
+      ),
+    );
+  }
+
+  // Update announcement (PUT) (Instructor / Admin only)
+  @Put(':id')
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Update announcement (PUT)',
+    description: '🔒 Instructor / Admin only',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Announcement ID' })
+  @ApiResponse({ status: 200, description: 'Announcement updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Announcement not found' })
+  @ApiBody({ type: UpdateAnnouncementDto })
+  async updateAnnouncementPut(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAnnouncementDto,
+  ) {
+    return this.updateAnnouncement(req, id, dto);
+  }
+
+  // Update announcement (PATCH) (Instructor / Admin only)
+  @Patch(':id')
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Update announcement (PATCH)',
+    description: '🔒 Instructor / Admin only',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Announcement ID' })
+  @ApiResponse({ status: 200, description: 'Announcement updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Announcement not found' })
+  @ApiBody({ type: UpdateAnnouncementDto })
+  async updateAnnouncementPatch(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAnnouncementDto,
+  ) {
+    return this.updateAnnouncement(req, id, dto);
+  }
+
+  private async updateAnnouncement(
+    req: RequestWithUser,
+    id: number,
+    dto: UpdateAnnouncementDto,
+  ) {
+    const payload = {
+      id,
+      dto,
+      user: req.user,
+    };
+    return firstValueFrom(
+      this.academyClient.send({ cmd: 'update_announcement' }, payload).pipe(
+        timeout(10000),
+        catchError((error) => {
+          this.handleError(error, 'Academy Update Announcement');
           return throwError(() => error);
         }),
       ),

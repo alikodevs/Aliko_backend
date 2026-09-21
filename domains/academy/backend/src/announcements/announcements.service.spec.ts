@@ -25,6 +25,7 @@ describe('AnnouncementsService', () => {
         create: jest.fn(),
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        update: jest.fn(),
         delete: jest.fn(),
         count: jest.fn(),
       },
@@ -53,6 +54,70 @@ describe('AnnouncementsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('findOne', () => {
+    it('should return announcement when found', async () => {
+      const mockAnnouncement = { id: 1, title: 'Announcement 1', content: 'Content 1' };
+      prismaService.announcement.findUnique.mockResolvedValue(mockAnnouncement);
+
+      const result = await service.findOne(1);
+      expect(prismaService.announcement.findUnique).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
+      expect(result).toEqual(mockAnnouncement);
+    });
+
+    it('should throw NotFoundException when announcement not found', async () => {
+      prismaService.announcement.findUnique.mockResolvedValue(null);
+
+      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
+      expect(prismaService.announcement.findUnique).toHaveBeenCalledWith({
+        where: { id: 999 },
+      });
+    });
+  });
+
+  describe('update', () => {
+    const updateDto = { title: 'Updated Title', content: 'Updated Content' };
+
+    it('should throw ForbiddenException if user is not admin or instructor', async () => {
+      userService.getOrCreateProfile.mockResolvedValue({ role: AcademyRole.STUDENT });
+
+      await expect(service.update(1, updateDto, mockUser)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw NotFoundException if announcement does not exist', async () => {
+      userService.getOrCreateProfile.mockResolvedValue({ role: AcademyRole.ADMIN });
+      prismaService.announcement.findUnique.mockResolvedValue(null);
+
+      await expect(service.update(999, updateDto, mockUser)).rejects.toThrow(NotFoundException);
+      expect(prismaService.announcement.findUnique).toHaveBeenCalledWith({
+        where: { id: 999 },
+      });
+    });
+
+    it('should update and return announcement when user is admin or instructor and announcement exists', async () => {
+      const mockAnnouncement = { id: 1, title: 'Old Title', content: 'Old Content' };
+      const updatedMock = { id: 1, ...updateDto };
+      userService.getOrCreateProfile.mockResolvedValue({ role: AcademyRole.INSTRUCTOR });
+      prismaService.announcement.findUnique.mockResolvedValue(mockAnnouncement);
+      prismaService.announcement.update.mockResolvedValue(updatedMock);
+
+      const result = await service.update(1, updateDto, mockUser);
+
+      expect(prismaService.announcement.findUnique).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
+      expect(prismaService.announcement.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: {
+          title: 'Updated Title',
+          content: 'Updated Content',
+        },
+      });
+      expect(result).toEqual(updatedMock);
+    });
   });
 
   describe('remove', () => {

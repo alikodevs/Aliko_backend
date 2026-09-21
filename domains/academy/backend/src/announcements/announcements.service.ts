@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException, Logger } from '@nest
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
+import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
 import { PushNotificationService } from '@alikohub/notification';
 import { AcademyRole } from '../generated/client';
 
@@ -61,6 +62,38 @@ export class AnnouncementsService {
     };
   }
 
+  async findOne(id: number) {
+    const announcement = await this.prisma.announcement.findUnique({
+      where: { id: Number(id) },
+    });
+    if (!announcement) {
+      throw new NotFoundException('Announcement not found');
+    }
+    return announcement;
+  }
+
+  async update(id: number, dto: UpdateAnnouncementDto, user: AuthenticatedUser) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    if (profile.role !== AcademyRole.ADMIN && profile.role !== AcademyRole.INSTRUCTOR) {
+      throw new ForbiddenException('Only admins and instructors can update announcements');
+    }
+
+    const announcement = await this.prisma.announcement.findUnique({
+      where: { id: Number(id) },
+    });
+    if (!announcement) {
+      throw new NotFoundException('Announcement not found');
+    }
+
+    return await this.prisma.announcement.update({
+      where: { id: Number(id) },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title } : {}),
+        ...(dto.content !== undefined ? { content: dto.content } : {}),
+      },
+    });
+  }
+
   async remove(id: number, user: AuthenticatedUser) {
     const profile = await this.userService.getOrCreateProfile(user);
     if (profile.role !== AcademyRole.ADMIN && profile.role !== AcademyRole.INSTRUCTOR) {
@@ -79,3 +112,4 @@ export class AnnouncementsService {
     });
   }
 }
+
