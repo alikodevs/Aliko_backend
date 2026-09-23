@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { CanStartDirectChatInput } from './types';
 
-const CHAT_ENABLED_ROLES = new Set(['STUDENT', 'INSTRUCTOR', 'ADMIN']);
+const CHAT_ENABLED_ROLES = new Set(['STUDENT', 'INSTRUCTOR', 'ADMIN', 'USER']);
 
 const CROSS_ROLE_PAIRS = new Set([
   'ADMIN:INSTRUCTOR',
   'ADMIN:STUDENT',
   'INSTRUCTOR:STUDENT',
+  'ADMIN:USER',
 ]);
 
 function normalizeRole(role: string): string {
