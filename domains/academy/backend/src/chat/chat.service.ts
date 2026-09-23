@@ -65,6 +65,7 @@ export class ChatService {
     if (role === AcademyRole.INSTRUCTOR) return AcademyRole.INSTRUCTOR;
     if (role === AcademyRole.ADMIN) return AcademyRole.ADMIN;
     if (role === AcademyRole.COURSE_MANAGER) return AcademyRole.COURSE_MANAGER;
+    if (role === AcademyRole.USER) return AcademyRole.USER;
     return null;
   }
 
@@ -506,6 +507,8 @@ export class ChatService {
               AcademyRole.STUDENT,
               AcademyRole.INSTRUCTOR,
               AcademyRole.ADMIN,
+              AcademyRole.USER,
+              AcademyRole.COURSE_MANAGER,
             ],
           },
         },
@@ -634,6 +637,18 @@ export class ChatService {
       ];
 
       return this.enrichContacts(contacts, sender.userId);
+    }
+
+    if (role === AcademyRole.USER || role === AcademyRole.COURSE_MANAGER) {
+      const admins = await this.prisma.academyProfile.findMany({
+        where: {
+          role: AcademyRole.ADMIN,
+          userId: { not: sender.userId },
+        },
+        select: { userId: true, role: true },
+      });
+
+      return this.enrichContacts(admins, sender.userId);
     }
 
     return [];

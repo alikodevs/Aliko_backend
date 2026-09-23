@@ -18,7 +18,7 @@ import {
 
 @Controller()
 @UseGuards(AcademyProfileGuard, RoleGuard)
-@Roles('STUDENT', 'INSTRUCTOR', 'ADMIN')
+@Roles('STUDENT', 'INSTRUCTOR', 'ADMIN', 'USER', 'COURSE_MANAGER')
 export class ChatController {
   private readonly logger = new Logger(ChatController.name);
 
