@@ -1,0 +1,210 @@
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { AppConfigService } from '@aliko/config';
+import * as amqp from 'amqp-connection-manager';
+
+@Injectable()
+export class EventBusService implements OnModuleInit {
+  private readonly logger = new Logger(EventBusService.name);
+  private connection!: amqp.AmqpConnectionManager;
+  private channelWrapper!: amqp.ChannelWrapper;
+
+  constructor(private readonly configService: AppConfigService) {}
+
+  async onModuleInit() {
+    try {
+      this.connection = amqp.connect([this.configService.rabbitmqUri], {
+        reconnectTimeInSeconds: 5,
+        heartbeatIntervalInSeconds: 10,
+      });
+
+      this.connection.on('connect', () => {
+        this.logger.log('Connected to RabbitMQ Event Bus successfully');
+      });
+
+      this.connection.on('disconnect', (params: any) => {
+        this.logger.warn(`Disconnected from RabbitMQ: ${params?.err?.message || 'reconnecting...'}`);
+      });
+
+      this.connection.on('error', (err: any) => {
+        this.logger.warn(`RabbitMQ connection error: ${err?.message || err}`);
+      });
+
+      this.channelWrapper = this.connection.createChannel({
+        json: true,
+        setup: async (channel: any) => {
+          try {
+            await Promise.all([
+              channel.assertExchange('aliko.events', 'topic', { durable: true }),
+              channel.assertExchange('aliko.dlq.exchange', 'topic', { durable: true }),
+            ]);
+          } catch (err: any) {
+            this.logger.warn(`Exchange setup warning: ${err.message}`);
+          }
+        },
+      });
+
+      this.channelWrapper.on('connect', () => {
+        this.logger.log('RabbitMQ channel wrapper connected');
+      });
+
+      this.channelWrapper.on('error', (err: any) => {
+        this.logger.warn(`RabbitMQ channel wrapper error: ${err?.message || err}`);
+      });
+
+      this.channelWrapper.on('close', () => {
+        this.logger.warn('RabbitMQ channel closed, waiting for reconnection');
+      });
+    } catch (err) {
+      this.logger.error('Failed to initialize RabbitMQ Event Bus connection', err);
+    }
+  }
+
+  async publish<T = any>(routingKey: string, payload: T): Promise<void> {
+    if (!this.channelWrapper) {
+      this.logger.warn(`Event bus channel not initialized. Event ${routingKey} skipped.`);
+      return;
+    }
+    const envelope =
+      typeof payload === 'object' && payload !== null && 'publishedAt' in (payload as any)
+        ? payload
+        : {
+            ...(payload as any),
+            publishedAt: new Date().toISOString(),
+          };
+    await this.channelWrapper.publish('aliko.events', routingKey, envelope);
+    this.logger.log(`Published event [${routingKey}]`);
+  }
+
+  async publishToExchange(exchange: string, message: any): Promise<void> {
+    const routingKey = message?.pattern || message?.type || message?.eventType || 'event';
+    if (!this.channelWrapper) {
+      this.logger.warn(`Event bus channel not initialized. Event ${routingKey} to exchange ${exchange} skipped.`);
+      return;
+    }
+    const envelope =
+      typeof message === 'object' && message !== null && 'publishedAt' in (message as any)
+        ? message
+        : {
+            ...(message as any),
+            publishedAt: new Date().toISOString(),
+          };
+    try {
+      await this.channelWrapper.assertExchange(exchange, 'topic', { durable: true });
+      await this.channelWrapper.publish(exchange, routingKey, envelope);
+      this.logger.log(`Published event [${routingKey}] to exchange [${exchange}]`);
+    } catch (err: any) {
+      this.logger.warn(`Failed to publish to exchange [${exchange}]: ${err?.message || err}`);
+    }
+  }
+
+  async subscribe<T = any>(
+    routingKey: string,
+    handler: (data: T) => Promise<void>,
+    queueName?: string
+  ): Promise<void> {
+    const qName = queueName || `aliko.queue.${routingKey}`;
+    const dlqName = `${qName}.dlq`;
+    if (!this.channelWrapper) {
+      this.logger.warn(`Event bus channel not initialized. Subscription for ${routingKey} pending.`);
+      return;
+    }
+    await this.channelWrapper.addSetup(async (channel: any) => {
+      await channel.assertQueue(dlqName, { durable: true });
+      await channel.bindQueue(dlqName, 'aliko.dlq.exchange', '#');
+
+      await channel.assertQueue(qName, {
+        durable: true,
+        arguments: {
+          'x-dead-letter-exchange': 'aliko.dlq.exchange',
+          'x-dead-letter-routing-key': `${routingKey}.dlq`,
+        },
+      });
+      await channel.bindQueue(qName, 'aliko.events', routingKey);
+      await channel.consume(qName, async (msg: any) => {
+        if (msg) {
+          try {
+            const content = JSON.parse(msg.content.toString());
+            await handler(content as T);
+            channel.ack(msg);
+          } catch (err) {
+            this.logger.error(`Error processing event [${routingKey}] - routing to DLQ:`, err);
+            channel.nack(msg, false, false);
+          }
+        }
+      });
+    });
+    this.logger.log(`Subscribed to event [${routingKey}] on queue [${qName}] with DLQ [${dlqName}]`);
+  }
+
+  async subscribeIdempotent<T = any>(
+    routingKey: string,
+    consumerName: string,
+    prisma: any,
+    handler: (data: T) => Promise<void>,
+    queueName?: string
+  ): Promise<void> {
+    const qName = queueName || `aliko.queue.${consumerName}.${routingKey}`;
+    const dlqName = `${qName}.dlq`;
+    if (!this.channelWrapper) {
+      this.logger.warn(`Event bus channel not initialized. Subscription for ${routingKey} pending.`);
+      return;
+    }
+    await this.channelWrapper.addSetup(async (channel: any) => {
+      await channel.assertQueue(dlqName, { durable: true });
+      await channel.bindQueue(dlqName, 'aliko.dlq.exchange', '#');
+
+      await channel.assertQueue(qName, {
+        durable: true,
+        arguments: {
+          'x-dead-letter-exchange': 'aliko.dlq.exchange',
+          'x-dead-letter-routing-key': `${routingKey}.dlq`,
+        },
+      });
+      await channel.bindQueue(qName, 'aliko.events', routingKey);
+      await channel.consume(qName, async (msg: any) => {
+        if (msg) {
+          try {
+            const content = JSON.parse(msg.content.toString());
+            const eventId =
+              content.id ||
+              content.paymentId ||
+              content.courseId ||
+              content.userId ||
+              content.aggregateId ||
+              `${routingKey}-${Date.now()}`;
+
+            // Idempotency check: attempt to insert into processed_events table
+            try {
+              if (prisma?.processedEvent) {
+                await prisma.processedEvent.create({
+                  data: {
+                    eventId: String(eventId),
+                    consumerName,
+                  },
+                });
+              }
+            } catch (err: any) {
+              // Unique constraint violation (P2002) -> duplicate message
+              if (err.code === 'P2002') {
+                this.logger.warn(
+                  `Duplicate event [${routingKey}] with id [${eventId}] already processed by [${consumerName}]. Acknowledging and skipping.`
+                );
+                channel.ack(msg);
+                return;
+              }
+            }
+
+            await handler(content as T);
+            channel.ack(msg);
+          } catch (err) {
+            this.logger.error(`Error processing event [${routingKey}] - routing to DLQ:`, err);
+            channel.nack(msg, false, false);
+          }
+        }
+      });
+    });
+    this.logger.log(
+      `Subscribed idempotently to event [${routingKey}] on queue [${qName}] for consumer [${consumerName}]`
+    );
+  }
+}

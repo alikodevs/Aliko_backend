@@ -1,0 +1,27 @@
+{
+  "name": "contech-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/contech-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/contech-service",
+        "main": "apps/contech-service/src/main.ts",
+        "outputFileName": "apps/contech-service/src/main.js",
+        "tsConfig": "apps/contech-service/tsconfig.app.json",
+        "rootDir": "."
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "options": {
+        "buildTarget": "contech-service:build",
+        "runtimeArgs": ["--max-old-space-size=4096", "-r", "ts-node/register/transpile-only", "-r", "tsconfig-paths/register"],
+        "inspect": false
+      }
+    }
+  }
+}

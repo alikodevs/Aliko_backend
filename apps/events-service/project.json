@@ -1,0 +1,27 @@
+{
+  "name": "events-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/events-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/events-service",
+        "main": "apps/events-service/src/main.ts",
+        "outputFileName": "apps/events-service/src/main.js",
+        "tsConfig": "apps/events-service/tsconfig.app.json",
+        "rootDir": "."
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "options": {
+        "buildTarget": "events-service:build",
+        "runtimeArgs": ["--max-old-space-size=4096", "-r", "ts-node/register/transpile-only", "-r", "tsconfig-paths/register"],
+        "inspect": false
+      }
+    }
+  }
+}

@@ -1,0 +1,4388 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignUpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User successfully registered."
+          },
+          "400": {
+            "description": "Validation error or user already exists."
+          }
+        },
+        "summary": "Register a new user",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User successfully logged in."
+          },
+          "401": {
+            "description": "Invalid credentials."
+          }
+        },
+        "summary": "Login a user",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/login-google": {
+      "post": {
+        "operationId": "AuthController_loginWithGoogle",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idToken": {
+                    "type": "string"
+                  }
+                },
+                "required": ["idToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User successfully logged in with Google."
+          },
+          "401": {
+            "description": "Invalid or expired Google ID token."
+          }
+        },
+        "summary": "Login a user via Google SSO",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/verify": {
+      "post": {
+        "operationId": "AuthController_verify",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Session verified successfully."
+          },
+          "401": {
+            "description": "Invalid authentication."
+          }
+        },
+        "summary": "Verify user session via token or cookie",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User logged out successfully."
+          }
+        },
+        "summary": "Logout user",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/users/all": {
+      "get": {
+        "operationId": "UserController_getAllUsers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/users/profile": {
+      "get": {
+        "operationId": "UserController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "User"
+        ]
+      },
+      "patch": {
+        "operationId": "UserController_updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "User"
+        ]
+      },
+      "delete": {
+        "operationId": "UserController_deleteProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "patch": {
+        "operationId": "UserController_updateUserById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/applications/academy/instructor": {
+      "post": {
+        "operationId": "ApplicationController_submitInstructorApplication",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Application"
+        ]
+      }
+    },
+    "/applications/{id}/review": {
+      "post": {
+        "operationId": "ApplicationController_reviewApplication",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Application"
+        ]
+      }
+    },
+    "/academy/profile": {
+      "get": {
+        "operationId": "AcademyProfileController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Academy profile returned successfully"
+          },
+          "500": {
+            "description": "Failed to get profile"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get academy profile of logged-in user",
+        "tags": [
+          "Academy Profile"
+        ]
+      },
+      "post": {
+        "operationId": "AcademyProfileController_createProfile",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Academy profile created successfully"
+          },
+          "500": {
+            "description": "Failed to create profile"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create academy profile for logged-in user",
+        "tags": [
+          "Academy Profile"
+        ]
+      }
+    },
+    "/academy/profile/select-role": {
+      "post": {
+        "operationId": "AcademyProfileController_selectRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "STUDENT",
+                      "INSTRUCTOR",
+                      "ADMIN"
+                    ],
+                    "example": "STUDENT"
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Academy role selected successfully"
+          },
+          "400": {
+            "description": "Invalid role provided"
+          },
+          "500": {
+            "description": "Failed to select role"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Select academy role (STUDENT / INSTRUCTOR / ADMIN)",
+        "tags": [
+          "Academy Profile"
+        ]
+      }
+    },
+    "/academy/courses": {
+      "post": {
+        "operationId": "CourseController_createCourse",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCourseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Course created successfully"
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new course",
+        "tags": [
+          "Courses"
+        ]
+      },
+      "get": {
+        "operationId": "CourseController_findAllCourses",
+        "parameters": [
+          {
+            "name": "query",
+            "required": false,
+            "in": "query",
+            "description": "Query parameters (pagination, filters, etc.)",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of courses"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all courses",
+        "tags": [
+          "Courses"
+        ]
+      }
+    },
+    "/academy/courses/{id}": {
+      "get": {
+        "operationId": "CourseController_findCourseById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Course found"
+          },
+          "404": {
+            "description": "Course not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a course by ID",
+        "tags": [
+          "Courses"
+        ]
+      },
+      "patch": {
+        "operationId": "CourseController_updateCourse",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCourseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Course updated successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a course",
+        "tags": [
+          "Courses"
+        ]
+      },
+      "delete": {
+        "operationId": "CourseController_removeCourse",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Course deleted successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a course",
+        "tags": [
+          "Courses"
+        ]
+      }
+    },
+    "/academy/courses/{id}/status": {
+      "patch": {
+        "operationId": "CourseController_updateCourseStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCourseStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Course status updated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update course status",
+        "tags": [
+          "Courses"
+        ]
+      }
+    },
+    "/academy/courses/{id}/instructor": {
+      "patch": {
+        "operationId": "CourseController_assignCourseInstructor",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignInstructorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Instructor assigned successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Assign instructor to course",
+        "tags": [
+          "Courses"
+        ]
+      }
+    },
+    "/academy/modules": {
+      "post": {
+        "description": "🔒 Instructor only",
+        "operationId": "CourseModuleController_createModule",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCourseModuleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Module created successfully"
+          },
+          "403": {
+            "description": "Instructor role required"
+          }
+        },
+        "summary": "Create course module",
+        "tags": [
+          "Course Modules"
+        ]
+      }
+    },
+    "/academy/modules/course/{courseId}": {
+      "get": {
+        "operationId": "CourseModuleController_findAllModulesByCourse",
+        "parameters": [
+          {
+            "name": "courseId",
+            "required": true,
+            "in": "path",
+            "description": "Course ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get modules by course ID",
+        "tags": [
+          "Course Modules"
+        ]
+      }
+    },
+    "/academy/modules/{id}": {
+      "get": {
+        "operationId": "CourseModuleController_findModuleById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get module by ID",
+        "tags": [
+          "Course Modules"
+        ]
+      },
+      "put": {
+        "description": "🔒 Instructor only",
+        "operationId": "CourseModuleController_updateModule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCourseModuleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update course module",
+        "tags": [
+          "Course Modules"
+        ]
+      },
+      "delete": {
+        "description": "🔒 Instructor only",
+        "operationId": "CourseModuleController_removeModule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete course module",
+        "tags": [
+          "Course Modules"
+        ]
+      }
+    },
+    "/academy/cohorts": {
+      "post": {
+        "description": "🔒 Instructor only",
+        "operationId": "CohortController_createCohort",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCohortDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cohort created successfully"
+          },
+          "403": {
+            "description": "Instructor role required"
+          }
+        },
+        "summary": "Create cohort",
+        "tags": [
+          "Cohorts"
+        ]
+      },
+      "get": {
+        "operationId": "CohortController_findAllCohorts",
+        "parameters": [
+          {
+            "name": "courseId",
+            "required": false,
+            "in": "query",
+            "description": "Filter cohorts by course ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all cohorts",
+        "tags": [
+          "Cohorts"
+        ]
+      }
+    },
+    "/academy/cohorts/{id}": {
+      "get": {
+        "operationId": "CohortController_findCohortById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Cohort ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get cohort by ID",
+        "tags": [
+          "Cohorts"
+        ]
+      },
+      "patch": {
+        "description": "🔒 Instructor only",
+        "operationId": "CohortController_updateCohort",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCohortDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update cohort",
+        "tags": [
+          "Cohorts"
+        ]
+      },
+      "delete": {
+        "description": "🔒 Instructor only",
+        "operationId": "CohortController_removeCohort",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete cohort",
+        "tags": [
+          "Cohorts"
+        ]
+      }
+    },
+    "/academy/content": {
+      "post": {
+        "operationId": "ContentController_createContent",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateContentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Content"
+        ]
+      },
+      "get": {
+        "operationId": "ContentController_findAllContent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Content"
+        ]
+      }
+    },
+    "/academy/content/upload": {
+      "post": {
+        "operationId": "ContentController_uploadContent",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadContentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Content"
+        ]
+      }
+    },
+    "/academy/content/lesson/{lessonId}": {
+      "get": {
+        "operationId": "ContentController_findContentByLesson",
+        "parameters": [
+          {
+            "name": "lessonId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Content"
+        ]
+      }
+    },
+    "/academy/content/{id}": {
+      "get": {
+        "operationId": "ContentController_findContentById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Content"
+        ]
+      },
+      "patch": {
+        "operationId": "ContentController_updateContent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateContentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Content"
+        ]
+      },
+      "delete": {
+        "operationId": "ContentController_removeContent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Content"
+        ]
+      }
+    },
+    "/academy/enrollment": {
+      "post": {
+        "description": "👤 Student enrollment into a course or cohort",
+        "operationId": "EnrollmentController_createEnrollment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEnrollmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Enrollment created successfully"
+          },
+          "400": {
+            "description": "Invalid enrollment data"
+          }
+        },
+        "summary": "Enroll in a course",
+        "tags": [
+          "Enrollments"
+        ]
+      },
+      "get": {
+        "description": "🔒 Admin / Instructor",
+        "operationId": "EnrollmentController_findAllEnrollments",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all enrollments",
+        "tags": [
+          "Enrollments"
+        ]
+      }
+    },
+    "/academy/enrollment/me": {
+      "get": {
+        "operationId": "EnrollmentController_findMyEnrollments",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get my enrollments",
+        "tags": [
+          "Enrollments"
+        ]
+      }
+    },
+    "/academy/enrollment/my-courses": {
+      "get": {
+        "operationId": "EnrollmentController_findMyCourses",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get my enrolled courses",
+        "tags": [
+          "Enrollments"
+        ]
+      }
+    },
+    "/academy/enrollment/cohort/{cohortId}": {
+      "get": {
+        "description": "🔒 Instructor only",
+        "operationId": "EnrollmentController_findEnrollmentsByCohort",
+        "parameters": [
+          {
+            "name": "cohortId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get enrollments by cohort",
+        "tags": [
+          "Enrollments"
+        ]
+      }
+    },
+    "/academy/enrollment/{id}": {
+      "delete": {
+        "description": "🔒 Admin only",
+        "operationId": "EnrollmentController_removeEnrollment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Remove enrollment",
+        "tags": [
+          "Enrollments"
+        ]
+      }
+    },
+    "/academy/enrollment/user/{userId}": {
+      "get": {
+        "description": "🔒 Admin only",
+        "operationId": "EnrollmentController_findEnrollmentsByUserId",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get enrollments by user ID",
+        "tags": [
+          "Enrollments"
+        ]
+      }
+    },
+    "/academy/lessons": {
+      "post": {
+        "description": "🔒 Instructor only",
+        "operationId": "LessonController_createLesson",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLessonDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Lesson created successfully"
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        },
+        "summary": "Create a lesson",
+        "tags": [
+          "Lessons"
+        ]
+      }
+    },
+    "/academy/lessons/module/{moduleId}": {
+      "get": {
+        "description": "Accessible to enrolled students and instructors",
+        "operationId": "LessonController_findLessonsByModule",
+        "parameters": [
+          {
+            "name": "moduleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get lessons by module",
+        "tags": [
+          "Lessons"
+        ]
+      }
+    },
+    "/academy/lessons/{id}": {
+      "get": {
+        "operationId": "LessonController_findLessonById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get lesson by ID",
+        "tags": [
+          "Lessons"
+        ]
+      },
+      "put": {
+        "description": "🔒 Instructor only",
+        "operationId": "LessonController_updateLesson",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLessonDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a lesson",
+        "tags": [
+          "Lessons"
+        ]
+      },
+      "delete": {
+        "description": "🔒 Instructor only",
+        "operationId": "LessonController_removeLesson",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a lesson",
+        "tags": [
+          "Lessons"
+        ]
+      }
+    },
+    "/academy/notifications": {
+      "post": {
+        "description": "🔒 Admin / Instructor only",
+        "operationId": "NotificationController_createNotification",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Notification created"
+          }
+        },
+        "summary": "Create a notification",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/academy/notifications/me": {
+      "get": {
+        "operationId": "NotificationController_myNotifications",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of notifications"
+          }
+        },
+        "summary": "Get my notifications",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/academy/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationController_markNotificationRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Mark notification as read",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/academy/notifications/{id}": {
+      "delete": {
+        "operationId": "NotificationController_deleteNotification",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a notification",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/academy/progress/instructor/stats": {
+      "get": {
+        "description": "🔒 Instructor / Admin only",
+        "operationId": "ProgressAndAnalyticsController_instructorStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get instructor statistics",
+        "tags": [
+          "Progress & Analytics"
+        ]
+      }
+    },
+    "/academy/progress/dashboard": {
+      "get": {
+        "operationId": "ProgressAndAnalyticsController_myCoursesProgress",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get dashboard progress for current user",
+        "tags": [
+          "Progress & Analytics"
+        ]
+      }
+    },
+    "/academy/progress/course/{courseId}/lesson/{lessonId}/complete": {
+      "post": {
+        "operationId": "ProgressAndAnalyticsController_completeLesson",
+        "parameters": [
+          {
+            "name": "courseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "lessonId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Mark lesson as complete for the current user",
+        "tags": [
+          "Progress & Analytics"
+        ]
+      }
+    },
+    "/academy/progress/course/{courseId}/analytics": {
+      "get": {
+        "description": "🔒 Instructor / Admin only",
+        "operationId": "ProgressAndAnalyticsController_courseAnalytics",
+        "parameters": [
+          {
+            "name": "courseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get course analytics",
+        "tags": [
+          "Progress & Analytics"
+        ]
+      }
+    },
+    "/academy/progress/course/{courseId}/students": {
+      "get": {
+        "description": "🔒 Instructor / Admin only",
+        "operationId": "ProgressAndAnalyticsController_studentsProgress",
+        "parameters": [
+          {
+            "name": "courseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all students progress for a course",
+        "tags": [
+          "Progress & Analytics"
+        ]
+      }
+    },
+    "/academy/progress/course/{courseId}/user/{targetUserId}": {
+      "get": {
+        "description": "🔒 Instructor / Admin only",
+        "operationId": "ProgressAndAnalyticsController_userProgressInCourse",
+        "parameters": [
+          {
+            "name": "courseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "targetUserId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a specific student progress in a course",
+        "tags": [
+          "Progress & Analytics"
+        ]
+      }
+    },
+    "/academy/progress/analytics/overall": {
+      "get": {
+        "description": "🔒 Admin only",
+        "operationId": "ProgressAndAnalyticsController_overallAnalytics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get overall platform analytics",
+        "tags": [
+          "Progress & Analytics"
+        ]
+      }
+    },
+    "/academy/progress/analytics/student": {
+      "get": {
+        "operationId": "ProgressAndAnalyticsController_studentStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get student stats for sidebar / dashboard",
+        "tags": [
+          "Progress & Analytics"
+        ]
+      }
+    },
+    "/academy/teaching-schedules/instructor": {
+      "get": {
+        "description": "🔒 Instructor / Admin only",
+        "operationId": "TeachingScheduleController_getInstructorSchedules",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get schedules for the authenticated instructor",
+        "tags": [
+          "Teaching Schedules"
+        ]
+      }
+    },
+    "/academy/teaching-schedules/course/{courseId}": {
+      "get": {
+        "description": "Accessible by enrolled users, instructors, or admin",
+        "operationId": "TeachingScheduleController_getCourseSchedules",
+        "parameters": [
+          {
+            "name": "courseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all schedules for a specific course",
+        "tags": [
+          "Teaching Schedules"
+        ]
+      }
+    },
+    "/academy/teaching-schedules": {
+      "post": {
+        "description": "🔒 Instructor / Admin only",
+        "operationId": "TeachingScheduleController_createSchedule",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeachingScheduleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a teaching schedule",
+        "tags": [
+          "Teaching Schedules"
+        ]
+      }
+    },
+    "/academy/teaching-schedules/{id}": {
+      "put": {
+        "description": "🔒 Instructor / Admin only",
+        "operationId": "TeachingScheduleController_updateSchedule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeachingScheduleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a teaching schedule",
+        "tags": [
+          "Teaching Schedules"
+        ]
+      },
+      "delete": {
+        "description": "🔒 Instructor / Admin only",
+        "operationId": "TeachingScheduleController_deleteSchedule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a teaching schedule",
+        "tags": [
+          "Teaching Schedules"
+        ]
+      },
+      "get": {
+        "description": "Accessible by instructor/admin or enrolled users",
+        "operationId": "TeachingScheduleController_getScheduleById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a teaching schedule by ID",
+        "tags": [
+          "Teaching Schedules"
+        ]
+      }
+    },
+    "/academy/upload/image": {
+      "post": {
+        "operationId": "FileUploadController_uploadImage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Upload an image file",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File Upload"
+        ]
+      }
+    },
+    "/academy/upload/image/{filename}": {
+      "get": {
+        "operationId": "FileUploadController_redirectToCloudinary",
+        "parameters": [
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File Upload"
+        ]
+      }
+    },
+    "/contech/profile": {
+      "get": {
+        "operationId": "ConTechProfileController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully"
+          }
+        },
+        "summary": "Get current user profile",
+        "tags": [
+          "ConTech Profile"
+        ]
+      },
+      "post": {
+        "operationId": "ConTechProfileController_createProfile",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Profile created successfully"
+          }
+        },
+        "summary": "Create profile for the current user",
+        "tags": [
+          "ConTech Profile"
+        ]
+      },
+      "put": {
+        "operationId": "ConTechProfileController_updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Update data object",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully"
+          }
+        },
+        "summary": "Update profile for the current user",
+        "tags": [
+          "ConTech Profile"
+        ]
+      }
+    },
+    "/contech/profile/select-role": {
+      "post": {
+        "operationId": "ConTechProfileController_selectRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Role to select",
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": "CLIENT"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Role selected successfully"
+          },
+          "400": {
+            "description": "Invalid role provided"
+          }
+        },
+        "summary": "Select a role for the current user",
+        "tags": [
+          "ConTech Profile"
+        ]
+      }
+    },
+    "/contech/projects": {
+      "post": {
+        "operationId": "ProjectsController_createProject",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created successfully"
+          }
+        },
+        "summary": "Create a new project",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "get": {
+        "operationId": "ProjectsController_findAllProjects",
+        "parameters": [
+          {
+            "name": "query",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Projects retrieved successfully"
+          }
+        },
+        "summary": "Get all projects",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/contech/projects/stats": {
+      "get": {
+        "operationId": "ProjectsController_getProjectStats",
+        "parameters": [
+          {
+            "name": "managerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project stats retrieved successfully"
+          }
+        },
+        "summary": "Get project statistics",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/contech/projects/{id}": {
+      "get": {
+        "operationId": "ProjectsController_findProjectById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project retrieved successfully"
+          }
+        },
+        "summary": "Get project by ID",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "patch": {
+        "operationId": "ProjectsController_updateProject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project updated successfully"
+          }
+        },
+        "summary": "Update project details",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectsController_removeProject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project deleted successfully"
+          }
+        },
+        "summary": "Delete a project by ID",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/contech/projects/{id}/status": {
+      "patch": {
+        "operationId": "ProjectsController_updateProjectStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": {
+                  "status": "ACTIVE"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project status updated successfully"
+          }
+        },
+        "summary": "Update project status",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/contech/projects/contractor": {
+      "get": {
+        "operationId": "ProjectsController_findAllContractors",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Contractors retrieved successfully"
+          }
+        },
+        "summary": "Get all contractors",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/contech/projects/inspector": {
+      "get": {
+        "operationId": "ProjectsController_findAllInspectors",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Inspectors retrieved successfully"
+          }
+        },
+        "summary": "Get all inspectors",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/contech/tasks": {
+      "post": {
+        "operationId": "TasksController_createTask",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Task created successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new task",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/contech/tasks/project/{projectId}": {
+      "get": {
+        "operationId": "TasksController_findTasksByProject",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "query",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all tasks for a project",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/contech/tasks/stats": {
+      "get": {
+        "operationId": "TasksController_getTaskStats",
+        "parameters": [
+          {
+            "name": "assignedTo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get task statistics",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/contech/tasks/{id}": {
+      "get": {
+        "operationId": "TasksController_findTaskById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Task ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get task by ID",
+        "tags": [
+          "Tasks"
+        ]
+      },
+      "patch": {
+        "operationId": "TasksController_updateTask",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Task ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTaskDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a task",
+        "tags": [
+          "Tasks"
+        ]
+      },
+      "delete": {
+        "operationId": "TasksController_removeTask",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Task ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a task",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/contech/tasks/{id}/progress": {
+      "patch": {
+        "operationId": "TasksController_updateTaskProgress",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Task ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "progress": {
+                    "type": "number",
+                    "example": 50
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update task progress",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/contech/contracts/upload": {
+      "post": {
+        "operationId": "ContractController_uploadContract",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "number"
+                  },
+                  "contractFile": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Contract uploaded successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a contract file for a project",
+        "tags": [
+          "Contracts"
+        ]
+      }
+    },
+    "/contech/contracts/{id}/status": {
+      "patch": {
+        "operationId": "ContractController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Contract ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateContractStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update the status of a contract",
+        "tags": [
+          "Contracts"
+        ]
+      }
+    },
+    "/contech/contracts/{id}/change-orders": {
+      "post": {
+        "operationId": "ContractController_addChangeOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Contract ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddChangeOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a change order to a contract",
+        "tags": [
+          "Contracts"
+        ]
+      }
+    },
+    "/contech/contracts/{id}/view": {
+      "get": {
+        "operationId": "ContractController_getSecureViewUrl",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Contract ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get secure view URL for a contract",
+        "tags": [
+          "Contracts"
+        ]
+      }
+    },
+    "/contech/contracts/project/{projectId}": {
+      "get": {
+        "operationId": "ContractController_getContractsByProjectId",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all contracts for a project",
+        "tags": [
+          "Contracts"
+        ]
+      }
+    },
+    "/contech/inspections": {
+      "post": {
+        "operationId": "InspectionController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Create inspection payload with photos",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "string",
+                    "description": "JSON string of CreateInspectionDto"
+                  },
+                  "photos": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "description": "List of images"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new inspection with photos",
+        "tags": [
+          "Inspections"
+        ]
+      }
+    },
+    "/contech/inspections/project/{projectId}": {
+      "get": {
+        "operationId": "InspectionController_findAllByProjectId",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Number of records to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Number of records to take",
+            "schema": {
+              "minimum": 1,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all inspections for a project with pagination",
+        "tags": [
+          "Inspections"
+        ]
+      }
+    },
+    "/contech/inspections/{id}": {
+      "get": {
+        "operationId": "InspectionController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a single inspection by ID",
+        "tags": [
+          "Inspections"
+        ]
+      },
+      "patch": {
+        "operationId": "InspectionController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInspectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an existing inspection",
+        "tags": [
+          "Inspections"
+        ]
+      },
+      "delete": {
+        "operationId": "InspectionController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove an inspection by ID",
+        "tags": [
+          "Inspections"
+        ]
+      }
+    },
+    "/contech/client-reports": {
+      "post": {
+        "operationId": "ClientReportController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClientReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new client report",
+        "tags": [
+          "Client Reports"
+        ]
+      }
+    },
+    "/contech/client-reports/projects/{projectId}": {
+      "get": {
+        "operationId": "ClientReportController_findAllByProjectId",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "ID of the project",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all client reports for a project",
+        "tags": [
+          "Client Reports"
+        ]
+      }
+    },
+    "/contech/client-reports/{id}": {
+      "get": {
+        "operationId": "ClientReportController_findOneById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID of the client report",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a client report by its ID",
+        "tags": [
+          "Client Reports"
+        ]
+      }
+    },
+    "/contech/milestones": {
+      "post": {
+        "operationId": "MilestonesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMilestoneDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new milestone",
+        "tags": [
+          "milestones"
+        ]
+      }
+    },
+    "/contech/milestones/project/{projectId}": {
+      "get": {
+        "operationId": "MilestonesController_findAll",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all milestones for a project",
+        "tags": [
+          "milestones"
+        ]
+      }
+    },
+    "/contech/milestones/{id}": {
+      "get": {
+        "operationId": "MilestonesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a single milestone by ID",
+        "tags": [
+          "milestones"
+        ]
+      },
+      "patch": {
+        "operationId": "MilestonesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMilestoneDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a milestone by ID",
+        "tags": [
+          "milestones"
+        ]
+      },
+      "delete": {
+        "operationId": "MilestonesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a milestone by ID",
+        "tags": [
+          "milestones"
+        ]
+      }
+    },
+    "/contech/milestones/{id}/submit": {
+      "patch": {
+        "operationId": "MilestonesController_submitForReview",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Submit milestone for review",
+        "tags": [
+          "milestones"
+        ]
+      }
+    },
+    "/contech/milestones/{id}/review": {
+      "post": {
+        "operationId": "MilestonesController_createReview",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMilestoneReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a review for a milestone",
+        "tags": [
+          "milestones"
+        ]
+      }
+    },
+    "/contech/milestones/{id}/reviews": {
+      "get": {
+        "operationId": "MilestonesController_getReviewsForMilestone",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all reviews for a milestone",
+        "tags": [
+          "milestones"
+        ]
+      }
+    },
+    "/admin/events": {
+      "post": {
+        "operationId": "EventsController_createEvent",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/admin/events/{id}": {
+      "put": {
+        "operationId": "EventsController_updateEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Events"
+        ]
+      },
+      "delete": {
+        "operationId": "EventsController_removeEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/events": {
+      "get": {
+        "operationId": "PublicEventsController_findAllEvents",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PublicEvents"
+        ]
+      }
+    },
+    "/events/{id}": {
+      "get": {
+        "operationId": "PublicEventsController_findEventById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PublicEvents"
+        ]
+      }
+    },
+    "/events/{id}/register": {
+      "post": {
+        "operationId": "PublicEventsController_registerForEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRegistrationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PublicEvents"
+        ]
+      }
+    },
+    "/admin/events/{eventId}/registrations": {
+      "get": {
+        "operationId": "RegistrationsController_findAllRegistrations",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Registrations"
+        ]
+      }
+    },
+    "/admin/events/{eventId}/registrations/{registrationId}": {
+      "delete": {
+        "operationId": "RegistrationsController_removeRegistration",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "registrationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Registrations"
+        ]
+      }
+    },
+    "/admin/updates": {
+      "post": {
+        "operationId": "UpdatesController_createUpdate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Updates"
+        ]
+      }
+    },
+    "/admin/updates/{id}": {
+      "put": {
+        "operationId": "UpdatesController_updateUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Updates"
+        ]
+      },
+      "delete": {
+        "operationId": "UpdatesController_removeUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Updates"
+        ]
+      }
+    },
+    "/updates": {
+      "get": {
+        "operationId": "PublicUpdatesController_findAllUpdates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PublicUpdates"
+        ]
+      }
+    },
+    "/updates/{id}": {
+      "get": {
+        "operationId": "PublicUpdatesController_findUpdateById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PublicUpdates"
+        ]
+      }
+    },
+    "/events/assign-role": {
+      "post": {
+        "operationId": "RolesController_assignRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Roles"
+        ]
+      }
+    },
+    "/events/user-role": {
+      "get": {
+        "operationId": "RolesController_getUserRole",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Roles"
+        ]
+      }
+    },
+    "/careers/jobs": {
+      "post": {
+        "operationId": "CareersController_createJob",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJobDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Careers"
+        ]
+      },
+      "get": {
+        "operationId": "CareersController_findAllJobs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Careers"
+        ]
+      }
+    },
+    "/careers/jobs/active": {
+      "get": {
+        "operationId": "CareersController_findAllActiveJobs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Careers"
+        ]
+      }
+    },
+    "/careers/jobs/{id}": {
+      "get": {
+        "operationId": "CareersController_findJobById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Careers"
+        ]
+      },
+      "put": {
+        "operationId": "CareersController_updateJob",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateJobDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Careers"
+        ]
+      },
+      "delete": {
+        "operationId": "CareersController_removeJob",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Careers"
+        ]
+      }
+    },
+    "/careers/applications": {
+      "post": {
+        "operationId": "CareersController_createApplication",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApplicationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Careers"
+        ]
+      },
+      "get": {
+        "operationId": "CareersController_findAllApplications",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Careers"
+        ]
+      }
+    },
+    "/careers/applications/{id}": {
+      "get": {
+        "operationId": "CareersController_findApplicationById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Careers"
+        ]
+      }
+    },
+    "/careers/applications/job/{jobId}": {
+      "get": {
+        "operationId": "CareersController_findApplicationsByJobId",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Careers"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "API Gateway",
+    "description": "Gateway documentation for frontend",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "SignUpDto": {
+        "type": "object",
+        "properties": {
+          "firstname": {
+            "type": "string",
+            "description": "First name of the user",
+            "example": "John"
+          },
+          "lastname": {
+            "type": "string",
+            "description": "Last name of the user",
+            "example": "Doe"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address",
+            "example": "john.doe@example.com"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password",
+            "example": "strongPassword123"
+          },
+          "globalRole": {
+            "type": "string",
+            "description": "Global role of the user",
+            "enum": [
+              "USER",
+              "ADMIN"
+            ],
+            "example": "USER"
+          },
+          "profilePicture": {
+            "type": "string",
+            "description": "Profile picture URL",
+            "example": "https://example.com/profile.jpg"
+          },
+          "bio": {
+            "type": "string",
+            "description": "Short bio of the user",
+            "example": "I am a new user"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "SignInDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address",
+            "example": "john.doe@example.com"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password",
+            "example": "strongPassword123"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateCourseDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Intro to NestJS"
+          },
+          "shortDescription": {
+            "type": "string",
+            "example": "Learn NestJS basics"
+          },
+          "longDescription": {
+            "type": "string",
+            "example": "Full NestJS course"
+          },
+          "thumbnail": {
+            "type": "string",
+            "example": "https://img.png"
+          },
+          "category": {
+            "type": "string",
+            "example": "Backend"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "example": "DRAFT"
+          },
+          "enrolledNum": {
+            "type": "number",
+            "example": 0
+          }
+        },
+        "required": [
+          "title",
+          "status"
+        ]
+      },
+      "UpdateCourseDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Advanced NestJS"
+          },
+          "shortDescription": {
+            "type": "string",
+            "example": "Updated short description"
+          },
+          "longDescription": {
+            "type": "string",
+            "example": "Updated long description"
+          },
+          "thumbnail": {
+            "type": "string",
+            "example": "http://example.com/new.png"
+          },
+          "category": {
+            "type": "string",
+            "example": "Backend"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "example": "PUBLISHED"
+          }
+        }
+      },
+      "UpdateCourseStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "example": "PUBLISHED"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "AssignInstructorDto": {
+        "type": "object",
+        "properties": {
+          "instructorId": {
+            "type": "string",
+            "example": "firebase-user-id-123",
+            "description": "Instructor userId from auth service"
+          }
+        },
+        "required": [
+          "instructorId"
+        ]
+      },
+      "CreateCourseModuleDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Introduction"
+          },
+          "description": {
+            "type": "string",
+            "example": "Module overview and goals"
+          },
+          "courseId": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "courseId"
+        ]
+      },
+      "UpdateCourseModuleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateCohortDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "January 2025 Cohort"
+          },
+          "courseId": {
+            "type": "number",
+            "example": 1,
+            "description": "Course ID"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2025-01-01T00:00:00.000Z",
+            "description": "Cohort start date"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2025-03-01T00:00:00.000Z",
+            "description": "Cohort end date"
+          }
+        },
+        "required": [
+          "name",
+          "courseId",
+          "startDate",
+          "endDate"
+        ]
+      },
+      "UpdateCohortDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateContentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UploadContentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateContentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateEnrollmentDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "User ID (optional, derived from token if omitted)",
+            "example": "firebase_uid_123"
+          },
+          "cohortId": {
+            "type": "number",
+            "description": "Cohort ID (optional)",
+            "example": 5
+          },
+          "courseId": {
+            "type": "number",
+            "description": "Course ID",
+            "example": 10
+          }
+        },
+        "required": [
+          "courseId"
+        ]
+      },
+      "CreateLessonDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Lesson title",
+            "example": "Introduction to NestJS"
+          },
+          "type": {
+            "type": "string",
+            "description": "Lesson type",
+            "example": "VIDEO"
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "Due date (for assignments)",
+            "example": "2025-01-10T00:00:00.000Z"
+          },
+          "maxScore": {
+            "type": "number",
+            "description": "Maximum score (for quizzes/assignments)",
+            "example": 100
+          },
+          "moduleId": {
+            "type": "number",
+            "description": "Module ID",
+            "example": 3
+          },
+          "contents": {
+            "description": "Lesson contents (videos, PDFs, quizzes, etc.)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateContentDto"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "type",
+          "moduleId"
+        ]
+      },
+      "UpdateLessonDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateNotificationDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "Target user ID",
+            "example": "uid_123456"
+          },
+          "message": {
+            "type": "string",
+            "description": "Notification message",
+            "example": "Your assignment has been graded"
+          },
+          "type": {
+            "type": "string",
+            "description": "Notification type",
+            "example": "ASSIGNMENT"
+          }
+        },
+        "required": [
+          "userId",
+          "message",
+          "type"
+        ]
+      },
+      "CreateTeachingScheduleDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title of the schedule",
+            "example": "NestJS Live Class"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description of the schedule",
+            "example": "Deep dive into NestJS modules"
+          },
+          "startTime": {
+            "type": "string",
+            "description": "Start time of the schedule",
+            "example": "2025-12-20T10:00:00Z"
+          },
+          "endTime": {
+            "type": "string",
+            "description": "End time of the schedule",
+            "example": "2025-12-20T11:30:00Z"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of schedule",
+            "enum": [
+              "LIVE",
+              "RECORDING",
+              "Q_AND_A",
+              "OFFICE_HOURS",
+              "WORKSHOP"
+            ],
+            "example": "LIVE"
+          },
+          "courseId": {
+            "type": "number",
+            "description": "Associated course ID",
+            "example": 1
+          },
+          "isRecurring": {
+            "type": "boolean",
+            "description": "Whether the schedule is recurring",
+            "example": false
+          },
+          "recurrencePattern": {
+            "type": "string",
+            "description": "Recurrence pattern (if recurring)",
+            "example": "WEEKLY"
+          }
+        },
+        "required": [
+          "title",
+          "startTime",
+          "endTime",
+          "type",
+          "courseId"
+        ]
+      },
+      "UpdateTeachingScheduleDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Updated title",
+            "example": "Updated Live Class"
+          },
+          "description": {
+            "type": "string",
+            "description": "Updated description",
+            "example": "Updated description content"
+          },
+          "startTime": {
+            "type": "string",
+            "description": "Updated start time",
+            "example": "2025-12-21T10:00:00Z"
+          },
+          "endTime": {
+            "type": "string",
+            "description": "Updated end time",
+            "example": "2025-12-21T11:30:00Z"
+          },
+          "type": {
+            "type": "string",
+            "description": "Updated type of schedule",
+            "enum": [
+              "LIVE",
+              "RECORDING",
+              "Q_AND_A",
+              "OFFICE_HOURS",
+              "WORKSHOP"
+            ]
+          },
+          "isRecurring": {
+            "type": "boolean",
+            "description": "Updated recurring status",
+            "example": true
+          },
+          "recurrencePattern": {
+            "type": "string",
+            "description": "Updated recurrence pattern",
+            "example": "DAILY"
+          }
+        }
+      },
+      "Object": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateProjectDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the project",
+            "example": "New Office Building"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the project",
+            "example": "Construction of 10-story office building"
+          },
+          "clientId": {
+            "type": "string",
+            "description": "Client ID associated with the project",
+            "example": "client_12345"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Start date of the project",
+            "example": "2025-01-01"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "End date of the project",
+            "example": "2025-12-31"
+          },
+          "budget": {
+            "type": "number",
+            "description": "Budget of the project",
+            "example": 1000000
+          },
+          "location": {
+            "type": "string",
+            "description": "Project location",
+            "example": "Addis Ababa"
+          }
+        },
+        "required": [
+          "name",
+          "startDate"
+        ]
+      },
+      "UpdateProjectDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "PLANNED",
+              "ACTIVE",
+              "ON_HOLD",
+              "DELAYED",
+              "COMPLETED",
+              "CANCELLED"
+            ],
+            "description": "Status of the project",
+            "example": "ACTIVE"
+          }
+        }
+      },
+      "CreateTaskDto": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "number",
+            "description": "ID of the project this task belongs to",
+            "example": 1
+          },
+          "description": {
+            "type": "string",
+            "description": "Task description",
+            "example": "Design homepage layout"
+          },
+          "priority": {
+            "type": "string",
+            "description": "Priority of the task",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ],
+            "example": "HIGH"
+          },
+          "assignedTo": {
+            "type": "string",
+            "description": "User ID assigned to this task",
+            "example": "user_123"
+          },
+          "deadline": {
+            "type": "string",
+            "description": "Deadline of the task",
+            "example": "2025-12-31"
+          },
+          "estimatedHours": {
+            "type": "number",
+            "description": "Estimated hours to complete the task",
+            "example": 10
+          },
+          "dependencies": {
+            "description": "Dependencies on other task IDs",
+            "example": [
+              2,
+              3
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "projectId",
+          "description"
+        ]
+      },
+      "UpdateTaskDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Current status of the task",
+            "enum": [
+              "PENDING",
+              "IN_PROGRESS",
+              "REVIEW",
+              "COMPLETED",
+              "BLOCKED"
+            ],
+            "example": "IN_PROGRESS"
+          },
+          "actualHours": {
+            "type": "number",
+            "description": "Actual hours spent on the task",
+            "example": 8
+          },
+          "progress": {
+            "type": "number",
+            "description": "Progress percentage of the task",
+            "example": 50
+          }
+        }
+      },
+      "UpdateContractStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "New status of the contract",
+            "example": "APPROVED"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "AddChangeOrderDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the change order",
+            "maxLength": 500,
+            "example": "Added new feature X"
+          },
+          "costImpact": {
+            "type": "number",
+            "description": "Cost impact of the change order",
+            "example": 5000
+          },
+          "scheduleImpact": {
+            "type": "string",
+            "description": "Schedule impact of the change order",
+            "example": "+10 days"
+          }
+        },
+        "required": [
+          "description",
+          "costImpact",
+          "scheduleImpact"
+        ]
+      },
+      "UpdateInspectionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "ID of the inspection to update"
+          },
+          "inspector": {
+            "type": "string",
+            "description": "Updated inspector ID"
+          },
+          "status": {
+            "type": "string",
+            "description": "Updated status of the inspection"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "KpiDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the KPI",
+            "example": "Budget Variance",
+            "maxLength": 100
+          },
+          "value": {
+            "type": "string",
+            "description": "Current value of the KPI",
+            "example": "+5%",
+            "maxLength": 50
+          },
+          "target": {
+            "type": "string",
+            "description": "Target for the KPI",
+            "example": "<2%",
+            "maxLength": 50
+          }
+        },
+        "required": [
+          "name",
+          "value",
+          "target"
+        ]
+      },
+      "CreateClientReportDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title of the client report",
+            "example": "Q1 2025 Project Report"
+          },
+          "projectId": {
+            "type": "number",
+            "description": "ID of the project",
+            "example": 123
+          },
+          "summary": {
+            "type": "string",
+            "description": "Summary of the report",
+            "example": "This report provides an overview of the project status, including key achievements and challenges.",
+            "minLength": 20,
+            "maxLength": 5000
+          },
+          "KPIs": {
+            "description": "List of KPIs for the project",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiDto"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "projectId",
+          "summary",
+          "KPIs"
+        ]
+      },
+      "CreateMilestoneDto": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "number",
+            "description": "ID of the project this milestone belongs to",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the milestone",
+            "example": "Foundation Completed"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description of the milestone",
+            "example": "Milestone description"
+          },
+          "status": {
+            "type": "string",
+            "description": "Current status of the milestone",
+            "example": "PLANNED"
+          },
+          "dueDate": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Due date for the milestone",
+            "example": "2025-12-31"
+          }
+        },
+        "required": [
+          "projectId",
+          "title"
+        ]
+      },
+      "UpdateMilestoneDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title of the milestone",
+            "example": "Foundation Completed"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description of the milestone",
+            "example": "Milestone description"
+          },
+          "status": {
+            "type": "string",
+            "description": "Current status of the milestone",
+            "example": "IN_PROGRESS"
+          }
+        }
+      },
+      "CreateMilestoneReviewDto": {
+        "type": "object",
+        "properties": {
+          "inspectorId": {
+            "type": "string",
+            "description": "ID of the inspector submitting the review",
+            "example": "inspector123"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the milestone review",
+            "example": "APPROVED"
+          },
+          "comments": {
+            "type": "string",
+            "description": "Comments from the inspector",
+            "example": "Everything looks good."
+          }
+        },
+        "required": [
+          "inspectorId",
+          "status",
+          "comments"
+        ]
+      },
+      "CreateEventDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateEventDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateRegistrationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateUpdateDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateUpdateDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AssignRoleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateJobDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateJobDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateApplicationDto": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  }
+}

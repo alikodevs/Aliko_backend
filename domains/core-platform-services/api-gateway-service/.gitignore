@@ -1,6 +1,0 @@
-# .env
-node_modules/
-package-lock.json
-dist/
-API_GATEWAY_SERVICE_EXTRACTION.md
-Postman-Collection-Template.md

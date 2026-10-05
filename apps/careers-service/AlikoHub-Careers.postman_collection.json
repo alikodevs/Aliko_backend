@@ -1,0 +1,326 @@
+{
+	"info": {
+		"_postman_id": "c7a8b6d3-2e4f-4a1b-9c8d-1e2f3a4b5c6d",
+		"name": "AlikoHub Careers Service",
+		"description": "Collection for testing Careers Service endpoints via API Gateway",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Jobs",
+			"item": [
+				{
+					"name": "Create Job",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Senior Software Engineer\",\n    \"description\": \"We are looking for an experienced backend developer.\",\n    \"requirements\": \"Node.js, NestJS, Prisma\",\n    \"salaryRange\": \"$100k - $120k\",\n    \"location\": \"Remote\",\n    \"type\": \"FULL_TIME\",\n    \"status\": \"OPEN\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/careers/jobs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"careers",
+								"jobs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Jobs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/careers/jobs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"careers",
+								"jobs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Job by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/careers/jobs/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"careers",
+								"jobs",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Job",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"CLOSED\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/careers/jobs/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"careers",
+								"jobs",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Job",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/careers/jobs/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"careers",
+								"jobs",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Applications",
+			"item": [
+				{
+					"name": "Apply for Job",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fullName\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"phone\": \"+1234567890\",\n    \"coverLetter\": \"I am very interested in this role.\",\n    \"resumeUrl\": \"https://example.com/my-resume.pdf\",\n    \"experienceYears\": 5,\n    \"currentTitle\": \"Software Engineer\",\n    \"currentCompany\": \"Tech Corp\",\n    \"industry\": \"Technology\",\n    \"skills\": [\"React\", \"Node.js\", \"Prisma\"],\n    \"linkedInUrl\": \"https://linkedin.com/in/johndoe\",\n    \"portfolioUrl\": \"https://johndoe.dev\",\n    \"additionalInfo\": \"I am available to start immediately.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/careers/jobs/1/apply",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"careers",
+								"jobs",
+								"1",
+								"apply"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Apply for Job (Using Profile)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"coverLetter\": \"I want to use my profile info.\",\n    \"resumeUrl\": \"https://example.com/my-resume.pdf\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/careers/jobs/1/apply",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"careers",
+								"jobs",
+								"1",
+								"apply"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Job Applications",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/careers/jobs/1/applications",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"careers",
+								"jobs",
+								"1",
+								"applications"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Recruiter Profile",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/careers/profile/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"careers",
+								"profile",
+								"me"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "Create Recruiter",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"recruiter@alikohub.com\",\n    \"firstname\": \"Alice\",\n    \"lastname\": \"Recruiter\",\n    \"password\": \"Recruiter123!\",\n    \"department\": \"Engineering\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/careers/admin/recruiters",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"careers",
+								"admin",
+								"recruiters"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3006",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

@@ -1,0 +1,408 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x"]
+  output        = "../../../node_modules/@prisma/client/academy"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AcademyProfile {
+  id              Int         @id @default(autoincrement())
+  userId          String      @unique
+  role            AcademyRole @default(USER)
+  hasSelectedRole Boolean     @default(false) // Add this field
+
+  bio            String?
+  expertise      String[]
+  specialization String?
+  certifications String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course            Course[]
+  enrollments       Enrollment[]
+  notification      Notification[]
+  progress          Progress[]
+  // NEW: Add relation to teaching schedules
+  teachingSchedules TeachingSchedule[]
+  submissions      ExerciseSubmission[]
+  conversationParticipants ConversationParticipant[]
+}
+
+model Course {
+  id               Int            @id @default(autoincrement())
+  title            String
+  thumbnail        String?
+  shortDescription String?
+  longDescription  String?
+  category         String?
+  instructorId     String // userId from auth service
+  profile          AcademyProfile @relation(fields: [instructorId], references: [userId])
+  status           CourseStatus
+  skills           String[]
+  conceptsLearned  String[]
+  outcomes         String[]
+  rejectionReason  String?
+  estimatedTime    Int?
+  targetLevel      String?
+  enrolledNum      Int? // Changed from String? to Int?
+  rating           Int?
+  price            Float?
+  priceInUsd       Float?
+  prerequisites    String[]
+  languages        String[]
+  cohorts          Cohort[]
+  modules          Module[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  enrollments       Enrollment[]
+  progress          Progress[]
+  // NEW: Add relation to teaching schedules
+  teachingSchedules TeachingSchedule[]
+  conversations     Conversation[]
+}
+
+model Cohort {
+  id                Int                @id @default(autoincrement())
+  name              String
+  courseId          Int
+  enrollments       Enrollment[]
+  startDate         DateTime
+  endDate           DateTime
+  maxCapacity       Int?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teachingSchedules TeachingSchedule[]
+}
+
+model Enrollment {
+  id             Int               @id @default(autoincrement())
+  userId         String // ID from auth service
+  cohortId       Int?
+  courseId       Int               // ALWAYS set since Cohorts also belong to a course
+  context        EnrollmentContext @default(COURSE_ONLY)
+  
+  // Cohort Management specific fields
+  cohortRole     CohortRole?       @default(STUDENT)
+  approvalStatus ApprovalStatus    @default(APPROVED)
+  
+  enrolledAt     DateTime          @default(now())
+  progress       Float             @default(0.0)
+  enrollmentType EnrollmentType    @default(FREE)
+  paymentStatus  PaymentStatus     @default(COMPLETED)
+  status         EnrollmentStatus  @default(ACTIVE)
+
+  cohort  Cohort?        @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  profile AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([userId, cohortId, courseId])
+}
+
+enum EnrollmentContext {
+  COURSE_ONLY
+  COHORT_BASED
+}
+
+enum CohortRole {
+  STUDENT
+  TEACHING_ASSISTANT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EnrollmentType {
+  FREE
+  PAID
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ... existing models ...
+
+enum EnrollmentStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  DROPPED
+  ARCHIVED
+}
+
+model Module {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String
+  courseId    Int
+  lessons     Lesson[]
+  progress    Progress[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  exercises Exercise[]
+}
+
+model Lesson {
+  id        Int        @id @default(autoincrement())
+  title     String
+  type      LessonType
+  moduleId  Int
+  contents     Content[]
+  exercises    Exercise[]
+  progress     Progress[]
+  dueDate      DateTime?
+  maxScore     Int?
+  order        Int?      @default(0)
+  unlockRules  Json?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+}
+
+model Content {
+  id        Int         @id @default(autoincrement())
+  title     String
+  type      String
+  url       String?
+  body      String?
+  lessonId  Int
+  progress  Progress[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model Progress {
+  id        Int      @id @default(autoincrement())
+  userId    String // ID from auth service
+  courseId  Int
+  moduleId  Int?
+  lessonId  Int?
+  contentId Int?
+  status    String
+  score     Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  course  Course         @relation(fields: [courseId], references: [id])
+  module  Module?        @relation(fields: [moduleId], references: [id])
+  lesson  Lesson?        @relation(fields: [lessonId], references: [id])
+  content Content?       @relation(fields: [contentId], references: [id])
+  profile AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+// NEW: TeachingSchedule model
+model TeachingSchedule {
+  id                Int          @id @default(autoincrement())
+  title             String
+  description       String?
+  startTime         DateTime
+  endTime           DateTime
+  type              ScheduleType
+  courseId          Int
+  instructorId      String // userId from auth service
+  isRecurring       Boolean      @default(false)
+  recurrencePattern String? // For recurring schedules (e.g., "WEEKLY", "DAILY")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  course            Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  profile           AcademyProfile @relation(fields: [instructorId], references: [userId])
+  cohortId          Int?
+  cohort            Cohort?        @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  profile AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model Conversation {
+  id        Int      @id @default(autoincrement())
+  pairKey   String   @unique // sorted firebaseIds joined by ':'
+  courseId  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course       Course?                   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  userId         String
+  role           AcademyRole
+  lastReadAt     DateTime?
+  joinedAt       DateTime     @default(now())
+
+  conversation Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  profile      AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             Int      @id @default(autoincrement())
+  conversationId Int
+  senderId       String
+  body           String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+enum LessonType {
+  VIDEO
+  WEBINAR
+  ASSIGNMENT
+  QUIZ
+}
+
+enum ContentType {
+  VIDEO
+  PDF
+  QUIZ
+  ASSIGNMENT
+  TEXT
+}
+
+// NEW: ScheduleType enum
+enum ScheduleType {
+  LIVE
+  RECORDING
+  Q_AND_A
+  OFFICE_HOURS
+  WORKSHOP
+}
+
+enum CourseStatus {
+  DRAFT
+  PENDING_APPROVAL
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+enum AcademyRole {
+  USER
+  STUDENT
+  INSTRUCTOR
+  COURSE_MANAGER
+  ADMIN
+}
+
+enum ExerciseType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  MATCHING
+  SHORT_TEXT
+}
+
+enum SubmissionStatus {
+  PENDING_REVIEW
+  GRADED
+}
+
+model Exercise {
+  id          Int          @id @default(autoincrement())
+  moduleId    Int
+  type        ExerciseType
+  title       String
+  description String?
+  question    String
+  options     Json?
+  correctAnswer Json?
+  hints       String[]
+  points      Int          @default(1)
+  order       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  module      Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  lesson      Lesson?      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId    Int?
+  submissions ExerciseSubmission[]
+}
+
+model ExerciseSubmission {
+  id           Int              @id @default(autoincrement())
+  userId       String
+  exerciseId   Int
+  answer       Json
+  isCorrect    Boolean          @default(false)
+  score        Float            @default(0)
+  status       SubmissionStatus @default(GRADED)
+  feedback     String?
+  attemptCount Int              @default(1)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  exercise    Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  profile     AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([userId, exerciseId])
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  eventType     String
+  aggregateType String
+  aggregateId   String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  publishedAt   DateTime?
+}
+
+model ProcessedEvent {
+  id           String   @id @default(uuid())
+  eventId      String
+  consumerName String
+  processedAt  DateTime @default(now())
+
+  @@unique([eventId, consumerName])
+}
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}

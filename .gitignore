@@ -12,6 +12,9 @@ build/
 **/*.tsbuildinfo
 .turbo/
 **/.turbo/
+.nx/
+.legacy_backup/
+tmp/
 
 # Frontend applications (for backend repository)
 **/frontend/

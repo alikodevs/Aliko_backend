@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/@prisma/client/financial"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Transaction {
+  id                Int               @id @default(autoincrement())
+  amount            Float
+  currency          String            @default("USD")
+  provider          PaymentProvider
+  status            TransactionStatus @default(PENDING)
+  reference         String            @unique // Internal unique reference
+  providerReference String?           @unique // Reference from Chapa/Stripe
+  metadata          Json?
+  userId            String?           // User who initiated the transaction
+  purpose           String?           // e.g., "SUBSCRIPTION", "COURSE_PURCHASE"
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([reference])
+}
+
+enum PaymentProvider {
+  CHAPA
+  STRIPE
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  eventType     String
+  aggregateType String
+  aggregateId   String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  publishedAt   DateTime?
+}
+
+model ProcessedEvent {
+  id           String   @id @default(uuid())
+  eventId      String
+  consumerName String
+  processedAt  DateTime @default(now())
+
+  @@unique([eventId, consumerName])
+}
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}

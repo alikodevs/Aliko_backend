@@ -1,0 +1,27 @@
+{
+  "name": "careers-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/careers-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/careers-service",
+        "main": "apps/careers-service/src/main.ts",
+        "outputFileName": "apps/careers-service/src/main.js",
+        "tsConfig": "apps/careers-service/tsconfig.app.json",
+        "rootDir": "."
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "options": {
+        "buildTarget": "careers-service:build",
+        "runtimeArgs": ["--max-old-space-size=4096", "-r", "ts-node/register/transpile-only", "-r", "tsconfig-paths/register"],
+        "inspect": false
+      }
+    }
+  }
+}

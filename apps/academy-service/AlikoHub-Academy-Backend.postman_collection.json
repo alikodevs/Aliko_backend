@@ -1,0 +1,672 @@
+{
+  "info": {
+    "_postman_id": "academy-backend-collection",
+    "name": "AlikoHub Academy Backend",
+    "description": "Complete API collection for AlikoHub Academy Backend service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{email}}\",\"password\":\"{{password}}\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{newUserEmail}}\",\"password\":\"{{newUserPassword}}\",\"displayName\":\"New Test User\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password (Academy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{email}}\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "forgot-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reset Password (Academy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{email}}\",\"newPassword\":\"NewSecurePassword123!\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "reset-password"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Academy Profile",
+      "item": [
+        {
+          "name": "Get Academy Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Select Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\":\"STUDENT\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/select-role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "select-role"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Courses",
+      "item": [
+        {
+          "name": "Get All Courses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courses"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"New Course\",\"description\":\"Description\",\"duration\":40,\"difficulty\":\"BEGINNER\",\"category\":\"Tech\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courses"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Modules",
+      "item": [
+        {
+          "name": "Create Module",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Module 1\",\"description\":\"Desc\",\"courseId\":1,\"order\":1}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/modules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "modules"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Exercises",
+      "item": [
+        {
+          "name": "List Exercises in Module",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/exercises/module/{{moduleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "exercises",
+                "module",
+                "{{moduleId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Exercise by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/exercises/{{exerciseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "exercises",
+                "{{exerciseId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Exercise (MC)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleId\": 1,\n  \"title\": \"Quiz 1\",\n  \"type\": \"MULTIPLE_CHOICE\",\n  \"question\": \"What is 1+1?\",\n  \"options\": [\n    \"1\",\n    \"2\",\n    \"3\"\n  ],\n  \"correctAnswer\": \"2\",\n  \"points\": 5,\n  \"order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/exercises",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "exercises"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set(\"exerciseId\", response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Exercise",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Quiz Title\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/exercises/{{exerciseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "exercises",
+                "{{exerciseId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Exercise",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/exercises/{{exerciseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "exercises",
+                "{{exerciseId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"answer\":\"2\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/exercises/{{exerciseId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "exercises",
+                "{{exerciseId}}",
+                "submit"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set(\"submissionId\", response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Grade Submission (Manual)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isCorrect\": true,\n  \"score\": 5,\n  \"feedback\": \"Excellent work!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/exercises/submissions/{{submissionId}}/grade",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "exercises",
+                "submissions",
+                "{{submissionId}}",
+                "grade"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Teacher Workflow",
+      "item": [
+        {
+          "name": "Step 1: Create Course (Draft)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Mastering Agentic AI\",\n  \"shortDescription\": \"From zero to agentic hero\",\n  \"longDescription\": \"Comprehensive guide to building powerful AI agents.\",\n  \"category\": \"Technology\",\n  \"outcomes\": [\n    \"Build AI Agents\",\n    \"Deploy Microservices\"\n  ],\n  \"estimatedTime\": 120,\n  \"targetLevel\": \"INTERMEDIATE\",\n  \"price\": 499,\n  \"status\": \"DRAFT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "courses"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set(\"courseId\", response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 2: Create Module",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Module 1: Foundations\",\n  \"description\": \"Setting up the environment\",\n  \"courseId\": \"{{courseId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/modules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "modules"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set(\"moduleId\", response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 3: Create Lesson (with Video & Text)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Lesson 1.1: Environment Setup\",\n  \"type\": \"VIDEO\",\n  \"moduleId\": \"{{moduleId}}\",\n  \"order\": 1,\n  \"contents\": [\n    {\n      \"title\": \"Intro Video\",\n      \"type\": \"VIDEO\",\n      \"url\": \"https://video.com/123\"\n    },\n    {\n      \"title\": \"Setup Guide\",\n      \"type\": \"TEXT\",\n      \"body\": \"Step 1: Install Node.js...\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academy/lessons",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "lessons"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Step 4: Submit for Approval",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/courses/{{courseId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "courses",
+                "{{courseId}}",
+                "submit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Step 5: Admin Approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/academy/courses/{{courseId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academy",
+                "courses",
+                "{{courseId}}",
+                "approve"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "user-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/user-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/user-service",
+        "main": "apps/user-service/src/main.ts",
+        "outputFileName": "apps/user-service/src/main.js",
+        "tsConfig": "apps/user-service/tsconfig.app.json",
+        "rootDir": "."
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "options": {
+        "buildTarget": "user-service:build",
+        "runtimeArgs": ["--max-old-space-size=4096", "-r", "ts-node/register/transpile-only", "-r", "tsconfig-paths/register"],
+        "inspect": false
+      }
+    }
+  }
+}

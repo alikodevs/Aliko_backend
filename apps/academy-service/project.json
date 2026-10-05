@@ -1,0 +1,27 @@
+{
+  "name": "academy-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/academy-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/academy-service",
+        "main": "apps/academy-service/src/main.ts",
+        "outputFileName": "apps/academy-service/src/main.js",
+        "tsConfig": "apps/academy-service/tsconfig.app.json",
+        "rootDir": "."
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "options": {
+        "buildTarget": "academy-service:build",
+        "runtimeArgs": ["--max-old-space-size=4096", "-r", "ts-node/register/transpile-only", "-r", "tsconfig-paths/register"],
+        "inspect": false
+      }
+    }
+  }
+}
