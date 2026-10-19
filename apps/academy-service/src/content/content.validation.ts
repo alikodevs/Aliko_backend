@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { ContentType } from '../generated/client';
+import { ContentType } from '@prisma/client/academy';
 
 export const CreateContentSchema = Joi.object({
   dto: Joi.object({

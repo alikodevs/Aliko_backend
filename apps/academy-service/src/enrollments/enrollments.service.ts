@@ -10,7 +10,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { AuthenticatedUser, UserService } from '../user/user.service';
-import { CourseStatus, EnrollmentStatus, PaymentStatus, EnrollmentContext } from '../generated/client';
+import { CourseStatus, EnrollmentStatus, PaymentStatus, EnrollmentContext } from '@prisma/client/academy';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 

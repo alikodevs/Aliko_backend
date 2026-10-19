@@ -1,4 +1,4 @@
-import { CourseStatus } from '../../generated/client';
+import { CourseStatus } from '@prisma/client/academy';
 import {
   IsString,
   IsNotEmpty,

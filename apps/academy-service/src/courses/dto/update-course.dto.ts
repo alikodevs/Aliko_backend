@@ -6,7 +6,7 @@ import {
   IsEnum,
   IsNumber,
 } from 'class-validator';
-import { CourseStatus } from '../../generated/client';
+import { CourseStatus } from '@prisma/client/academy';
 
 export class UpdateCourseDto {
   @IsString()

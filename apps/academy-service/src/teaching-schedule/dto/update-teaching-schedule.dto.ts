@@ -1,4 +1,4 @@
-import { ScheduleType } from '../../generated/client';
+import { ScheduleType } from '@prisma/client/academy';
 import { IsString, IsOptional, IsEnum, IsBoolean, IsNumber } from 'class-validator';
 
 export class UpdateTeachingScheduleDto {

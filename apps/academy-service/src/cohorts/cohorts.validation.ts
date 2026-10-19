@@ -58,13 +58,13 @@ export const CohortIdSchema = Joi.object({
   user: Joi.any().optional().description('The authenticated user'),
 }).description('Schema for operations requiring a single cohort ID');
 
-export const FindCohortsSchema = Joi.object({
-  query: Joi.object()
-    .optional()
-    .default({})
-    .description('Pagination and filter queries'),
-  user: Joi.any().optional().description('The authenticated user'),
-}).description('Schema for fetching lists of cohorts');
+export const FindCohortsSchema = Joi.alternatives().try(
+  Joi.object({
+    query: Joi.object().optional().default({}),
+    user: Joi.any().optional().description('The authenticated user'),
+  }).unknown(true),
+  Joi.object().unknown(true)
+).description('Schema for fetching lists of cohorts');
 
 export const InstructorOnlyEventsSchema = Joi.object({
   user: Joi.any()

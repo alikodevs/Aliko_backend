@@ -9,7 +9,7 @@ import { UpdateExerciseDto } from './dto/update-exercise.dto';
 import { SubmitExerciseDto } from './dto/submit-exercise.dto';
 import { GradeExerciseDto } from './dto/grade-exercise.dto';
 import { AuthenticatedUser, UserService } from '../user/user.service';
-import { ExerciseType, SubmissionStatus } from '../generated/client';
+import { ExerciseType, SubmissionStatus } from '@prisma/client/academy';
 import { ProgressAndAnalyticsService } from '../progress-and-analytics/progress-analytics.service';
 
 @Injectable()

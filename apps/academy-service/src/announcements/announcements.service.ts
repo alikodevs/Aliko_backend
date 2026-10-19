@@ -4,7 +4,7 @@ import { UserService, AuthenticatedUser } from '../user/user.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
 import { PushNotificationService } from '@alikohub/notification';
-import { AcademyRole } from '../generated/client';
+import { AcademyRole } from '@prisma/client/academy';
 
 @Injectable()
 export class AnnouncementsService {

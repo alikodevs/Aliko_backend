@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { AcademyRole } from '../generated/client';
+import { AcademyRole } from '@prisma/client/academy';
 import { firstValueFrom, timeout } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -49,7 +49,7 @@ export class UserService {
       };
 
       const user = (await firstValueFrom(
-        this.authClient.send({ cmd: 'get_user_profile' }, payload),
+        this.authClient.send({ cmd: 'get_user_profile' }, payload).pipe(timeout(1500)),
       )) as AuthenticatedUser;
       this.logger.log(
         `Received user details for ${userId}: ${JSON.stringify(user)}`,
@@ -69,7 +69,7 @@ export class UserService {
       const payload = { userIds };
 
       const users = (await firstValueFrom(
-        this.authClient.send({ cmd: 'get_users_by_ids' }, payload),
+        this.authClient.send({ cmd: 'get_users_by_ids' }, payload).pipe(timeout(1500)),
       )) as AuthenticatedUser[];
       return users;
     } catch (error) {

@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { CourseStatus } from '../generated/client';
+import { CourseStatus } from '@prisma/client/academy';
 
 export const CreateCourseSchema = Joi.object({
   dto: Joi.object({
@@ -150,40 +150,48 @@ export const UpdateCourseSchema = Joi.object({
     .description('The authenticated user performing the update'),
 }).description('Schema for updating a course');
 
-export const FindAllCoursesSchema = Joi.object({
-  query: Joi.object({
-    page: Joi.number()
-      .integer()
-      .min(1)
-      .optional()
-      .description('The page number for pagination'),
-    pageSize: Joi.number()
-      .integer()
-      .min(1)
-      .max(100)
-      .optional()
-      .description('The number of items per page'),
-    status: Joi.string()
-      .valid(...Object.values(CourseStatus))
-      .optional()
-      .description('Filter by course status'),
-    category: Joi.string().optional().description('Filter by category'),
-    instructorId: Joi.string()
-      .optional()
-      .description('Filter by instructor ID'),
-    targetLevel: Joi.string().optional().description('Filter by target level'),
-    difficulty: Joi.string()
-      .optional()
-      .description('Filter by difficulty level'),
-    q: Joi.string().allow('').optional().description('Search query string'),
-  })
+const CourseQueryFields = Joi.object({
+  page: Joi.number()
+    .integer()
+    .min(1)
     .optional()
-    .default({})
-    .description('Query parameters for filtering results'),
-  user: Joi.any().optional().description('The authenticated user'),
-  clientIp: Joi.string().optional().allow('', null),
-  clientCountry: Joi.string().optional().allow('', null),
-}).description('Schema for fetching all courses with filters');
+    .description('The page number for pagination'),
+  pageSize: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .optional()
+    .description('The number of items per page'),
+  limit: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .optional(),
+  status: Joi.string()
+    .valid(...Object.values(CourseStatus))
+    .optional()
+    .description('Filter by course status'),
+  category: Joi.string().allow('', null).optional().description('Filter by category'),
+  instructorId: Joi.string()
+    .optional()
+    .description('Filter by instructor ID'),
+  targetLevel: Joi.string().allow('', null).optional().description('Filter by target level'),
+  difficulty: Joi.string()
+    .allow('', null)
+    .optional()
+    .description('Filter by difficulty level'),
+  q: Joi.string().allow('').optional().description('Search query string'),
+}).unknown(true);
+
+export const FindAllCoursesSchema = Joi.alternatives().try(
+  Joi.object({
+    query: CourseQueryFields.optional().default({}),
+    user: Joi.any().optional().description('The authenticated user'),
+    clientIp: Joi.string().optional().allow('', null),
+    clientCountry: Joi.string().optional().allow('', null),
+  }).unknown(true),
+  CourseQueryFields
+).description('Schema for fetching all courses with filters');
 
 export const CourseIdSchema = Joi.object({
   id: Joi.number()

@@ -14,7 +14,7 @@ import { Observable, throwError } from 'rxjs';
 export class RpcExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(RpcExceptionFilter.name);
 
-  catch(exception: any, _host: ArgumentsHost): Observable<any> {
+  catch(exception: any, host: ArgumentsHost): Observable<any> {
     const exceptionName = exception?.constructor?.name || exception?.name || 'UnknownException';
     this.logger.log(`RpcExceptionFilter caught [${exceptionName}]: ${JSON.stringify(exception)}`);
     if (exception && exception.stack) this.logger.log(`Stack: ${exception.stack}`);
@@ -104,9 +104,21 @@ export class RpcExceptionFilter implements ExceptionFilter {
       message = 'Database connection failed.';
       error = 'Initialization Error';
     }
-    // 6. RpcException (pass through)
+    // 6. RpcException
     else if (exception instanceof RpcException) {
-      return throwError(() => exception.getError());
+      const rpcErr = exception.getError() as any;
+      if (typeof rpcErr === 'object' && rpcErr !== null) {
+        status = rpcErr.statusCode || rpcErr.status || HttpStatus.BAD_REQUEST;
+        message = rpcErr.message || message;
+        error = rpcErr.error || 'Bad Request';
+        details = rpcErr.details || null;
+      } else if (typeof rpcErr === 'string') {
+        message = rpcErr;
+        status = HttpStatus.BAD_REQUEST;
+      }
+      if (host && host.getType() !== 'http') {
+        return throwError(() => exception.getError());
+      }
     }
     // 7. Generic Error
     else if (exception instanceof Error) {
@@ -136,6 +148,18 @@ export class RpcExceptionFilter implements ExceptionFilter {
       this.logger.error(`Returning 500 error for [${exceptionName}]: ${JSON.stringify(errorResponse)}`);
     } else {
       this.logger.warn(`Handled Exception [${exceptionName}]: ${message} (Status: ${status})`);
+    }
+
+    if (host && host.getType() === 'http') {
+      const ctx = host.switchToHttp();
+      const response = ctx.getResponse();
+      const request = ctx.getRequest();
+
+      response.status(status).json({
+        ...errorResponse,
+        path: request?.url,
+      });
+      return;
     }
 
     return throwError(() => new RpcException(errorResponse));

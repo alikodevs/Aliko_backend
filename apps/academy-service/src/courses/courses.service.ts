@@ -7,17 +7,18 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, timeout } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { AcademyRole, CourseStatus, LessonType } from '../generated/client';
+import { AcademyRole, CourseStatus, LessonType } from '@prisma/client/academy';
 import { AuthenticatedUser, UserService } from '../user/user.service';
 import { PushNotificationService } from '@alikohub/notification';
 
 type FindAllQuery = {
   page?: number;
   pageSize?: number;
+  limit?: number;
   status?: CourseStatus;
   instructorId?: string;
   category?: string;
@@ -41,7 +42,7 @@ export class CoursesService {
     try {
       if (this.paymentClient) {
         const config = await lastValueFrom(
-          this.paymentClient.send({ cmd: 'resolve_payment_config' }, { clientIp, clientCountry }),
+          this.paymentClient.send({ cmd: 'resolve_payment_config' }, { clientIp, clientCountry }).pipe(timeout(1500)),
         );
         if (config && config.currency) {
           return config;
@@ -271,9 +272,15 @@ export class CoursesService {
         if (query.instructorId) where.instructorId = query.instructorId;
       }
 
-      if (query.category) where.category = query.category;
-      if (query.targetLevel) where.targetLevel = query.targetLevel;
-      if (query.difficulty) where.targetLevel = query.difficulty;
+      if (query.category) {
+        where.category = { equals: query.category, mode: 'insensitive' };
+      }
+      if (query.targetLevel) {
+        where.targetLevel = { equals: query.targetLevel, mode: 'insensitive' };
+      }
+      if (query.difficulty) {
+        where.targetLevel = { equals: query.difficulty, mode: 'insensitive' };
+      }
       if (query.q) {
         where.OR = [
           { title: { contains: query.q, mode: 'insensitive' } },
@@ -366,7 +373,7 @@ export class CoursesService {
 
       // Handle pagination on the sorted array
       const page = Number(query.page) || 1;
-      const pageSize = Number(query.pageSize) || 10;
+      const pageSize = Number(query.pageSize || query.limit) || 10;
       const skip = (page - 1) * pageSize;
       const total = coursesWithSchedules.length;
 
@@ -524,6 +531,33 @@ export class CoursesService {
       enrolledNum: enrollmentCount, // Override the stored enrolledNum with actual count
       instructor,
     };
+  }
+
+  async findBySlug(
+    slug: string,
+    user?: AuthenticatedUser,
+    clientIp?: string,
+    clientCountry?: string,
+  ) {
+    const numId = Number(slug);
+    if (!isNaN(numId) && numId > 0) {
+      return this.findOne(numId, user, clientIp, clientCountry);
+    }
+
+    const courses = await this.prisma.course.findMany({
+      where: { status: CourseStatus.PUBLISHED },
+    });
+    const found = courses.find((c) => {
+      const courseSlug = c.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      return courseSlug === slug.toLowerCase();
+    });
+    if (!found) {
+      throw new NotFoundException(`Course not found for slug: ${slug}`);
+    }
+    return this.findOne(found.id, user, clientIp, clientCountry);
   }
 
   // REFACTORED: Now performs an ownership check

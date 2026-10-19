@@ -3,7 +3,7 @@ import { AnnouncementsService } from './announcements.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { AcademyRole } from '../generated/client';
+import { AcademyRole } from '@prisma/client/academy';
 
 describe('AnnouncementsService', () => {
   let service: AnnouncementsService;

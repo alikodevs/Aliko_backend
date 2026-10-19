@@ -8,7 +8,7 @@ import { AuthenticatedUser } from '../user/user.service';
 import { AcademyProfileGuard } from '../auth/academy-profile.guard';
 import { RoleGuard } from '../auth/role-guard/role-guard';
 import { Roles } from '../auth/role-guard/roles.decorator';
-import { ContentType } from '../generated/client';
+import { ContentType } from '@prisma/client/academy';
 import { JoiValidationPipe } from '../common/pipes/joi-validation.pipe';
 import {
   CreateContentSchema,

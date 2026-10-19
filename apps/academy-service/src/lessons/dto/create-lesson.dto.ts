@@ -9,7 +9,7 @@ import {
   IsArray,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { LessonType } from '../../generated/client';
+import { LessonType } from '@prisma/client/academy';
 import { CreateContentDto } from '../../content/dto/create-content.dto';
 
 export class CreateLessonDto {

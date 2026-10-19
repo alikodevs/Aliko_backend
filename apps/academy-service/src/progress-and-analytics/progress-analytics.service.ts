@@ -2,11 +2,12 @@ import {
   Injectable,
   ForbiddenException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
-import { SubmissionStatus } from '../generated/client';
+import { SubmissionStatus } from '@prisma/client/academy';
 
 function assertUser(
   user?: AuthenticatedUser,
@@ -18,6 +19,8 @@ function assertUser(
 
 @Injectable()
 export class ProgressAndAnalyticsService {
+  private readonly logger = new Logger(ProgressAndAnalyticsService.name);
+
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
@@ -265,8 +268,9 @@ export class ProgressAndAnalyticsService {
         OR: [{ courseId }, { cohort: { courseId } }],
       },
     });
-    if (!enrollment)
-      throw new ForbiddenException('Not enrolled in this course.');
+    if (!enrollment) {
+      return { completed: false, progress: null };
+    }
 
     const existing = await this.prisma.progress.findFirst({
       where: { userId: user.firebaseId, courseId, lessonId, contentId: null },
@@ -276,6 +280,24 @@ export class ProgressAndAnalyticsService {
       completed: !!existing,
       progress: existing || null,
     };
+  }
+
+  // --- Get course progress report for student ---
+  async getCourseReport(courseId: number, user: AuthenticatedUser | undefined) {
+    assertUser(user);
+    try {
+      const modules = await this.getDetailedStudentProgress(
+        user,
+        user.firebaseId,
+        courseId,
+      );
+      return modules || [];
+    } catch (e: any) {
+      this.logger.error(
+        `Failed to get course report for course ${courseId}: ${e?.message}`,
+      );
+      return [];
+    }
   }
 
   // --- Get student's progress in a course ---
@@ -670,6 +692,7 @@ export class ProgressAndAnalyticsService {
                 score: submission?.score,
                 isCorrect: submission?.isCorrect,
                 feedback: submission?.feedback,
+                answer: submission?.answer,
               };
             });
 
@@ -682,9 +705,15 @@ export class ProgressAndAnalyticsService {
               (e) => e.status === 'GRADED' && e.isCorrect,
             ).length;
 
+            const lessonCompletedRecord = progressRecords.find(
+              (p) => p.lessonId === lesson.id && !p.contentId && p.status === 'COMPLETED',
+            );
+
             const isLessonCompleted =
-              completedContents === contentProgress.length &&
-              passedExercises === exerciseProgress.length;
+              !!lessonCompletedRecord ||
+              (contentProgress.length > 0 &&
+                completedContents === contentProgress.length &&
+                passedExercises === exerciseProgress.length);
 
             const lessonStatus = isLessonCompleted
               ? 'COMPLETED'
@@ -695,6 +724,7 @@ export class ProgressAndAnalyticsService {
             return {
               lessonId: lesson.id,
               lessonTitle: lesson.title,
+              title: lesson.title,
               status: lessonStatus,
               contents: contentProgress,
               exercises: exerciseProgress,
@@ -716,6 +746,7 @@ export class ProgressAndAnalyticsService {
         return {
           moduleId: module.id,
           moduleTitle: module.title,
+          course: { id: course.id, title: course.title },
           status: moduleStatus,
           lessons: lessonProgress,
         };

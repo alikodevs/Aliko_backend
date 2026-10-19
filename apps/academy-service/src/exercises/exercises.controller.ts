@@ -1,4 +1,4 @@
-import { Controller, UseGuards, UsePipes, Logger } from '@nestjs/common';
+import { Controller, UseGuards, UsePipes, Logger, Get, Post, Param, Body, Query, Req, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ExercisesService } from './exercises.service';
 import { CreateExerciseDto } from './dto/create-exercise.dto';
@@ -69,28 +69,41 @@ export class ExercisesController {
     }
   }
 
+  @Get(['exercises/module/:moduleId', 'academy/exercises/module/:moduleId'])
   @MessagePattern({ cmd: 'find_exercises_by_module' })
-  @UsePipes(new JoiValidationPipe(ModuleIdExerciseSchema))
   async findAllByModule(
+    @Param('moduleId') paramModuleId?: string,
+    @Query() query?: any,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       moduleId: number;
       user: AuthenticatedUser;
       query?: any;
     },
   ) {
+    const rawModuleId = payload?.moduleId !== undefined ? payload.moduleId : paramModuleId;
+    const moduleId = Number(rawModuleId);
+    if (!moduleId || isNaN(moduleId)) {
+      throw new BadRequestException('Invalid module ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const q = payload?.query || query || {};
     this.logger.log(
-      `Fetching exercises for module ID: ${payload.moduleId} by user: ${payload.user.firebaseId}`,
+      `Fetching exercises for module ID: ${moduleId} by user: ${user.firebaseId}`,
     );
     try {
       return await this.exercisesService.findAllByModule(
-        payload.moduleId,
-        payload.user,
-        payload.query,
+        moduleId,
+        user,
+        q,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to fetch exercises for module ID ${payload.moduleId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch exercises for module ID ${moduleId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -121,17 +134,30 @@ export class ExercisesController {
     }
   }
 
+  @Get(['exercises/:id', 'academy/exercises/:id'])
   @MessagePattern({ cmd: 'find_exercise_by_id' })
-  @UsePipes(new JoiValidationPipe(ExerciseIdSchema))
-  async findOne(@Payload() payload: { id: number; user: AuthenticatedUser }) {
+  async findOne(
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
+  ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid exercise ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Fetching exercise details for ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+      `Fetching exercise details for ID: ${id} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.exercisesService.findOne(payload.id, payload.user);
+      return await this.exercisesService.findOne(id, user);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch details for exercise ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch details for exercise ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -187,28 +213,44 @@ export class ExercisesController {
     }
   }
 
+  @Post(['exercises/:id/submit', 'academy/exercises/:id/submit'])
   @MessagePattern({ cmd: 'submit_exercise' })
-  @UsePipes(new JoiValidationPipe(SubmitExerciseSchema))
   async submit(
+    @Param('id') paramId?: string,
+    @Body() body?: SubmitExerciseDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       id: number;
       dto: SubmitExerciseDto;
       user: AuthenticatedUser;
     },
   ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid exercise ID');
+    }
+    const dto = payload?.dto || body;
+    if (!dto) {
+      throw new BadRequestException('Submission data required');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Student ${payload.user.firebaseId} submitting exercise ID: ${payload.id}`,
+      `Student ${user.firebaseId} submitting exercise ID: ${id}`,
     );
     try {
       return await this.exercisesService.submit(
-        payload.id,
-        payload.dto,
-        payload.user,
+        id,
+        dto,
+        user,
       );
     } catch (error) {
       this.logger.error(
-        `Student ${payload.user.firebaseId} failed to submit exercise ID ${payload.id}: ${error.message}`,
+        `Student ${user.firebaseId} failed to submit exercise ID ${id}: ${error.message}`,
         error.stack,
       );
       throw error;

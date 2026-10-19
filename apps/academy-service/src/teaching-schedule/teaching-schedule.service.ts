@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
-import { ScheduleType } from '../generated/client';
+import { ScheduleType } from '@prisma/client/academy';
 import { CreateTeachingScheduleDto, UpdateTeachingScheduleDto } from './dto';
 
 function assertUser(

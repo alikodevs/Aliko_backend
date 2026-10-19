@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AcademyRole } from '../generated/client';
+import { AcademyRole } from '@prisma/client/academy';
 
 @Injectable()
 export class UserApplicationService {

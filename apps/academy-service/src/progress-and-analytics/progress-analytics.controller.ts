@@ -1,4 +1,4 @@
-import { Controller, UseGuards, UsePipes, Logger } from '@nestjs/common';
+import { Controller, UseGuards, UsePipes, Logger, Get, Post, Param, Req, UnauthorizedException } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ProgressAndAnalyticsService } from './progress-analytics.service';
 import { AuthenticatedUser } from '../user/user.service';
@@ -91,79 +91,138 @@ export class ProgressAndAnalyticsController {
     }
   }
 
+  @Post([
+    'progress/course/:courseId/lesson/:lessonId/complete',
+    'academy/progress/course/:courseId/lesson/:lessonId/complete',
+  ])
   @MessagePattern({ cmd: 'complete_lesson' })
   @UseGuards(RoleGuard)
   @Roles('STUDENT', 'INSTRUCTOR', 'ADMIN', 'USER')
-  @UsePipes(new JoiValidationPipe(CompleteLessonSchema))
   async completeLesson(
+    @Param('courseId') paramCourseId?: string,
+    @Param('lessonId') paramLessonId?: string,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       courseId: number;
       lessonId: number;
       user: AuthenticatedUser;
     },
   ) {
+    const rawCourseId = payload?.courseId !== undefined ? payload.courseId : paramCourseId;
+    const rawLessonId = payload?.lessonId !== undefined ? payload.lessonId : paramLessonId;
+    const courseId = Number(rawCourseId);
+    const lessonId = Number(rawLessonId);
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Student ${payload.user.firebaseId} marking lesson ${payload.lessonId} in course ${payload.courseId} as complete`,
+      `Student ${user.firebaseId} marking lesson ${lessonId} in course ${courseId} as complete`,
     );
     try {
-      return await this.service.completeLesson(
-        payload.user,
-        payload.courseId,
-        payload.lessonId,
-      );
+      return await this.service.completeLesson(user, courseId, lessonId);
     } catch (error) {
       this.logger.error(
-        `Student ${payload.user.firebaseId} failed to mark lesson ${payload.lessonId} in course ${payload.courseId} as complete: ${error.message}`,
+        `Student ${user.firebaseId} failed to mark lesson ${lessonId} in course ${courseId} as complete: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Get([
+    'progress/course/:courseId/lesson/:lessonId/complete',
+    'academy/progress/course/:courseId/lesson/:lessonId/complete',
+  ])
   @MessagePattern({ cmd: 'get_lesson_status' })
   @UseGuards(RoleGuard)
   @Roles('STUDENT', 'INSTRUCTOR', 'ADMIN', 'USER')
-  @UsePipes(new JoiValidationPipe(CompleteLessonSchema))
   async getLessonStatus(
+    @Param('courseId') paramCourseId?: string,
+    @Param('lessonId') paramLessonId?: string,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       courseId: number;
       lessonId: number;
       user: AuthenticatedUser;
     },
   ) {
+    const rawCourseId = payload?.courseId !== undefined ? payload.courseId : paramCourseId;
+    const rawLessonId = payload?.lessonId !== undefined ? payload.lessonId : paramLessonId;
+    const courseId = Number(rawCourseId);
+    const lessonId = Number(rawLessonId);
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Student ${payload.user.firebaseId} fetching status for lesson ${payload.lessonId} in course ${payload.courseId}`,
+      `Student ${user.firebaseId} fetching status for lesson ${lessonId} in course ${courseId}`,
     );
     try {
-      return await this.service.getLessonStatus(
-        payload.user,
-        payload.courseId,
-        payload.lessonId,
-      );
+      return await this.service.getLessonStatus(user, courseId, lessonId);
     } catch (error) {
       this.logger.error(
-        `Student ${payload.user.firebaseId} failed to fetch status for lesson ${payload.lessonId} in course ${payload.courseId}: ${error.message}`,
+        `Student ${user.firebaseId} failed to fetch status for lesson ${lessonId} in course ${courseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
-  @MessagePattern({ cmd: 'get_my_dashboard' })
+  @Get([
+    'progress/course/:courseId/report',
+    'academy/progress/course/:courseId/report',
+  ])
+  @MessagePattern({ cmd: 'get_course_report' })
   @UseGuards(RoleGuard)
-  @Roles('STUDENT', 'USER')
-  @UsePipes(new JoiValidationPipe(UserOnlyProgressSchema))
-  async myCoursesProgress(@Payload() payload: { user: AuthenticatedUser }) {
+  @Roles('STUDENT', 'INSTRUCTOR', 'ADMIN', 'USER')
+  async getCourseReport(
+    @Param('courseId') paramCourseId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { courseId: number; user: AuthenticatedUser },
+  ) {
+    const rawCourseId = payload?.courseId !== undefined ? payload.courseId : paramCourseId;
+    const courseId = Number(rawCourseId);
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Student ${payload.user.firebaseId} fetching their dashboard progress`,
+      `Fetching progress report for course ${courseId} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.service.getStudentDashboard(payload.user);
+      return await this.service.getCourseReport(courseId, user);
     } catch (error) {
       this.logger.error(
-        `Student ${payload.user.firebaseId} failed to fetch dashboard progress: ${error.message}`,
+        `Failed to fetch progress report for course ${courseId} by user ${user.firebaseId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @Get(['progress/dashboard', 'academy/progress/dashboard'])
+  @MessagePattern({ cmd: 'get_my_dashboard' })
+  @UseGuards(RoleGuard)
+  @Roles('STUDENT', 'USER', 'INSTRUCTOR', 'ADMIN')
+  async myCoursesProgress(
+    @Payload() payload?: { user: AuthenticatedUser },
+    @Req() req?: any,
+  ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    this.logger.log(
+      `User ${user.firebaseId} fetching their dashboard progress`,
+    );
+    try {
+      return await this.service.getStudentDashboard(user);
+    } catch (error) {
+      this.logger.error(
+        `User ${user.firebaseId} failed to fetch dashboard progress: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -300,19 +359,26 @@ export class ProgressAndAnalyticsController {
     }
   }
 
+  @Get(['progress/analytics/student', 'academy/progress/analytics/student'])
   @MessagePattern({ cmd: 'get_student_stats' })
   @UseGuards(RoleGuard)
-  @Roles('STUDENT', 'USER')
-  @UsePipes(new JoiValidationPipe(UserOnlyProgressSchema))
-  async getStudentStats(@Payload() payload: { user: AuthenticatedUser }) {
+  @Roles('STUDENT', 'USER', 'INSTRUCTOR', 'ADMIN')
+  async getStudentStats(
+    @Payload() payload?: { user: AuthenticatedUser },
+    @Req() req?: any,
+  ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Student ${payload.user.firebaseId} fetching their sidebar stats`,
+      `User ${user.firebaseId} fetching their sidebar stats`,
     );
     try {
-      return await this.service.getStudentStats(payload.user);
+      return await this.service.getStudentStats(user);
     } catch (error) {
       this.logger.error(
-        `Student ${payload.user.firebaseId} failed to fetch stats: ${error.message}`,
+        `User ${user.firebaseId} failed to fetch stats: ${error.message}`,
         error.stack,
       );
       throw error;

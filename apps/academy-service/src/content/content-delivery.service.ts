@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ContentType } from '../generated/client';
+import { ContentType } from '@prisma/client/academy';
 
 export interface StreamingOptions {
   quality?: 'low' | 'medium' | 'high' | 'auto';

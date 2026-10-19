@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContentDeliveryService } from './content-delivery.service';
-import { ContentType } from '../generated/client';
+import { ContentType } from '@prisma/client/academy';
 
 describe('ContentDeliveryService', () => {
   let service: ContentDeliveryService;

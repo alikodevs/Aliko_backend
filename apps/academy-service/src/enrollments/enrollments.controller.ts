@@ -1,4 +1,4 @@
-import { Controller, UseGuards, UsePipes, Logger, HttpException } from '@nestjs/common';
+import { Controller, UseGuards, UsePipes, Logger, HttpException, Get, Post, Body, Req, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { EnrollmentsService } from './enrollments.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
@@ -60,19 +60,37 @@ export class EnrollmentsController {
   private readonly logger = new Logger(EnrollmentsController.name);
   constructor(private readonly enrollmentsService: EnrollmentsService) {}
 
+  @Post(['enrollment', 'enrollments', 'academy/enrollment', 'academy/enrollments'])
   @MessagePattern({ cmd: 'create_enrollment' })
-  @UsePipes(new JoiValidationPipe(CreateEnrollmentSchema))
   async create(
-    @Payload() payload: { dto: CreateEnrollmentDto; user: AuthenticatedUser; clientIp?: string; clientCountry?: string },
+    @Body() body?: CreateEnrollmentDto,
+    @Req() req?: any,
+    @Payload()
+    payload?: {
+      dto: CreateEnrollmentDto;
+      user: AuthenticatedUser;
+      clientIp?: string;
+      clientCountry?: string;
+    },
   ) {
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required to enroll in a course');
+    }
+    if (!dto || !dto.courseId) {
+      throw new BadRequestException('courseId is required');
+    }
+    const clientIp = payload?.clientIp || req?.ip;
+    const clientCountry = payload?.clientCountry || req?.headers?.['cf-ipcountry'] || req?.headers?.['x-country-code'];
     this.logger.log(
-      `Enrolling user in course ID: ${payload.dto.courseId} (requested by: ${payload.user.firebaseId}) [IP: ${payload.clientIp || 'N/A'}, Country: ${payload.clientCountry || 'N/A'}]`,
+      `Enrolling user in course ID: ${dto.courseId} (requested by: ${user.firebaseId}) [IP: ${clientIp || 'N/A'}, Country: ${clientCountry || 'N/A'}]`,
     );
     try {
-      return await this.enrollmentsService.create(payload.dto, payload.user, payload.clientIp, payload.clientCountry);
+      return await this.enrollmentsService.create(dto, user, clientIp, clientCountry);
     } catch (error) {
       this.logger.error(
-        `Failed to create enrollment for course ID ${payload.dto.courseId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to create enrollment for course ID ${dto.courseId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
@@ -191,17 +209,24 @@ export class EnrollmentsController {
     }
   }
 
+  @Get(['enrollment/me', 'enrollments/me', 'academy/enrollment/me', 'academy/enrollments/me'])
   @MessagePattern({ cmd: 'find_my_enrollments' })
-  @UsePipes(new JoiValidationPipe(UserOnlySchema))
-  async findMyEnrollments(@Payload() payload: { user: AuthenticatedUser }) {
+  async findMyEnrollments(
+    @Payload() payload?: { user: AuthenticatedUser },
+    @Req() req?: any,
+  ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `User ${payload.user.firebaseId} is fetching their own enrollments`,
+      `User ${user.firebaseId} is fetching their own enrollments`,
     );
     try {
-      return await this.enrollmentsService.findMyEnrollments(payload.user);
+      return await this.enrollmentsService.findMyEnrollments(user);
     } catch (error) {
       this.logger.error(
-        `User ${payload.user.firebaseId} failed to fetch their own enrollments: ${error.message}`,
+        `User ${user.firebaseId} failed to fetch their own enrollments: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);

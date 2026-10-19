@@ -8,7 +8,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ExerciseType } from '../../generated/client';
+import { ExerciseType } from '@prisma/client/academy';
 
 export class CreateExerciseDto {
   @IsInt()

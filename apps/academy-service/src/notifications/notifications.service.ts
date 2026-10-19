@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PushNotificationService } from '@alikohub/notification';
-import { Prisma } from '../generated/client';
+import { Prisma } from '@prisma/client/academy';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { AuthenticatedUser, UserService } from '../user/user.service';

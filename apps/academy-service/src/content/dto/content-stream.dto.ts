@@ -1,5 +1,5 @@
 import { IsInt, IsOptional, IsString } from 'class-validator';
-// import { ContentType } from '../../generated/client';
+// import { ContentType } from '@prisma/client/academy';
 
 export class ContentStreamDto {
   @IsInt()

@@ -1,4 +1,4 @@
-import { AcademyRole } from '../generated/client';
+import { AcademyRole } from '@prisma/client/academy';
 
 export interface AuthenticatedUser {
   firebaseId: string;

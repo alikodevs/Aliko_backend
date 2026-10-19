@@ -12,7 +12,7 @@ import { AuthenticatedUser, UserService } from '../user/user.service';
 import { ClientProxy } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-import { ContentType } from '../generated/client';
+import { ContentType } from '@prisma/client/academy';
 
 interface UploadedFile {
   buffer: Buffer | string; // Buffer or base64 encoded string

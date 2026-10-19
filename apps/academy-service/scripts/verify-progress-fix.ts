@@ -1,6 +1,6 @@
 import { ClientProxyFactory, Transport } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
-import { PrismaClient } from '../src/generated/client';
+import { PrismaClient } from '@prisma/client/academy';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 

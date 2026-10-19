@@ -1,5 +1,5 @@
 import { IsEnum, IsInt, IsOptional, IsString, IsUrl } from 'class-validator';
-import { ContentType } from '../../generated/client';
+import { ContentType } from '@prisma/client/academy';
 
 export class UpdateContentDto {
   @IsOptional()

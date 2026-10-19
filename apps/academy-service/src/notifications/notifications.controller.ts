@@ -1,4 +1,4 @@
-import { Controller, UseGuards, UsePipes, Logger } from '@nestjs/common';
+import { Controller, UseGuards, UsePipes, Logger, Get, Req, UnauthorizedException } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
@@ -42,18 +42,25 @@ export class NotificationsController {
     }
   }
 
+  @Get(['notifications/me', 'academy/notifications/me'])
   @MessagePattern({ cmd: 'get_my_notifications' })
   @UseGuards(AcademyProfileGuard)
-  @UsePipes(new JoiValidationPipe(UserOnlyNotificationSchema))
-  async myNotifications(@Payload() payload: { user: AuthenticatedUser }) {
+  async myNotifications(
+    @Payload() payload?: { user: AuthenticatedUser },
+    @Req() req?: any,
+  ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `User ${payload.user.firebaseId} is fetching their notifications`,
+      `User ${user.firebaseId} is fetching their notifications`,
     );
     try {
-      return await this.service.getUserNotifications(payload.user);
+      return await this.service.getUserNotifications(user);
     } catch (error) {
       this.logger.error(
-        `User ${payload.user.firebaseId} failed to fetch their notifications: ${error.message}`,
+        `User ${user.firebaseId} failed to fetch their notifications: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);

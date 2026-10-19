@@ -9,7 +9,7 @@ import * as Joi from 'joi';
 
 @Injectable()
 export class JoiValidationPipe implements PipeTransform {
-  constructor(private schema: Joi.ObjectSchema) {}
+  constructor(private schema: Joi.Schema) {}
 
   transform(value: any, _metadata: ArgumentMetadata) {
     const { error, value: validatedValue } = this.schema.validate(value, {

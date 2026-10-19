@@ -14,10 +14,22 @@ async function bootstrap() {
   app.useLogger(logger);
 
   app.enableCors({
-    origin: config.corsAllowedOrigins,
+    origin: (requestOrigin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      callback(null, config.isOriginAllowed(requestOrigin));
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'x-internal-service-key'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Requested-With',
+      'x-internal-service-key',
+      'x-correlation-id',
+      'stripe-signature',
+      'chapa-signature',
+      'Origin',
+    ],
   });
 
   app.setGlobalPrefix('api/v1');

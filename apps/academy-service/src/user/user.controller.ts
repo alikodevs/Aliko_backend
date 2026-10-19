@@ -5,7 +5,7 @@ import {
   AuthenticatedUser,
   AcademyUserProfile,
 } from './user.service';
-import { AcademyRole } from '../generated/client';
+import { AcademyRole } from '@prisma/client/academy';
 import { JoiValidationPipe } from '../common/pipes/joi-validation.pipe';
 import {
   UserProfileSchema,

@@ -8,7 +8,7 @@ import {
   ChatPolicyService,
   pairKeyForUsers,
 } from '@alikohub/chat';
-import { AcademyRole, EnrollmentStatus, Prisma } from '../generated/client';
+import { AcademyRole, EnrollmentStatus, Prisma } from '@prisma/client/academy';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser, UserService } from '../user/user.service';
 import { StartConversationDto, SendMessageDto } from './dto/chat.dto';

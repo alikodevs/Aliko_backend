@@ -1,4 +1,4 @@
-import { PrismaClient } from '../src/generated/client';
+import { PrismaClient } from '@prisma/client/academy';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { execSync } from 'child_process';

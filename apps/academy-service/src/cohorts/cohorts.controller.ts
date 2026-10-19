@@ -1,4 +1,4 @@
-import { Controller, UseGuards, UsePipes, Logger } from '@nestjs/common';
+import { Controller, UseGuards, UsePipes, Logger, Get, Post, Patch, Delete, Body, Query, Param, Req } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CohortsService } from './cohorts.service';
 import { CreateCohortDto } from './dto/create-cohort.dto';
@@ -17,13 +17,12 @@ import {
 } from './cohorts.validation';
 
 @Controller()
-@UseGuards(AcademyProfileGuard)
 export class CohortsController {
   private readonly logger = new Logger(CohortsController.name);
   constructor(private readonly cohortsService: CohortsService) {}
 
   @MessagePattern({ cmd: 'create_cohort' })
-  @UseGuards(RoleGuard)
+  @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(CreateCohortSchema))
   async create(
@@ -43,17 +42,18 @@ export class CohortsController {
     }
   }
 
+  @Get(['cohorts', 'academy/cohorts'])
   @MessagePattern({ cmd: 'find_all_cohorts' })
-  @UsePipes(new JoiValidationPipe(FindCohortsSchema))
-  async findAll(@Payload() payload: { query?: any }) {
+  async findAll(@Query() query?: any, @Payload() payload?: { query?: any }) {
+    const q = payload?.query || query || {};
     this.logger.log(
-      `Fetching all cohorts with query: ${JSON.stringify(payload.query || {})}`,
+      `Fetching all cohorts with query: ${JSON.stringify(q)}`,
     );
     try {
-      return await this.cohortsService.findAll(payload.query);
+      return await this.cohortsService.findAll(q);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch all cohorts with query ${JSON.stringify(payload.query || {})}: ${error.message}`,
+        `Failed to fetch all cohorts with query ${JSON.stringify(q)}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -61,7 +61,7 @@ export class CohortsController {
   }
 
   @MessagePattern({ cmd: 'find_instructor_cohorts' })
-  @UseGuards(RoleGuard)
+  @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(InstructorOnlyEventsSchema))
   async findInstructorCohorts(
@@ -84,15 +84,17 @@ export class CohortsController {
     }
   }
 
+  @Get(['cohorts/:id', 'academy/cohorts/:id'])
   @MessagePattern({ cmd: 'find_cohort_by_id' })
-  @UsePipes(new JoiValidationPipe(CohortIdSchema))
-  async findOne(@Payload() payload: { id: number }) {
-    this.logger.log(`Fetching details for cohort ID: ${payload.id}`);
+  async findOne(@Param('id') paramId?: string, @Payload() payload?: { id: number }) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    this.logger.log(`Fetching details for cohort ID: ${id}`);
     try {
-      return await this.cohortsService.findOne(payload.id);
+      return await this.cohortsService.findOne(id);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch details for cohort ID ${payload.id}: ${error.message}`,
+        `Failed to fetch details for cohort ID ${id}: ${error.message}`,
         error.stack,
       );
       throw error;

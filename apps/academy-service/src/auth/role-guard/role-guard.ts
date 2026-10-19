@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RpcException } from '@nestjs/microservices';
 import { ROLES_KEY } from './roles.decorator';
@@ -14,18 +14,23 @@ export class RoleGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
 
-    if (!requiredRoles) {
+    if (!requiredRoles || requiredRoles.length === 0) {
       // If no roles are specified, allow access.
       return true;
     }
 
-    const data = context.switchToRpc().getData();
+    const isHttp = context.getType() === 'http';
+    const req = isHttp
+      ? context.switchToHttp().getRequest()
+      : context.switchToRpc().getData();
 
     // Get the academyProfile attached by the AcademyProfileGuard
-    const { academyProfile } = data;
+    const academyProfile = req?.academyProfile;
 
     if (!academyProfile || !academyProfile.role) {
-      // This should ideally never happen if the AcademyProfileGuard ran first
+      if (isHttp) {
+        throw new ForbiddenException('User profile or role not found.');
+      }
       throw new RpcException('User profile or role not found.');
     }
 
@@ -35,6 +40,14 @@ export class RoleGuard implements CanActivate {
     );
 
     if (!hasRequiredRole) {
+      if (isHttp) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          message:
+            'You do not have the required permissions to perform this action.',
+          error: 'Forbidden',
+        });
+      }
       throw new RpcException({
         statusCode: 403,
         message:

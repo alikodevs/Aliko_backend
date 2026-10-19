@@ -7,7 +7,7 @@ import {
   IsNumber,
   IsBoolean,
 } from 'class-validator';
-import { ContentType } from '../../generated/client';
+import { ContentType } from '@prisma/client/academy';
 
 export class CreateContentDto {
   @IsString()

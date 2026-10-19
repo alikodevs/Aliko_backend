@@ -1,4 +1,4 @@
-import { Controller, UseGuards, UsePipes, Logger } from '@nestjs/common';
+import { Controller, UseGuards, UsePipes, Logger, Get, Query } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AnnouncementsService } from './announcements.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
@@ -44,17 +44,21 @@ export class AnnouncementsController {
     }
   }
 
+  @Get(['announcements', 'academy/announcements'])
   @MessagePattern({ cmd: 'find_all_announcements' })
-  @UsePipes(new JoiValidationPipe(FindAnnouncementsSchema))
-  async findAll(@Payload() payload: { query?: any }) {
+  async findAll(
+    @Payload() payload?: { query?: any },
+    @Query() query?: any,
+  ) {
+    const q = payload?.query || query || {};
     this.logger.log(
-      `Fetching all announcements with query: ${JSON.stringify(payload.query || {})}`,
+      `Fetching all announcements with query: ${JSON.stringify(q)}`,
     );
     try {
-      return await this.announcementsService.findAll(payload.query);
+      return await this.announcementsService.findAll(q);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch all announcements with query ${JSON.stringify(payload.query || {})}: ${error.message}`,
+        `Failed to fetch all announcements with query ${JSON.stringify(q)}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
