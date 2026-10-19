@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { Prisma } from '../../generated/client';
+import { Prisma } from '@prisma/client/user';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {

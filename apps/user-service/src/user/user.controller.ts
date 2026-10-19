@@ -1,8 +1,9 @@
-import { Controller, Post, Body, UsePipes, Logger, UseFilters } from '@nestjs/common';
+import { Controller, Post, Get, Body, Req, UsePipes, Logger, UseFilters, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UserService } from './user.service';
 import { JoiValidationPipe } from '../validation.pipe';
 import { RpcExceptionFilter } from '../common/filters/rpc-exception.filter';
+import * as jwt from 'jsonwebtoken';
 import {
 	GetUserProfileSchema,
 	UpdateUserProfileSchema,
@@ -37,6 +38,36 @@ export class UserController {
 			this.logger.error(`Failed to fetch all users: ${error.message}`, error.stack);
 			throw error;
 		}
+	}
+
+	@Get(['profile', 'users/profile', 'user/profile'])
+	async getMyProfile(@Req() req: any) {
+		const authHeader = req.headers?.authorization;
+		let firebaseId: string | undefined;
+
+		if (authHeader && authHeader.startsWith('Bearer ')) {
+			const token = authHeader.substring(7);
+			try {
+				const secret = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this';
+				const decoded = jwt.verify(token, secret) as any;
+				firebaseId = decoded?.uid || decoded?.firebaseId || decoded?.sub || decoded?.id;
+			} catch (_e) {
+				try {
+					const decoded = jwt.decode(token) as any;
+					firebaseId = decoded?.uid || decoded?.firebaseId || decoded?.sub || decoded?.id;
+				} catch (_) {}
+			}
+		}
+
+		if (!firebaseId) {
+			throw new UnauthorizedException('Authentication required');
+		}
+
+		const user = await this.userService.findByFirebaseId(firebaseId);
+		if (!user) {
+			throw new NotFoundException('User profile not found');
+		}
+		return user;
 	}
 
 	@Post('get-user-profile')

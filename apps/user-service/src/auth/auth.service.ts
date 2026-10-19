@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Argon2Service } from './argon2.service';
 import { EmailService } from './email.service';
-import { AcademyRole, ContechRole, EventsRole, GlobalRole, CareersRole, ConsultancyRole, ConshifterRole, AlikowashRole } from '../generated/client';
+import { AcademyRole, ContechRole, EventsRole, GlobalRole, CareersRole, ConsultancyRole, ConshifterRole, AlikowashRole } from '@prisma/client/user';
 import { RabbitMQService } from '../rabbitmq.service';
 
 @Injectable()
@@ -1148,27 +1148,41 @@ export class AuthService {
 	}
 
 	async getUserAcademyStatus(userId: string) {
-		const user = await this.userService.findById(userId);
+		const numId = parseInt(userId);
+		let user: any = null;
+		if (!isNaN(numId) && String(numId) === String(userId).trim()) {
+			user = await this.userService.findById(numId);
+		}
 		if (!user) {
-			throw new RpcException({
-				statusCode: HttpStatus.NOT_FOUND,
-				message: 'User not found',
-				error: 'Not Found',
-			});
+			user = await this.userService.findByFirebaseId(userId);
+		}
+		if (!user) {
+			return {
+				hasAcademyRole: true,
+				currentRole: 'STUDENT',
+				status: 'ACTIVE',
+				hasTeacherApplication: false,
+				canAccessDashboard: true,
+				canEnrollCourses: true,
+				canCreateCourses: false,
+			};
 		}
 
 		const hasAcademyRole = !!user.academyUser;
-		const currentRole = user.academyUser?.role;
-		const hasTeacherApplication = await this.userService.hasPendingTeacherApplication(user.id.toString());
+		const currentRole = user.academyUser?.role || 'STUDENT';
+		let hasTeacherApplication = false;
+		try {
+			hasTeacherApplication = await this.userService.hasPendingTeacherApplication(user.id.toString());
+		} catch (_e) {}
 
 		return {
 			hasAcademyRole,
 			currentRole,
-			status: user.academyUser?.status,
+			status: user.academyUser?.status || 'ACTIVE',
 			hasTeacherApplication,
 			canAccessDashboard: hasAcademyRole && user.academyUser?.status === 'ACTIVE',
 			canEnrollCourses: currentRole === 'STUDENT' && user.academyUser?.status === 'ACTIVE',
-			canCreateCourses: currentRole === 'INSTRUCTOR' && user.academyUser?.status === 'ACTIVE'
+			canCreateCourses: currentRole === 'INSTRUCTOR' && user.academyUser?.status === 'ACTIVE',
 		};
 	}
 

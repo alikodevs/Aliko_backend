@@ -7,7 +7,7 @@ import {
   ExceptionFilter,
 } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
-import { Prisma } from '../../generated/client';
+import { Prisma } from '@prisma/client/user';
 import { Observable, throwError } from 'rxjs';
 
 /**
@@ -102,7 +102,19 @@ export class RpcExceptionFilter implements ExceptionFilter {
       error = 'Initialization Error';
     }
     else if (exception instanceof RpcException) {
-      return throwError(() => exception.getError());
+      const rpcErr = exception.getError() as any;
+      if (typeof rpcErr === 'object' && rpcErr !== null) {
+        status = rpcErr.statusCode || rpcErr.status || HttpStatus.BAD_REQUEST;
+        message = rpcErr.message || message;
+        error = rpcErr.error || 'Bad Request';
+        details = rpcErr.details || null;
+      } else if (typeof rpcErr === 'string') {
+        message = rpcErr;
+        status = HttpStatus.BAD_REQUEST;
+      }
+      if (host.getType() !== 'http') {
+        return throwError(() => exception.getError());
+      }
     }
     else if (exception instanceof Error) {
       message = exception.message;

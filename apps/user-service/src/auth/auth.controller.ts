@@ -107,7 +107,7 @@ export class AuthController {
 		}
 	}
 
-	@Post('login-google')
+	@Post(['login-google', 'login/google'])
 	@MessagePattern({ cmd: 'login_google' })
 	@UsePipes(new JoiValidationPipe(GoogleLoginSchema))
 	async loginWithGoogle(@Body() body: { idToken: string }, @Payload() payload: { idToken: string }) {
@@ -239,15 +239,20 @@ export class AuthController {
 		}
 	}
 
-	@Post('academy/status')
+	@Get(['academy/user-status/:userId', 'academy/status/:userId', 'auth/academy/user-status/:userId'])
+	@Post(['academy/status', 'academy/user-status'])
 	@MessagePattern({ cmd: 'get_user_academy_status' })
-	async handleGetUserStatus(@Body() dto: { userId: string }, @Payload() payload: { userId: string }) {
-		const data = dto || payload;
-		this.logger.log(`Fetching Academy status for user: ${data.userId}`);
+	async handleGetUserStatus(
+		@Param('userId') paramUserId?: string,
+		@Body() dto?: { userId: string },
+		@Payload() payload?: { userId: string },
+	) {
+		const userId = paramUserId || dto?.userId || payload?.userId;
+		this.logger.log(`Fetching Academy status for user: ${userId}`);
 		try {
-			return await this.authService.getUserAcademyStatus(data.userId);
+			return await this.authService.getUserAcademyStatus(String(userId));
 		} catch (error) {
-			this.logger.error(`Failed to fetch Academy status for user ${data.userId}: ${error.message}`, error.stack);
+			this.logger.error(`Failed to fetch Academy status for user ${userId}: ${error.message}`, error.stack);
 			throw error;
 		}
 	}
