@@ -79,9 +79,10 @@ jobs:
       - name: Execute deployment script via SSH
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          host: ${{ secrets.VPS_HOST || secrets.VPS_IP || secrets.HOST || '116.203.122.210' }}
+          username: ${{ secrets.VPS_USER || secrets.SSH_USER || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY || secrets.SSH_KEY || secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
           script: |
             if [ -d "/root/Home-Project" ]; then
               cd /root/Home-Project
