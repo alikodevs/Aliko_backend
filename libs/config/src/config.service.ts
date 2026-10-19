@@ -14,11 +14,42 @@ export class AppConfigService {
   }
 
   get corsAllowedOrigins(): string[] {
-    return this.configService
-      .get<string>('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:3001,http://localhost:5173')
+    const defaultOrigins = [
+      'https://lms.alikohub.com',
+      'https://www.lms.alikohub.com',
+      'https://academy.alikohub.com',
+      'https://www.academy.alikohub.com',
+      'https://alikohub.com',
+      'https://www.alikohub.com',
+      'https://api.consultancy.alikohub.com',
+      'https://career.alikohub.com',
+      'https://events.alikohub.com',
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173',
+    ];
+    const configured = this.configService
+      .get<string>('CORS_ALLOWED_ORIGINS', '')
       .split(',')
       .map((origin) => origin.trim())
       .filter(Boolean);
+    return Array.from(new Set([...defaultOrigins, ...configured]));
+  }
+
+  isOriginAllowed(origin?: string): boolean {
+    if (!origin) return true;
+    try {
+      const parsed = new URL(origin);
+      const hostname = parsed.hostname;
+      if (/(^|\.)alikohub\.com$/.test(hostname)) return true;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+      if (this.corsAllowedOrigins.includes(origin) || this.corsAllowedOrigins.includes(parsed.origin)) return true;
+      return false;
+    } catch {
+      return false;
+    }
   }
 
   get userServicePort(): number {

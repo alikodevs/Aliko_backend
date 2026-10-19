@@ -4,7 +4,7 @@ import { AppConfigService } from '@aliko/config';
 import { GlobalHttpExceptionFilter } from '@aliko/common';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AppLoggerService } from '@aliko/logger';
@@ -80,19 +80,33 @@ async function bootstrap() {
     next();
   });
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+      crossOriginResourcePolicy: false,
+    })
+  );
   app.enableCors({
     origin: (requestOrigin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      if (!requestOrigin) return callback(null, true);
-      const isAllowed =
-        config.corsAllowedOrigins.includes(requestOrigin) ||
-        /\.alikohub\.com$/.test(new URL(requestOrigin).hostname) ||
-        requestOrigin.includes('localhost') ||
-        requestOrigin.includes('127.0.0.1');
-      callback(null, isAllowed);
+      callback(null, config.isOriginAllowed(requestOrigin));
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Requested-With',
+      'x-internal-service-key',
+      'x-correlation-id',
+      'stripe-signature',
+      'chapa-signature',
+      'Origin',
+    ],
+    exposedHeaders: ['X-Correlation-ID'],
   });
+
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   app.use(
     rateLimit({
@@ -100,6 +114,7 @@ async function bootstrap() {
       limit: 100,
       standardHeaders: true,
       legacyHeaders: false,
+      validate: { xForwardedForHeader: false },
     })
   );
 
@@ -108,14 +123,32 @@ async function bootstrap() {
     createProxyMiddleware({
       target: userServiceUrl,
       changeOrigin: true,
+      on: {
+        proxyReq: fixRequestBody,
+      },
       pathFilter: [
         '/api/v1/auth/**',
+        '/auth/**',
         '/api/v1/users/**',
+        '/users/**',
         '/api/v1/roles/**',
+        '/roles/**',
         '/api/v1/permissions/**',
+        '/permissions/**',
         '/api/v1/verifications/**',
+        '/verifications/**',
         '/api/v1/audit-logs/**',
+        '/audit-logs/**',
+        '/api/v1/rbac/**',
+        '/rbac/**',
       ],
+      pathRewrite: {
+        '^/api/v1/auth': '/api/v1',
+        '^/auth': '/api/v1',
+        '^/users': '/api/v1',
+        '^/api/v1/users': '/api/v1',
+        '^/rbac': '/api/v1/rbac',
+      },
     })
   );
 
@@ -124,16 +157,46 @@ async function bootstrap() {
     createProxyMiddleware({
       target: academyServiceUrl,
       changeOrigin: true,
+      on: {
+        proxyReq: fixRequestBody,
+      },
       pathFilter: [
-        '/api/v1/academy/**',
-        '/api/v1/courses/**',
-        '/api/v1/lessons/**',
-        '/api/v1/cohorts/**',
-        '/api/v1/enrollments/**',
-        '/api/v1/certificates/**',
+        '/api/v1/academy',
+        '/academy',
+        '/api/v1/courses',
+        '/courses',
+        '/api/v1/lessons',
+        '/lessons',
+        '/api/v1/cohorts',
+        '/cohorts',
+        '/api/v1/enrollments',
+        '/enrollments',
+        '/api/v1/enrollment',
+        '/enrollment',
+        '/api/v1/progress',
+        '/progress',
+        '/api/v1/certificates',
+        '/certificates',
+        '/api/v1/announcements',
+        '/announcements',
+        '/api/v1/content',
+        '/content',
+        '/api/v1/exercises',
+        '/exercises',
       ],
       pathRewrite: {
         '^/api/v1/academy': '/api/v1',
+        '^/academy': '/api/v1',
+        '^/courses': '/api/v1/courses',
+        '^/lessons': '/api/v1/lessons',
+        '^/cohorts': '/api/v1/cohorts',
+        '^/enrollments': '/api/v1/enrollments',
+        '^/enrollment': '/api/v1/enrollment',
+        '^/progress': '/api/v1/progress',
+        '^/certificates': '/api/v1/certificates',
+        '^/announcements': '/api/v1/announcements',
+        '^/content': '/api/v1/content',
+        '^/exercises': '/api/v1/exercises',
       },
     })
   );
@@ -143,14 +206,25 @@ async function bootstrap() {
     createProxyMiddleware({
       target: contechServiceUrl,
       changeOrigin: true,
+      on: {
+        proxyReq: fixRequestBody,
+      },
       pathFilter: [
         '/api/v1/contech/**',
+        '/contech/**',
         '/api/v1/projects/**',
+        '/projects/**',
         '/api/v1/tasks/**',
+        '/tasks/**',
         '/api/v1/contracts/**',
+        '/contracts/**',
       ],
       pathRewrite: {
         '^/api/v1/contech': '/api/v1',
+        '^/contech': '/api/v1',
+        '^/projects': '/api/v1/projects',
+        '^/tasks': '/api/v1/tasks',
+        '^/contracts': '/api/v1/contracts',
       },
     })
   );
@@ -160,12 +234,19 @@ async function bootstrap() {
     createProxyMiddleware({
       target: eventsServiceUrl,
       changeOrigin: true,
+      on: {
+        proxyReq: fixRequestBody,
+      },
       pathFilter: [
         '/api/v1/events/**',
+        '/events/**',
         '/api/v1/tickets/**',
+        '/tickets/**',
       ],
       pathRewrite: {
         '^/api/v1/events': '/api/v1',
+        '^/events': '/api/v1',
+        '^/tickets': '/api/v1/tickets',
       },
     })
   );
@@ -175,13 +256,22 @@ async function bootstrap() {
     createProxyMiddleware({
       target: careersServiceUrl,
       changeOrigin: true,
+      on: {
+        proxyReq: fixRequestBody,
+      },
       pathFilter: [
         '/api/v1/careers/**',
+        '/careers/**',
         '/api/v1/jobs/**',
+        '/jobs/**',
         '/api/v1/applications/**',
+        '/applications/**',
       ],
       pathRewrite: {
         '^/api/v1/careers': '/api/v1',
+        '^/careers': '/api/v1',
+        '^/jobs': '/api/v1/jobs',
+        '^/applications': '/api/v1/applications',
       },
     })
   );
@@ -191,15 +281,28 @@ async function bootstrap() {
     createProxyMiddleware({
       target: financialServiceUrl,
       changeOrigin: true,
+      on: {
+        proxyReq: fixRequestBody,
+      },
       pathFilter: [
         '/api/v1/financial/**',
+        '/financial/**',
         '/api/v1/payments/**',
+        '/payments/**',
         '/api/v1/wallets/**',
+        '/wallets/**',
         '/api/v1/escrow/**',
+        '/escrow/**',
         '/api/v1/subscriptions/**',
+        '/subscriptions/**',
       ],
       pathRewrite: {
         '^/api/v1/financial': '/api/v1',
+        '^/financial': '/api/v1',
+        '^/payments': '/api/v1/payments',
+        '^/wallets': '/api/v1/wallets',
+        '^/escrow': '/api/v1/escrow',
+        '^/subscriptions': '/api/v1/subscriptions',
       },
     })
   );
@@ -210,16 +313,25 @@ async function bootstrap() {
       target: communicationServiceUrl,
       changeOrigin: true,
       ws: true,
+      on: {
+        proxyReq: fixRequestBody,
+      },
       pathFilter: [
         '/api/v1/communication/**',
+        '/communication/**',
         '/api/v1/conversations/**',
+        '/conversations/**',
         '/api/v1/messages/**',
+        '/messages/**',
         '/api/v1/notifications/**',
         '/chat/**',
         '/notifications/**',
       ],
       pathRewrite: {
         '^/api/v1/communication': '/api/v1',
+        '^/communication': '/api/v1',
+        '^/conversations': '/api/v1/conversations',
+        '^/messages': '/api/v1/messages',
       },
     })
   );
@@ -229,14 +341,20 @@ async function bootstrap() {
     createProxyMiddleware({
       target: storageServiceUrl,
       changeOrigin: true,
+      on: {
+        proxyReq: fixRequestBody,
+      },
       pathFilter: [
         '/api/v1/storage/**',
+        '/storage/**',
         '/api/v1/files/**',
+        '/files/**',
         '/api/v1/uploads/**',
         '/uploads/**',
       ],
       pathRewrite: {
         '^/api/v1/storage': '/api/v1',
+        '^/storage': '/api/v1',
       },
     })
   );
