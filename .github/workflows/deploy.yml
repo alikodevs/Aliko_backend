@@ -19,27 +19,37 @@ jobs:
       fail-fast: false
       matrix:
         service:
-          - path: domains/academy/backend
-            image: alikohub-academy-service
-          - path: domains/con-tech/backend
-            image: alikohub-con-tech-service
-          - path: domains/core-platform-services/api-gateway-service
+          - name: api-gateway
+            dockerfile: infra/docker/Dockerfile.api-gateway
             image: alikohub-api-gateway
-          - path: domains/core-platform-services/auth-service
-            image: alikohub-auth-service
-          - path: domains/core-platform-services/careers-service
-            image: alikohub-careers-service
-          - path: domains/core-platform-services/file-upload-service
-            image: alikohub-file-upload-service
-          - path: domains/events/backend
+          - name: user-service
+            dockerfile: infra/docker/Dockerfile.user-service
+            image: alikohub-user-service
+          - name: academy-service
+            dockerfile: infra/docker/Dockerfile.academy-service
+            image: alikohub-academy-service
+          - name: contech-service
+            dockerfile: infra/docker/Dockerfile.contech-service
+            image: alikohub-contech-service
+          - name: events-service
+            dockerfile: infra/docker/Dockerfile.events-service
             image: alikohub-events-service
-          - path: domains/Home/backend
-            image: alikohub-home-service
-          - path: domains/Home/frontend
-            image: alikohub-home-frontend
+          - name: careers-service
+            dockerfile: infra/docker/Dockerfile.careers-service
+            image: alikohub-careers-service
+          - name: financial-service
+            dockerfile: infra/docker/Dockerfile.financial-service
+            image: alikohub-financial-service
+          - name: communication-service
+            dockerfile: infra/docker/Dockerfile.communication-service
+            image: alikohub-communication-service
+          - name: storage-service
+            dockerfile: infra/docker/Dockerfile.storage-service
+            image: alikohub-storage-service
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -51,7 +61,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.service.path }}
+          context: .
+          file: ${{ matrix.service.dockerfile }}
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service.image }}:latest
@@ -62,7 +73,8 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Execute deployment script via SSH
         uses: appleboy/ssh-action@master
@@ -71,11 +83,10 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /root/Home-Project
+            if [ -d "/root/Home-Project" ]; then
+              cd /root/Home-Project
+            elif [ -d "/root/Aliko_backend" ]; then
+              cd /root/Aliko_backend
+            fi
             git pull origin ${{ github.ref_name }}
-            export GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-            docker image prune -f
-
+            bash scripts/deploy.sh

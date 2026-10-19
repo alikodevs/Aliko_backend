@@ -8,59 +8,35 @@ on:
 
 jobs:
   validate:
-    name: Validate Services
+    name: Build and Validate Services
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service:
-          - path: domains/academy/backend
-            name: academy-service
-          - path: domains/con-tech/backend
-            name: con-tech-service
-          - path: domains/core-platform-services/api-gateway-service
-            name: api-gateway
-          - path: domains/core-platform-services/auth-service
-            name: auth-service
-          - path: domains/core-platform-services/careers-service
-            name: careers-service
-          - path: domains/core-platform-services/file-upload-service
-            name: file-upload-service
-          - path: domains/events/backend
-            name: events-service
-          - path: domains/Home/backend
-            name: home-service
-          - path: domains/Home/frontend
-            name: home-frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
-        working-directory: ${{ matrix.service.path }}
+        run: npm ci || npm install
 
-      - name: Prisma Generate (if exists)
-        run: |
-          if [ -d "prisma" ]; then
-            npx prisma generate
-          fi
-        working-directory: ${{ matrix.service.path }}
+      - name: Generate Prisma Clients
+        run: npm run prisma:generate:all
 
-      - name: Lint
-        run: npm run lint --if-present
-        working-directory: ${{ matrix.service.path }}
+      - name: Build All Services
+        run: npx nx run-many --target=build --all
+        env:
+          NX_DAEMON: false
+          NX_TUI: false
+          CI: true
 
-      - name: Build
-        run: npm run build
-        working-directory: ${{ matrix.service.path }}
-
-      - name: Test
-        run: npm run test --if-present
-        working-directory: ${{ matrix.service.path }}
+      - name: Run Tests
+        run: npx nx run-many --target=test --all --passWithNoTests
+        env:
+          NX_DAEMON: false
+          NX_TUI: false
+          CI: true

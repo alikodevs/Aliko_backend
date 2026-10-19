@@ -91,3 +91,5 @@ promotions.json
 scratch/
 test_results/
 *analysis*.md
+backups/
+*.dump

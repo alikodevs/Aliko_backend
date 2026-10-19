@@ -1,13 +1,18 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+
 module.exports = {
   apps: [
     {
       name: 'api-gateway',
       script: './dist/apps/api-gateway/apps/api-gateway/src/main.js',
+      node_args: '-r ts-node/register/transpile-only -r tsconfig-paths/register',
       instances: 1,
       exec_mode: 'fork',
       max_memory_restart: '400M',
       time: true,
       env: {
+        ...process.env,
         NODE_ENV: 'production',
         PORT: 3000,
         API_GATEWAY_PORT: 3000,
@@ -16,11 +21,13 @@ module.exports = {
     {
       name: 'user-service',
       script: './dist/apps/user-service/apps/user-service/src/main.js',
+      node_args: '-r ts-node/register/transpile-only -r tsconfig-paths/register',
       instances: 1,
       exec_mode: 'fork',
       max_memory_restart: '400M',
       time: true,
       env: {
+        ...process.env,
         NODE_ENV: 'production',
         PORT: 3001,
         USER_SERVICE_PORT: 3001,
@@ -29,19 +36,23 @@ module.exports = {
     {
       name: 'academy-service',
       script: './dist/apps/academy-service/apps/academy-service/src/main.js',
+      node_args: '-r ts-node/register/transpile-only -r tsconfig-paths/register',
       instances: 1,
       exec_mode: 'fork',
       max_memory_restart: '400M',
       time: true,
       env: {
+        ...process.env,
         NODE_ENV: 'production',
         PORT: 3002,
         ACADEMY_SERVICE_PORT: 3002,
+        DATABASE_URL_ACADEMY: process.env.DATABASE_URL_ACADEMY || 'postgresql://alikohub:SecurePassword123!@127.0.0.1:5432/alikohub_db?schema=academy',
       },
     },
     {
       name: 'contech-service',
       script: './dist/apps/contech-service/apps/contech-service/src/main.js',
+      node_args: '-r ts-node/register/transpile-only -r tsconfig-paths/register',
       instances: 1,
       exec_mode: 'fork',
       max_memory_restart: '400M',
@@ -55,6 +66,7 @@ module.exports = {
     {
       name: 'events-service',
       script: './dist/apps/events-service/apps/events-service/src/main.js',
+      node_args: '-r ts-node/register/transpile-only -r tsconfig-paths/register',
       instances: 1,
       exec_mode: 'fork',
       max_memory_restart: '400M',
@@ -68,6 +80,7 @@ module.exports = {
     {
       name: 'careers-service',
       script: './dist/apps/careers-service/apps/careers-service/src/main.js',
+      node_args: '-r ts-node/register/transpile-only -r tsconfig-paths/register',
       instances: 1,
       exec_mode: 'fork',
       max_memory_restart: '400M',
@@ -81,6 +94,7 @@ module.exports = {
     {
       name: 'financial-service',
       script: './dist/apps/financial-service/apps/financial-service/src/main.js',
+      node_args: '-r ts-node/register/transpile-only -r tsconfig-paths/register',
       instances: 1,
       exec_mode: 'fork',
       max_memory_restart: '400M',
@@ -94,6 +108,7 @@ module.exports = {
     {
       name: 'communication-service',
       script: './dist/apps/communication-service/apps/communication-service/src/main.js',
+      node_args: '-r ts-node/register/transpile-only -r tsconfig-paths/register',
       instances: 1,
       exec_mode: 'fork',
       max_memory_restart: '400M',
@@ -107,6 +122,7 @@ module.exports = {
     {
       name: 'storage-service',
       script: './dist/apps/storage-service/apps/storage-service/src/main.js',
+      node_args: '-r ts-node/register/transpile-only -r tsconfig-paths/register',
       instances: 1,
       exec_mode: 'fork',
       max_memory_restart: '400M',
