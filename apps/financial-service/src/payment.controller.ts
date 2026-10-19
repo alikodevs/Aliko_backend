@@ -1,4 +1,4 @@
-import { Controller, Post, Body, BadRequestException, Logger } from '@nestjs/common';
+import { Controller, Post, Get, Body, Req, BadRequestException, Logger } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { TransactionService } from './transactions/transaction.service';
 import { ChapaService } from './gateways/chapa.service';
@@ -7,8 +7,9 @@ import { InitializePaymentDto } from './common/dto/initialize-payment.dto';
 import { PaymentProvider } from '@prisma/client/financial';
 import { resolvePaymentConfig } from './common/utils/geo-resolver';
 import { randomUUID } from 'crypto';
+import * as jwt from 'jsonwebtoken';
 
-@Controller('payment')
+@Controller(['payment', 'payments'])
 export class PaymentController {
   private readonly logger = new Logger(PaymentController.name);
 
@@ -99,10 +100,36 @@ export class PaymentController {
     }
   }
 
+  @Get(['transactions/my', 'payment/transactions/my', 'payments/transactions/my'])
   @MessagePattern({ cmd: 'get_user_transactions' })
-  async getUserTransactions(@Payload() payload: { userId: string }) {
-    this.logger.log(`Fetching transactions for user ${payload.userId}`);
-    return this.transactionService.getUserTransactions(payload.userId);
+  async getUserTransactions(
+    @Payload() payload?: { userId?: string },
+    @Req() req?: any,
+  ) {
+    let userId = payload?.userId;
+    if (!userId && req) {
+      const auth = req.headers?.authorization;
+      if (auth && auth.startsWith('Bearer ')) {
+        const token = auth.substring(7);
+        try {
+          const secret = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this';
+          const decoded = jwt.verify(token, secret) as any;
+          userId = decoded?.uid || decoded?.firebaseId || decoded?.sub || decoded?.id;
+        } catch (_e) {
+          try {
+            const decoded = jwt.decode(token) as any;
+            userId = decoded?.uid || decoded?.firebaseId || decoded?.sub || decoded?.id;
+          } catch (_) {}
+        }
+      }
+    }
+
+    if (!userId) {
+      return [];
+    }
+
+    this.logger.log(`Fetching transactions for user ${userId}`);
+    return this.transactionService.getUserTransactions(userId);
   }
 
   @MessagePattern({ cmd: 'get_all_transactions' })
