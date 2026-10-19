@@ -1,7 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ApplicationsService } from './applications.service';
-import { ApplicationStatus } from '../generated/client';
+import { ApplicationStatus } from '@prisma/client/careers';
 
 @Controller()
 export class ApplicationsController {

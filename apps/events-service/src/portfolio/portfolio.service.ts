@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import { PrismaService } from "../database/prisma.service";
 import { CreatePortfolioDto } from "./dto/create-portfolio.dto";
 import { AuthenticatedUser, UserService } from "../user/user.service";
-import { EventsRole } from "../generated/client";
+import { EventsRole } from '@prisma/client/events';
 
 @Injectable()
 export class PortfolioService {

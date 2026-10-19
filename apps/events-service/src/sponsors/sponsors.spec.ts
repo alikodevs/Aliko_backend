@@ -3,7 +3,7 @@ import { SponsorsController } from './sponsors.controller';
 import { SponsorsService } from './sponsors.service';
 import { PrismaService } from '../database/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
-import { EventsRole } from '../generated/client';
+import { EventsRole } from '@prisma/client/events';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CreateSponsorSchema, SponsorIdSchema } from './sponsors.validation';
 

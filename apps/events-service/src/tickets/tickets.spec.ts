@@ -3,7 +3,7 @@ import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
 import { PrismaService } from '../database/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
-import { EventsRole, PostType } from '../generated/client';
+import { EventsRole, PostType } from '@prisma/client/events';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CreateTicketSchema, TicketIdSchema } from './tickets.validation';
 

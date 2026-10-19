@@ -1,7 +1,7 @@
 import { ClientProxyFactory, Transport } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
-import { EventsRole, PostStatus, PostType } from '../generated/client';
-import { PrismaClient } from '../generated/client';
+import { EventsRole, PostStatus, PostType } from '@prisma/client/events';
+import { PrismaClient } from '@prisma/client/events';
 
 const prisma = new PrismaClient();
 

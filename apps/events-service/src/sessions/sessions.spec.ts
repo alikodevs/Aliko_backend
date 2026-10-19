@@ -3,7 +3,7 @@ import { SessionsController } from './sessions.controller';
 import { SessionsService } from './sessions.service';
 import { PrismaService } from '../database/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
-import { EventsRole } from '../generated/client';
+import { EventsRole } from '@prisma/client/events';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CreateSessionSchema, SessionIdSchema } from './sessions.validation';
 

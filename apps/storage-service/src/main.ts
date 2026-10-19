@@ -15,14 +15,24 @@ async function bootstrap() {
   app.useLogger(logger);
 
   app.enableCors({
-    origin: config.corsAllowedOrigins,
+    origin: (requestOrigin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      callback(null, config.isOriginAllowed(requestOrigin));
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'x-internal-service-key'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'x-internal-service-key', 'Origin'],
   });
 
   const uploadPath = path.resolve(config.localUploadDir || './uploads');
-  app.use('/uploads', express.static(uploadPath));
+  const staticOptions = {
+    setHeaders: (res: any) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    },
+  };
+  app.use('/uploads', express.static(uploadPath, staticOptions));
+  app.use('/api/v1/uploads', express.static(uploadPath, staticOptions));
+  app.use(express.static(uploadPath, staticOptions));
 
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

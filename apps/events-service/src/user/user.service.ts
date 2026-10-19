@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
-import { EventsProfile, EventsRole } from "../generated/client";
+import { EventsProfile, EventsRole } from '@prisma/client/events';
 import { firstValueFrom } from "rxjs";
 import { PrismaService } from "../database/prisma.service";
 

@@ -9,7 +9,7 @@ import { randomUUID } from "crypto";
 import { PrismaService } from "../database/prisma.service";
 import { CreateRegistrationDto } from "./dto/create-registration.dto";
 import { AuthenticatedUser, UserService } from "../user/user.service";
-import { EventsRole } from "../generated/client";
+import { EventsRole } from '@prisma/client/events';
 import { EmailService } from "../common/email.service";
 
 @Injectable()

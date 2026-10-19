@@ -5,7 +5,7 @@ import {
   IsEnum,
   IsDateString,
 } from "class-validator";
-import { PostType } from "../../generated/client";
+import { PostType } from '@prisma/client/events';
 
 export class CreatePostDto {
   @IsEnum(PostType)

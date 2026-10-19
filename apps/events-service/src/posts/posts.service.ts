@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { PostStatus, PostType, EventsRole } from "../generated/client";
+import { PostStatus, PostType, EventsRole } from '@prisma/client/events';
 import { PrismaService } from "../database/prisma.service";
 import { CreatePostDto } from "./dto/create-post.dto";
 import { UpdatePostDto } from "./dto/update-post.dto";

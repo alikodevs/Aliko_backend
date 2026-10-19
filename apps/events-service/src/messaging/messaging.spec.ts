@@ -4,7 +4,7 @@ import { MessagingService } from './messaging.service';
 import { PrismaService } from '../database/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
 import { EmailService } from '../common/email.service';
-import { EventsRole } from '../generated/client';
+import { EventsRole } from '@prisma/client/events';
 import { TargetAudience } from './dto/send-message.dto';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { SendMessageSchema } from './messaging.validation';

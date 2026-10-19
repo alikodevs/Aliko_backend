@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import { PrismaService } from "../database/prisma.service";
 import { CreateTicketDto } from "./dto/create-ticket.dto";
 import { AuthenticatedUser, UserService } from "../user/user.service";
-import { EventsRole, PostType } from "../generated/client";
+import { EventsRole, PostType } from '@prisma/client/events';
 
 @Injectable()
 export class TicketsService {

@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundEx
 import { PrismaService } from "../database/prisma.service";
 import { CreateRsvpDto } from "./dto/create-rsvp.dto";
 import { AuthenticatedUser, UserService } from "../user/user.service";
-import { EventsRole } from "../generated/client";
+import { EventsRole } from '@prisma/client/events';
 import { EmailService } from "../common/email.service";
 
 @Injectable()

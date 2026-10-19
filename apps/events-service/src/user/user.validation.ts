@@ -1,5 +1,5 @@
 import * as Joi from "joi";
-import { EventsRole } from "../generated/client";
+import { EventsRole } from '@prisma/client/events';
 
 export const GetEventsProfileSchema = Joi.object({
   user: Joi.any().required().description("The authenticated user context"),

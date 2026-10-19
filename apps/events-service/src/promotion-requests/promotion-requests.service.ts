@@ -7,7 +7,7 @@ import {
 import { PrismaService } from "../database/prisma.service";
 import { CreatePromotionRequestDto } from "./dto/create-promotion-request.dto";
 import { AuthenticatedUser, UserService } from "../user/user.service";
-import { EventsRole } from "../generated/client";
+import { EventsRole } from '@prisma/client/events';
 import { ClientProxy } from "@nestjs/microservices";
 
 @Injectable()

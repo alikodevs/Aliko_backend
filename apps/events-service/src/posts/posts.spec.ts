@@ -3,7 +3,7 @@ import { PostsController } from './posts.controller';
 import { PostsService } from './posts.service';
 import { PrismaService } from '../database/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
-import { EventsRole, PostStatus, PostType } from '../generated/client';
+import { EventsRole, PostStatus, PostType } from '@prisma/client/events';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CreatePostSchema, UpdatePostSchema, PostIdSchema, FindAllPostsSchema, ReviewPostSchema } from './posts.validation';
 

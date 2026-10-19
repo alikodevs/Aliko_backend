@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './user.controller';
 import { UserService, AuthenticatedUser } from './user.service';
 import { PrismaService } from '../database/prisma.service';
-import { EventsRole } from '../generated/client';
+import { EventsRole } from '@prisma/client/events';
 import { ForbiddenException } from '@nestjs/common';
 import { of } from 'rxjs';
 import { UpdateUserRoleSchema } from './user.validation';

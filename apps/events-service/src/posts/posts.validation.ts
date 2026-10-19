@@ -1,5 +1,5 @@
 import * as Joi from "joi";
-import { PostType, PostStatus } from "../generated/client";
+import { PostType, PostStatus } from '@prisma/client/events';
 
 export const CreatePostSchema = Joi.object({
   dto: Joi.object({

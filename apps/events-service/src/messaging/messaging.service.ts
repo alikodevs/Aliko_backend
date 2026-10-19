@@ -3,7 +3,7 @@ import { PrismaService } from "../database/prisma.service";
 import { SendMessageDto, TargetAudience } from "./dto/send-message.dto";
 import { EmailService } from "../common/email.service";
 import { AuthenticatedUser, UserService } from "../user/user.service";
-import { EventsRole } from "../generated/client";
+import { EventsRole } from '@prisma/client/events';
 
 @Injectable()
 export class MessagingService {

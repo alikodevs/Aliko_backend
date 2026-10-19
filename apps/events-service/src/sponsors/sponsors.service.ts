@@ -6,7 +6,7 @@ import {
 import { PrismaService } from "../database/prisma.service";
 import { CreateSponsorDto } from "./dto/create-sponsor.dto";
 import { AuthenticatedUser, UserService } from "../user/user.service";
-import { EventsRole } from "../generated/client";
+import { EventsRole } from '@prisma/client/events';
 
 @Injectable()
 export class SponsorsService {

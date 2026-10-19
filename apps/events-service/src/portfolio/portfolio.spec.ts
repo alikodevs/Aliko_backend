@@ -3,7 +3,7 @@ import { PortfolioController } from './portfolio.controller';
 import { PortfolioService } from './portfolio.service';
 import { PrismaService } from '../database/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
-import { EventsRole } from '../generated/client';
+import { EventsRole } from '@prisma/client/events';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CreatePortfolioSchema } from './portfolio.validation';
 

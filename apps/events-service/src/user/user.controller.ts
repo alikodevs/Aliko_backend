@@ -9,7 +9,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { MessagePattern, Payload, EventPattern } from "@nestjs/microservices";
-import { EventsRole } from "../generated/client";
+import { EventsRole } from '@prisma/client/events';
 import { UserService, AuthenticatedUser } from "./user.service";
 import { EventsProfileGuard } from "../auth/events-profile.guard";
 import { RpcExceptionFilter } from "../common/filters/rpc-exception.filter";

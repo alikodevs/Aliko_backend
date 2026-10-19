@@ -1,7 +1,7 @@
 import { RpcExceptionFilter } from './rpc-exception.filter';
 import { BadRequestException, ForbiddenException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
-import { Prisma } from '../../generated/client';
+import { Prisma } from '@prisma/client/events';
 import { firstValueFrom } from 'rxjs';
 
 describe('RpcExceptionFilter', () => {

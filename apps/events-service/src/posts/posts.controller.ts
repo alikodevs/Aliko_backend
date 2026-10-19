@@ -9,7 +9,7 @@ import { MessagePattern, Payload } from "@nestjs/microservices";
 import { PostsService } from "./posts.service";
 import { CreatePostDto } from "./dto/create-post.dto";
 import { UpdatePostDto } from "./dto/update-post.dto";
-import { PostStatus, PostType } from "../generated/client";
+import { PostStatus, PostType } from '@prisma/client/events';
 import { AuthenticatedUser } from "../user/user.service";
 import { EventsProfileGuard } from "../auth/events-profile.guard";
 import { RpcExceptionFilter } from "../common/filters/rpc-exception.filter";

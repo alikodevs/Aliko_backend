@@ -3,7 +3,7 @@ import { PromotionRequestsController } from './promotion-requests.controller';
 import { PromotionRequestsService } from './promotion-requests.service';
 import { PrismaService } from '../database/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
-import { EventsRole } from '../generated/client';
+import { EventsRole } from '@prisma/client/events';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CreatePromotionRequestSchema } from './promotion-requests.validation';
 

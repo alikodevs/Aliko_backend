@@ -4,7 +4,7 @@ import { RegistrationsService } from './registrations.service';
 import { PrismaService } from '../database/prisma.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
 import { EmailService } from '../common/email.service';
-import { EventsRole } from '../generated/client';
+import { EventsRole } from '@prisma/client/events';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CreateRegistrationSchema, RegistrationIdSchema, CheckInAttendeeSchema } from './registrations.validation';
 

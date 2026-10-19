@@ -6,7 +6,7 @@ import {
 import { PrismaService } from "../database/prisma.service";
 import { CreateSessionDto } from "./dto/create-session.dto";
 import { AuthenticatedUser, UserService } from "../user/user.service";
-import { EventsRole } from "../generated/client";
+import { EventsRole } from '@prisma/client/events';
 
 @Injectable()
 export class SessionsService {
