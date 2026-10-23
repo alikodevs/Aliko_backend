@@ -1,5 +1,5 @@
 import { IsEnum, IsInt, IsOptional, IsString } from 'class-validator';
-import { ApprovalStatus } from '../../generated/client';
+import { ApprovalStatus } from '@prisma/client/academy';
 
 export class ReviewAdmissionsApplicationDto {
   @IsInt()

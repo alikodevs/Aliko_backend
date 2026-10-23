@@ -12,7 +12,7 @@ import {
   SignEnrollmentAgreementDto,
   ReviewAdmissionsApplicationDto,
 } from './dto';
-import { ApprovalStatus, EnrollmentStatus } from '../generated/client';
+import { ApprovalStatus, EnrollmentStatus } from '@prisma/client/academy';
 
 @Injectable()
 export class AdmissionsService {
