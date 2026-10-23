@@ -80,12 +80,13 @@ export class LessonsService {
     const courseId = module.courseId;
     const instructorId = module.course.instructorId;
 
-    // AUTHORIZATION: Check if the user is an admin, the course instructor, OR enrolled.
+    // AUTHORIZATION: Check if the user is an admin, the course instructor, auditor, OR enrolled.
     const isAdmin = academyProfile.role === 'ADMIN';
     const isInstructor = instructorId === user.firebaseId;
+    const isAuditor = academyProfile.role === 'COMMISSION_AUDITOR';
     let isEnrolled = false;
 
-    if (!isAdmin && !isInstructor) {
+    if (!isAdmin && !isInstructor && !isAuditor) {
       // Check for enrollment
       const enrollment = await this.prisma.enrollment.findFirst({
         where: {
@@ -99,10 +100,27 @@ export class LessonsService {
       isEnrolled = !!enrollment;
     }
 
-    if (!isAdmin && !isInstructor && !isEnrolled) {
+    if (!isAdmin && !isInstructor && !isAuditor && !isEnrolled) {
       throw new ForbiddenException(
         'You must be enrolled in this course to view its lessons.',
       );
+    }
+
+    // WABON Req 11: Mandatory Orientation Prerequisite Gate
+    if (!isAdmin && !isInstructor && !isAuditor && isEnrolled) {
+      const orientationModule = await this.prisma.module.findFirst({
+        where: { courseId, isOrientationModule: true },
+      });
+      if (orientationModule && !module.isOrientationModule) {
+        const studentApp = await this.prisma.studentAdmissionsApplication.findFirst({
+          where: { userId: user.firebaseId, orientationCompleted: true },
+        });
+        if (!studentApp) {
+          throw new ForbiddenException(
+            'Under WAC 246-841A-440 (Req 11), you must complete the mandatory program orientation before accessing course theory units.',
+          );
+        }
+      }
     }
 
     const page = Number(query.page) || 1;
