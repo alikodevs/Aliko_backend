@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateExerciseDto } from './dto/create-exercise.dto';
@@ -14,6 +15,8 @@ import { ProgressAndAnalyticsService } from '../progress-and-analytics/progress-
 
 @Injectable()
 export class ExercisesService {
+  private readonly logger = new Logger(ExercisesService.name);
+
   constructor(
     private prisma: PrismaService,
     private userService: UserService,
@@ -346,6 +349,23 @@ export class ExercisesService {
       }
     }
 
+    // WABON WAC 246-841A-440 (Req 12): Week 1 Academic Assignment Attendance Verification
+    if (exercise.isWeekOneAttendanceGate) {
+      await this.prisma.enrollment.updateMany({
+        where: {
+          userId: user.firebaseId,
+          courseId: exercise.module.courseId,
+        },
+        data: {
+          attendanceStatus: 'VERIFIED_PRESENT',
+          attendanceVerifiedAt: new Date(),
+        },
+      });
+      this.logger.log(
+        `Student ${user.firebaseId} verified attendance via Week 1 Academic Gate (Exercise ${id})`,
+      );
+    }
+
     return submission;
   }
 
@@ -385,6 +405,27 @@ export class ExercisesService {
         exercise: { include: { module: true } },
       },
     });
+
+    // WABON Req 15: Early Warning and Remediation for scores < 80%
+    const totalPoints = submission.exercise.points || 1;
+    const scorePercentage = (dto.score / totalPoints) * 100;
+    if (scorePercentage < 80) {
+      await this.prisma.studentRemediation.create({
+        data: {
+          userId: submission.userId,
+          courseId: submission.exercise.module.courseId,
+          exerciseId: submission.exerciseId,
+          initialScore: dto.score,
+          instructorId: user.firebaseId,
+          actionPlan: 'Instructor individualized review and revision recommended.',
+          feedback: dto.feedback || 'Score below 80% passing threshold under WAC standards.',
+          status: 'REQUIRED',
+        },
+      });
+      this.logger.warn(
+        `Remediation record created for student ${submission.userId} in course ${submission.exercise.module.courseId} (Score: ${scorePercentage}%)`,
+      );
+    }
 
     if (dto.isCorrect && updatedSubmission.exercise.lessonId) {
       // We need to fetch the target user since 'user' here is the instructor

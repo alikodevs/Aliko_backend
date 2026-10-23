@@ -31,6 +31,22 @@ model AcademyProfile {
   teachingSchedules TeachingSchedule[]
   submissions      ExerciseSubmission[]
   conversationParticipants ConversationParticipant[]
+
+  // WABON Regulatory Relations (WAC 246-841A-440)
+  admissionsApplications    StudentAdmissionsApplication[]
+  discussionPosts          DiscussionPost[]
+  gradedDiscussions        DiscussionGrade[]
+  studyGroupMembers        StudyGroupMember[]
+  remediations             StudentRemediation[]
+  examSessions             ExamSession[]
+  studentSkillCheckoffs    SkillCheckoff[]            @relation("StudentSkills")
+  instructorSkillCheckoffs SkillCheckoff[]            @relation("InstructorSkills")
+  supervisedClinicalShifts ClinicalShift[]
+  clinicalShiftAttendances ClinicalShiftAttendance[]
+  courseEvaluationSurveys  CourseEvaluationSurvey[]
+  supportTickets           SupportTicket[]
+  instructorCredential     InstructorCredential?
+  createdRubrics           Rubric[]                   @relation("CreatedRubrics")
 }
 
 model Course {
@@ -65,6 +81,10 @@ model Course {
   // NEW: Add relation to teaching schedules
   teachingSchedules TeachingSchedule[]
   conversations     Conversation[]
+
+  // WABON Relations
+  textbooks         CourseTextbook[]
+  remediations      StudentRemediation[]
 }
 
 model Cohort {
@@ -77,8 +97,16 @@ model Cohort {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
-  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  teachingSchedules TeachingSchedule[]
+  // WABON Cohort Fields
+  assignedInstructorIds  String[]           @default([])
+  isHighSchoolTenMonth   Boolean            @default(false)
+
+  course                 Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teachingSchedules      TeachingSchedule[]
+  admissionsApplications StudentAdmissionsApplication[]
+  studyGroups            StudyGroup[]
+  clinicalShifts         ClinicalShift[]
+  evaluationSurveys      CourseEvaluationSurvey[]
 }
 
 model Enrollment {
@@ -97,6 +125,10 @@ model Enrollment {
   enrollmentType EnrollmentType    @default(FREE)
   paymentStatus  PaymentStatus     @default(COMPLETED)
   status         EnrollmentStatus  @default(ACTIVE)
+
+  // WABON Attendance Tracking (WAC Req 12)
+  attendanceStatus     AttendanceStatus  @default(PENDING_VERIFICATION)
+  attendanceVerifiedAt DateTime?
 
   cohort  Cohort?        @relation(fields: [cohortId], references: [id], onDelete: Cascade)
   course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -153,6 +185,11 @@ model Module {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
+  // WABON Trimodal Curriculum & Discussions
+  track               CurriculumTrack   @default(THEORY_ASYNC)
+  isOrientationModule Boolean           @default(false)
+  discussionTopics    DiscussionTopic[]
+
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   exercises Exercise[]
 }
@@ -171,6 +208,12 @@ model Lesson {
   unlockRules  Json?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  // WABON Lesson Attributes
+  isWeekOneAttendanceGate Boolean         @default(false)
+  isOrientationLesson     Boolean         @default(false)
+  isCreditHour            Boolean         @default(true)
+  readings                LessonReading[]
 
   module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 }
@@ -196,10 +239,11 @@ model Progress {
   moduleId  Int?
   lessonId  Int?
   contentId Int?
-  status    String
-  score     Float?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  status            String
+  score             Float?
+  activeTimeSeconds Int      @default(0) // Active seat-time tracking (WAC Req 19)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
 
   course  Course         @relation(fields: [courseId], references: [id])
   module  Module?        @relation(fields: [moduleId], references: [id])
@@ -318,6 +362,7 @@ enum AcademyRole {
   INSTRUCTOR
   COURSE_MANAGER
   ADMIN
+  COMMISSION_AUDITOR // WAC Req 2: Read-only regulatory auditor
 }
 
 enum ExerciseType {
@@ -346,6 +391,10 @@ model Exercise {
   order       Int          @default(0)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  // WABON Attendance Gate & Exam Security
+  isWeekOneAttendanceGate Boolean       @default(false)
+  examSessions            ExamSession[]
 
   module      Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   lesson      Lesson?      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
@@ -405,3 +454,364 @@ enum OutboxStatus {
   PUBLISHED
   FAILED
 }
+
+// ==============================================================
+// WABON NURSING ASSISTANT REGULATORY EXTENSIONS (WAC 246-841A)
+// ==============================================================
+
+enum CurriculumTrack {
+  THEORY_ASYNC
+  THEORY_SYNC
+  SKILLS_LAB_IN_PERSON
+  CLINICAL_IN_PERSON
+}
+
+enum AttendanceStatus {
+  PENDING_VERIFICATION
+  VERIFIED_PRESENT
+  NO_SHOW_AT_RISK
+  ADMINISTRATIVE_DROP
+}
+
+enum RemediationStatus {
+  REQUIRED
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum SupportTicketCategory {
+  LOGIN_AUTH
+  VIDEO_CONTENT_PLAYER
+  QUIZ_EXAM_ERROR
+  DISCUSSION_SUBMISSION
+  BROWSER_COMPATIBILITY
+  GENERAL
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// 1. Admissions, Disclosures & Orientation (WAC Req 10, 11)
+model StudentAdmissionsApplication {
+  id                    Int            @id @default(autoincrement())
+  userId                String
+  cohortId              Int
+  backgroundCheckUrl    String?
+  backgroundCheckStatus ApprovalStatus @default(PENDING)
+  tbTestProofUrl        String?
+  immunizationProofUrl  String?
+  cprCertUrl            String?
+  idDocUrl              String?
+  highSchoolProofUrl    String?
+  
+  agreementSigned         Boolean        @default(false)
+  agreementSignedAt       DateTime?
+  agreementSignatureUrl   String?
+  disclosuresAcknowledged Boolean        @default(false)
+  
+  orientationCompleted    Boolean        @default(false)
+  orientationAttendedAt   DateTime?
+  lmsTutorialCompleted    Boolean        @default(false)
+  netiquetteSigned        Boolean        @default(false)
+
+  status                  ApprovalStatus @default(PENDING)
+  reviewedBy              String?
+  reviewedAt              DateTime?
+  rejectionReason         String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  profile                 AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  cohort                  Cohort         @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cohortId])
+}
+
+// 2. Curriculum-Textbook Crosswalk (WAC Req 6)
+model CourseTextbook {
+  id          Int             @id @default(autoincrement())
+  courseId    Int
+  title       String
+  author      String
+  edition     String?
+  isbn        String?
+  publisher   String?
+  createdAt   DateTime        @default(now())
+
+  course      Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  readings    LessonReading[]
+}
+
+model LessonReading {
+  id          Int            @id @default(autoincrement())
+  lessonId    Int
+  textbookId  Int
+  chapters    String
+  pageRange   String
+  lesson      Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  textbook    CourseTextbook @relation(fields: [textbookId], references: [id], onDelete: Cascade)
+}
+
+// 3. Asynchronous Discussions & Rubrics (WAC Req 13)
+model DiscussionTopic {
+  id          Int               @id @default(autoincrement())
+  moduleId    Int
+  title       String
+  prompt      String
+  rubric      Json?
+  maxPoints   Float             @default(10)
+  dueDate     DateTime?
+  createdAt   DateTime          @default(now())
+
+  module      Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  posts       DiscussionPost[]
+}
+
+model DiscussionPost {
+  id          Int               @id @default(autoincrement())
+  topicId     Int
+  userId      String
+  body        String
+  parentId    Int?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  topic       DiscussionTopic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  parent      DiscussionPost?   @relation("ThreadReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     DiscussionPost[]  @relation("ThreadReplies")
+  profile     AcademyProfile    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  grade       DiscussionGrade?
+}
+
+model DiscussionGrade {
+  id           Int             @id @default(autoincrement())
+  postId       Int             @unique
+  graderId     String
+  score        Float
+  rubricScores Json?
+  feedback     String
+  createdAt    DateTime        @default(now())
+
+  post         DiscussionPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  grader       AcademyProfile  @relation(fields: [graderId], references: [userId], onDelete: Cascade)
+}
+
+// 4. Peer Study Groups (WAC Req 14)
+model StudyGroup {
+  id          Int                @id @default(autoincrement())
+  cohortId    Int
+  name        String
+  description String?
+  meetingUrl  String?
+  createdAt   DateTime           @default(now())
+
+  cohort      Cohort             @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  members     StudyGroupMember[]
+}
+
+model StudyGroupMember {
+  id           Int            @id @default(autoincrement())
+  studyGroupId Int
+  userId       String
+  role         String         @default("MEMBER")
+  joinedAt     DateTime       @default(now())
+
+  studyGroup   StudyGroup     @relation(fields: [studyGroupId], references: [id], onDelete: Cascade)
+  profile      AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([studyGroupId, userId])
+}
+
+// 5. Early Warning & Remediation (WAC Req 15)
+model StudentRemediation {
+  id                  Int               @id @default(autoincrement())
+  userId              String
+  courseId            Int
+  exerciseId          Int?
+  initialScore        Float
+  instructorId        String
+  actionPlan          String
+  feedback            String
+  status              RemediationStatus @default(REQUIRED)
+  resubmissionAllowed Boolean           @default(false)
+  resolvedAt          DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  profile             AcademyProfile    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  course              Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+// 6. Exam Security & Identity Verification (WAC Req 17)
+model ExamSession {
+  id                Int       @id @default(autoincrement())
+  exerciseId        Int
+  userId            String
+  startTime         DateTime  @default(now())
+  endTime           DateTime?
+  idPhotoUrl        String?
+  webcamSnapUrl     String?
+  tabBlurCount      Int       @default(0)
+  ipAddress         String?
+  userAgent         String?
+  honorCodeAccepted Boolean   @default(false)
+  score             Float?
+  isAudited         Boolean   @default(false)
+
+  exercise          Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  profile           AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+// 7. In-Person Skills Lab & Clinical Tracking (WAC Req 1, 8, 9, 19)
+model CoreSkill {
+  id          Int             @id @default(autoincrement())
+  skillNumber String          @unique
+  name        String
+  category    String
+  steps       Json
+  createdAt   DateTime        @default(now())
+
+  checkoffs   SkillCheckoff[]
+}
+
+model SkillCheckoff {
+  id           Int       @id @default(autoincrement())
+  skillId      Int
+  userId       String
+  instructorId String
+  cohortId     Int
+  passed       Boolean   @default(false)
+  attempts     Int       @default(1)
+  comments     String?
+  checkoffDate DateTime  @default(now())
+
+  skill        CoreSkill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  student      AcademyProfile @relation("StudentSkills", fields: [userId], references: [userId], onDelete: Cascade)
+  instructor   AcademyProfile @relation("InstructorSkills", fields: [instructorId], references: [userId], onDelete: Cascade)
+}
+
+model ClinicalShift {
+  id             Int                       @id @default(autoincrement())
+  cohortId       Int
+  facilityName   String
+  instructorId   String
+  shiftDate      DateTime
+  startTime      DateTime
+  endTime        DateTime
+  hoursCredited  Float
+  
+  cohort         Cohort                    @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  instructor     AcademyProfile            @relation(fields: [instructorId], references: [userId], onDelete: Cascade)
+  studentRoster  ClinicalShiftAttendance[]
+}
+
+model ClinicalShiftAttendance {
+  id              Int           @id @default(autoincrement())
+  shiftId         Int
+  userId          String
+  hoursCompleted  Float
+  competencyNotes String?
+  passed          Boolean       @default(true)
+  signedBy        String?
+
+  shift           ClinicalShift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  student         AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+// 8. Course & Faculty Evaluation Surveys (WAC Req 2)
+model CourseEvaluationSurvey {
+  id               Int      @id @default(autoincrement())
+  cohortId         Int
+  userId           String
+  courseRating     Int
+  platformRating   Int
+  instructorRating Int
+  comments         String?
+  submittedAt      DateTime @default(now())
+
+  cohort           Cohort         @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  student          AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+// 9. Student Tech Support Ticketing (WAC Req 18)
+model SupportTicket {
+  id            Int                   @id @default(autoincrement())
+  userId        String
+  category      SupportTicketCategory
+  subject       String
+  description   String
+  attachmentUrl String?
+  status        SupportTicketStatus   @default(OPEN)
+  priority      String                @default("MEDIUM")
+  resolution    String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  profile       AcademyProfile        @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+// 10. Instructor WABON Credentials (WAC Req 9)
+model InstructorCredential {
+  id                     Int       @id @default(autoincrement())
+  userId                 String    @unique
+  rnLicenseNumber        String
+  rnLicenseExpiration    DateTime
+  yearsLongTermCareExp   Float
+  trainTheTrainerCertUrl String?
+  wabonApprovalLetterUrl String?
+  approvedByDirectorAt   DateTime?
+
+  profile                AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+// 11. Rubric Management (Discussions & Assignments)
+enum RubricType {
+  DISCUSSION
+  ASSIGNMENT
+}
+
+model Rubric {
+  id          String            @id @default(uuid())
+  name        String
+  description String?
+  type        RubricType        @default(DISCUSSION)
+  createdBy   String
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  creator     AcademyProfile    @relation("CreatedRubrics", fields: [createdBy], references: [userId], onDelete: Cascade)
+  criteria    RubricCriterion[]
+}
+
+model RubricCriterion {
+  id          String        @id @default(uuid())
+  rubricId    String
+  title       String
+  description String?
+  maxPoints   Float
+  order       Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  rubric      Rubric        @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  levels      RubricLevel[]
+}
+
+model RubricLevel {
+  id          String          @id @default(uuid())
+  criterionId String
+  name        String
+  description String
+  points      Float
+  order       Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  criterion   RubricCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+}
+

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { CreateCohortDto } from './dto/create-cohort.dto';
@@ -35,7 +36,43 @@ export class CohortsService {
       );
     }
 
-    const cohort = await this.prisma.cohort.create({ data: dto });
+    // WABON WAC 246-841A-440: Cohort duration check (90 days max)
+    const start = new Date(dto.startDate);
+    const end = new Date(dto.endDate);
+    if (end <= start) {
+      throw new BadRequestException('Cohort end date must be after start date');
+    }
+    const durationDays = (end.getTime() - start.getTime()) / (1000 * 3600 * 24);
+    if (!dto.isHighSchoolTenMonth && durationDays > 90) {
+      throw new BadRequestException(
+        'Under WAC 246-841A-440, asynchronous nursing assistant cohorts must be completed within 3 months (90 days), unless flagged as a 10-month high school calendar program.',
+      );
+    }
+
+    // WABON Ratio: max 30 students per assigned approved instructor
+    const assignedInstructors = Array.from(
+      new Set([
+        course.instructorId,
+        user.firebaseId,
+        ...(dto.assignedInstructorIds || []),
+      ]),
+    );
+    const statutoryCap = assignedInstructors.length * 30;
+    const finalCapacity = dto.maxCapacity
+      ? Math.min(dto.maxCapacity, statutoryCap)
+      : statutoryCap;
+
+    const cohort = await this.prisma.cohort.create({
+      data: {
+        name: dto.name,
+        courseId: dto.courseId,
+        startDate: new Date(dto.startDate),
+        endDate: new Date(dto.endDate),
+        maxCapacity: finalCapacity,
+        assignedInstructorIds: assignedInstructors,
+        isHighSchoolTenMonth: Boolean(dto.isHighSchoolTenMonth),
+      },
+    });
 
     this.notificationService.sendCohortCreatedNotification(
       cohort.name,

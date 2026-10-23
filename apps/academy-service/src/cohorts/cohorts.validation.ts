@@ -19,6 +19,14 @@ export const CreateCohortSchema = Joi.object({
       .integer()
       .optional()
       .description('Maximum number of students allowed in this cohort'),
+    assignedInstructorIds: Joi.array()
+      .items(Joi.string())
+      .optional()
+      .description('List of assigned instructor user IDs for the cohort'),
+    isHighSchoolTenMonth: Joi.boolean()
+      .optional()
+      .default(false)
+      .description('Flag indicating if this cohort is a 10-month high school calendar program'),
   })
     .required()
     .description('Cohort creation details'),

@@ -65,17 +65,33 @@ export class EnrollmentsService {
 
     const cohortId = dto.cohortId;
     if (cohortId !== undefined && cohortId !== null) {
-        const cohort = await this.prisma.cohort.findUnique({
-            where: { id: cohortId },
-        });
+      const cohort = await this.prisma.cohort.findUnique({
+        where: { id: cohortId },
+      });
 
-        if (!cohort) {
-            throw new BadRequestException(`Cohort with ID ${cohortId} does not exist.`);
-        }
+      if (!cohort) {
+        throw new BadRequestException(`Cohort with ID ${cohortId} does not exist.`);
+      }
 
-        if (cohort.courseId !== dto.courseId) {
-            throw new BadRequestException(`Cohort ${cohortId} is not associated with course ${dto.courseId}.`);
-        }
+      if (cohort.courseId !== dto.courseId) {
+        throw new BadRequestException(`Cohort ${cohortId} is not associated with course ${dto.courseId}.`);
+      }
+
+      // WABON 30:1 Student-to-Instructor Statutory Ratio Check (WAC 246-841A-440)
+      const instructorCount = cohort.assignedInstructorIds?.length || 1;
+      const statutoryCap = Math.min(cohort.maxCapacity ?? 30, instructorCount * 30);
+      const activeEnrollments = await this.prisma.enrollment.count({
+        where: {
+          cohortId: cohort.id,
+          status: EnrollmentStatus.ACTIVE,
+        },
+      });
+
+      if (activeEnrollments >= statutoryCap) {
+        throw new ConflictException(
+          `Cohort ${cohort.name} has reached its statutory limit of ${statutoryCap} students (30:1 student-to-instructor ratio under WAC 246-841A-440).`,
+        );
+      }
     }
 
     const isPaid = (academyProfile.role !== 'ADMIN') && !(dto as any)?.bypassPayment && (course.price && course.price > 0);
@@ -196,7 +212,10 @@ export class EnrollmentsService {
 
   async findAll(user: AuthenticatedUser, query: any = {}) {
     const academyProfile = await this.userService.getOrCreateProfile(user);
-    if (academyProfile.role !== 'ADMIN') {
+    if (
+      academyProfile.role !== 'ADMIN' &&
+      academyProfile.role !== 'COMMISSION_AUDITOR'
+    ) {
       throw new ForbiddenException(
         'You do not have permission to view all enrollments.',
       );
@@ -304,10 +323,13 @@ export class EnrollmentsService {
       throw new NotFoundException('Cohort not found');
     }
 
-    const isInstructor = cohort.course.instructorId === user.firebaseId;
+    const isInstructor =
+      cohort.course.instructorId === user.firebaseId ||
+      cohort.assignedInstructorIds?.includes(user.firebaseId);
     const isAdmin = academyProfile.role === 'ADMIN';
+    const isAuditor = academyProfile.role === 'COMMISSION_AUDITOR';
 
-    if (!isInstructor && !isAdmin) {
+    if (!isInstructor && !isAdmin && !isAuditor) {
       throw new ForbiddenException(
         'You do not have permission to view enrollments for this cohort.',
       );
