@@ -660,6 +660,2713 @@
           }
         }
       ]
+    },
+    {
+      "name": "01. Admissions & Statutory Screening Gate (WAC 246-841A-440(1))",
+      "description": "Covers mandatory student background checks, TB test proof, immunizations, CPR certification, high school verification, statutory disclosures e-signature, and instructor/admin approval gate.",
+      "item": [
+        {
+          "name": "1.1 Submit Admissions Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/admissions/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "admissions",
+                "submit"
+              ]
+            },
+            "description": "Student uploads required verification documentation before class entry.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cohortId\": 1,\n  \"backgroundCheckUrl\": \"https://storage.alikohub.com/admissions/bg-check-001.pdf\",\n  \"tbTestProofUrl\": \"https://storage.alikohub.com/admissions/tb-test-negative-2026.pdf\",\n  \"immunizationProofUrl\": \"https://storage.alikohub.com/admissions/immunization-records.pdf\",\n  \"cprCertUrl\": \"https://storage.alikohub.com/admissions/bls-cpr-aha-card.pdf\",\n  \"idDocUrl\": \"https://storage.alikohub.com/admissions/wa-state-drivers-license.jpg\",\n  \"highSchoolProofUrl\": \"https://storage.alikohub.com/admissions/high-school-diploma.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.id) pm.environment.set(\"applicationId\", res.id);",
+                  "    pm.test(\"Application submitted with PENDING status\", () => {",
+                  "        pm.expect(res.status).to.be.oneOf([\"PENDING\", \"APPROVED\"]);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Sign Statutory Disclosures & Enrollment Agreement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/admissions/sign-agreement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "admissions",
+                "sign-agreement"
+              ]
+            },
+            "description": "Student e-signs RCW/WAC statutory disclosures (DSHS disqualifying crimes, refund policy, physical demands of nursing).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cohortId\": 1,\n  \"signatureUrl\": \"https://storage.alikohub.com/admissions/e-signature-student-001.png\",\n  \"disclosuresAcknowledged\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Enrollment agreement successfully signed\", () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.agreementSigned).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Get My Admissions Application",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/admissions/my-application/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "admissions",
+                "my-application",
+                "1"
+              ]
+            },
+            "description": "Student retrieves their application status and verification history."
+          },
+          "response": []
+        },
+        {
+          "name": "1.4 Get Cohort Admissions Applications (Instructor/Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/admissions/cohort/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "admissions",
+                "cohort",
+                "1"
+              ]
+            },
+            "description": "Program Director / Instructor lists all applications submitted for Cohort 1."
+          },
+          "response": []
+        },
+        {
+          "name": "1.5 Review & Approve Admissions Application (Director Gate)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/admissions/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "admissions",
+                "review"
+              ]
+            },
+            "description": "Director approves student admission, automatically activating student cohort enrollment.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": 1,\n  \"status\": \"APPROVED\",\n  \"rejectionReason\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Application reviewed and approved\", () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02. Orientation & Attendance Census (WAC 246-841A-440(2))",
+      "description": "Mandatory zero-credit online orientation module covering platform navigation, academic integrity, attendance policy, and clinical dress code before course unlocking.",
+      "item": [
+        {
+          "name": "2.1 Check Orientation Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/orientation/status/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "orientation",
+                "status",
+                "1"
+              ]
+            },
+            "description": "Check whether student has satisfied the orientation prerequisite for cohort 1."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status retrieved\", () => pm.expect(pm.response.code).to.equal(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Complete Orientation Module",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/orientation/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "orientation",
+                "complete"
+              ]
+            },
+            "description": "Record completion of mandatory zero-credit orientation checklist.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cohortId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Orientation marked complete\", () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03. Curriculum & Textbook Crosswalk (WAC 246-841A-440(3))",
+      "description": "Statutory curriculum-to-textbook alignment matrix linking course syllabus, chapters, and required readings to accredited NA textbooks.",
+      "item": [
+        {
+          "name": "3.1 Register Course Textbook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/curriculum-crosswalk/textbooks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "curriculum-crosswalk",
+                "textbooks"
+              ]
+            },
+            "description": "Instructor registers approved core nursing assistant textbook.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": 1,\n  \"title\": \"Mosby's Textbook for Nursing Assistants\",\n  \"author\": \"Sheila A. Sorrentino & Leighann Remmert\",\n  \"edition\": \"10th Edition\",\n  \"isbn\": \"978-0323655804\",\n  \"publisher\": \"Elsevier\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.id) pm.environment.set(\"textbookId\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 Get Course Textbooks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/curriculum-crosswalk/textbooks/course/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "curriculum-crosswalk",
+                "textbooks",
+                "course",
+                "1"
+              ]
+            },
+            "description": "Retrieve all registered textbooks for Course 1."
+          },
+          "response": []
+        },
+        {
+          "name": "3.3 Assign Lesson Required Reading",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/curriculum-crosswalk/readings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "curriculum-crosswalk",
+                "readings"
+              ]
+            },
+            "description": "Assign specific textbook chapter and page readings to Lesson 1.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lessonId\": 1,\n  \"textbookId\": 1,\n  \"chapterNumber\": 12,\n  \"chapterTitle\": \"Infection Prevention and Control in Subacute Care\",\n  \"pages\": \"145-168\",\n  \"topicsCovered\": [\n    \"Chain of Infection\",\n    \"Standard Precautions\",\n    \"Bloodborne Pathogens (OSHA)\",\n    \"Donning and Doffing PPE\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Lesson reading mapped\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.4 Get Lesson Readings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/curriculum-crosswalk/readings/lesson/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "curriculum-crosswalk",
+                "readings",
+                "lesson",
+                "1"
+              ]
+            },
+            "description": "Retrieve assigned reading materials for Lesson 1."
+          },
+          "response": []
+        },
+        {
+          "name": "3.5 Generate Course Curriculum Crosswalk Matrix",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/curriculum-crosswalk/matrix/course/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "curriculum-crosswalk",
+                "matrix",
+                "course",
+                "1"
+              ]
+            },
+            "description": "Generates complete WABON curriculum-textbook crosswalk table for regulatory inspection."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04. Multi-Criteria Rubrics (Explicit User Specification)",
+      "description": "Standardized grading rubrics for discussions and assignments featuring multi-level criteria, scoring scales, cloning, and automated evaluation.",
+      "item": [
+        {
+          "name": "4.1 Create Rubric with Criteria & Performance Levels",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/rubrics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "rubrics"
+              ]
+            },
+            "description": "Instructor creates standardized rubric.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Clinical Judgment & Infection Control Rubric\",\n  \"description\": \"Assesses critical thinking, communication, and adherence to CDC/OSHA infection control protocols.\",\n  \"type\": \"DISCUSSION\",\n  \"isActive\": true,\n  \"criteria\": [\n    {\n      \"title\": \"Subject Mastery & WABON Core Knowledge\",\n      \"description\": \"Demonstrates deep comprehension of standard precautions, safety protocols, and resident dignity.\",\n      \"maxPoints\": 10,\n      \"order\": 1,\n      \"levels\": [\n        {\n          \"name\": \"Exemplary\",\n          \"description\": \"Flawlessly articulates all infection control principles with direct textbook citations.\",\n          \"points\": 10,\n          \"order\": 1\n        },\n        {\n          \"name\": \"Competent\",\n          \"description\": \"Identifies core safety precautions; minor gaps in technical rationales.\",\n          \"points\": 7,\n          \"order\": 2\n        },\n        {\n          \"name\": \"Developing\",\n          \"description\": \"Basic awareness with noticeable omissions in critical safety protocols.\",\n          \"points\": 4,\n          \"order\": 3\n        },\n        {\n          \"name\": \"Unacceptable\",\n          \"description\": \"Fails to identify essential standard precautions or violates safety norms.\",\n          \"points\": 0,\n          \"order\": 4\n        }\n      ]\n    },\n    {\n      \"title\": \"Peer Engagement & Substantive Dialogue\",\n      \"description\": \"Critically responds to at least two classmates with constructive clinical feedback.\",\n      \"maxPoints\": 5,\n      \"order\": 2,\n      \"levels\": [\n        {\n          \"name\": \"Substantive\",\n          \"description\": \"Engaged 2+ peers with insightful clinical inquiries and supportive dialogue.\",\n          \"points\": 5,\n          \"order\": 1\n        },\n        {\n          \"name\": \"Minimal\",\n          \"description\": \"Posted brief confirmation without substantive clinical reasoning.\",\n          \"points\": 2.5,\n          \"order\": 2\n        },\n        {\n          \"name\": \"None\",\n          \"description\": \"Did not interact with peer cohort.\",\n          \"points\": 0,\n          \"order\": 3\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.id) pm.environment.set(\"rubricId\", res.id);",
+                  "    pm.test(\"Rubric created with criteria\", () => pm.expect(res.name).to.exist);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 List Rubrics (Filter by Type)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/rubrics?type=DISCUSSION&isActive=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "rubrics?type=DISCUSSION&isActive=true"
+              ]
+            },
+            "description": "Query all active discussion rubrics."
+          },
+          "response": []
+        },
+        {
+          "name": "4.3 Get Rubric by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/rubrics/{{rubricId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "rubrics",
+                "{{rubricId}}"
+              ]
+            },
+            "description": "Retrieve rubric schema with complete criteria and level hierarchy."
+          },
+          "response": []
+        },
+        {
+          "name": "4.4 Clone Rubric for New Term",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/rubrics/{{rubricId}}/clone",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "rubrics",
+                "{{rubricId}}",
+                "clone"
+              ]
+            },
+            "description": "Duplicate rubric and its nested criteria/levels for another cohort.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rubricId\": \"{{rubricId}}\",\n  \"newName\": \"Clinical Judgment & Infection Control Rubric (Cohort 2 Clone)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rubric cloned\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.5 Evaluate Submission with Rubric",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/rubrics/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "rubrics",
+                "evaluate"
+              ]
+            },
+            "description": "Calculate weighted score and generate standardized rubric feedback evaluation.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rubricId\": \"{{rubricId}}\",\n  \"selectedLevelIds\": [\n    \"level-id-exemplary\",\n    \"level-id-substantive\"\n  ],\n  \"customFeedback\": \"Excellent application of contact precaution isolation protocols during morning care demonstration.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rubric evaluation calculated\", () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.totalPoints).to.be.a(\"number\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05. Discussion Forums & Substantive Interaction (WAC 246-841A-440(4))",
+      "description": "Facilitates mandatory weekly instructor-led academic discussions enforcing substantive student participation, peer replies, and rubric-based grading.",
+      "item": [
+        {
+          "name": "5.1 Create Discussion Topic with Rubric",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/discussions/topics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "discussions",
+                "topics"
+              ]
+            },
+            "description": "Instructor creates weekly graded discussion topic.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleId\": 1,\n  \"title\": \"Week 2 Discussion: Responding to Resident Fall Risk and Mobility Changes\",\n  \"prompt\": \"Review the case study of Mrs. Gable (84yo, dementia, newly unsteady gait). What immediate non-pharmacological interventions must the NA implement? How do you report this to the charge nurse? Cite textbook Chapter 12.\",\n  \"rubricId\": \"{{rubricId}}\",\n  \"dueAt\": \"2026-11-01T23:59:59.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.id) pm.environment.set(\"topicId\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.2 Find Module Discussions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/discussions/modules/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "discussions",
+                "modules",
+                "1"
+              ]
+            },
+            "description": "Retrieve all discussion topics configured in Module 1."
+          },
+          "response": []
+        },
+        {
+          "name": "5.3 Get Discussion Topic with Posts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/discussions/topics/{{topicId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "discussions",
+                "topics",
+                "{{topicId}}"
+              ]
+            },
+            "description": "Retrieve topic prompt and full threaded discussion conversation."
+          },
+          "response": []
+        },
+        {
+          "name": "5.4 Post Substantive Discussion Contribution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/discussions/posts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "discussions",
+                "posts"
+              ]
+            },
+            "description": "Student posts original substantive response.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"topicId\": 1,\n  \"content\": \"Immediate steps: 1) Ensure non-skid socks are worn; 2) Place call bell within direct reach; 3) Clear pathway of clutter and ensure adequate lighting. I would immediately report the gait change using SBAR format to the RN supervisor to request a physical therapy re-evaluation.\",\n  \"parentId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.id) pm.environment.set(\"postId\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.5 Grade Discussion Post (Instructor Rubric)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/discussions/posts/{{postId}}/grade",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "discussions",
+                "posts",
+                "{{postId}}",
+                "grade"
+              ]
+            },
+            "description": "Instructor awards points and marks post as meeting substantive interaction criteria.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grade\": 15,\n  \"feedback\": \"Superb application of resident safety measures and clear SBAR escalation to the charge nurse.\",\n  \"isSubstantive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Post graded successfully\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06. Study Groups & Peer Collaboration (WAC 246-841A-440(5))",
+      "description": "Cohort-based peer study groups supporting collaboration, shared study schedules, and meeting coordination.",
+      "item": [
+        {
+          "name": "6.1 Create Study Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/study-groups",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "study-groups"
+              ]
+            },
+            "description": "Student or instructor creates peer study circle.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cohortId\": 1,\n  \"name\": \"Vital Signs & Pharmacology Mastery Group\",\n  \"description\": \"Weekly peer review of normal BP ranges, apical pulses, and medical terminology.\",\n  \"meetingSchedule\": \"Tuesdays & Thursdays at 6:00 PM PST\",\n  \"meetingLink\": \"https://meet.google.com/xyz-aliko-study\",\n  \"maxMembers\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.id) pm.environment.set(\"studyGroupId\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.2 Find Cohort Study Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/study-groups/cohort/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "study-groups",
+                "cohort",
+                "1"
+              ]
+            },
+            "description": "Retrieve all available study groups in Cohort 1."
+          },
+          "response": []
+        },
+        {
+          "name": "6.3 Join Study Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/study-groups/join",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "study-groups",
+                "join"
+              ]
+            },
+            "description": "Student joins the study group.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studyGroupId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Joined study group\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.4 Update Study Group Schedule",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/study-groups/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "study-groups",
+                "1"
+              ]
+            },
+            "description": "Group organizer updates meeting time and URL.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"meetingSchedule\": \"Wednesdays & Fridays at 7:00 PM PST\",\n  \"meetingLink\": \"https://meet.google.com/updated-aliko-study\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6.5 Leave Study Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/study-groups/1/leave",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "study-groups",
+                "1",
+                "leave"
+              ]
+            },
+            "description": "Student leaves group."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07. Active Seat-Time Heartbeat Engine (WAC 246-841A-440(6))",
+      "description": "High-precision active presence monitoring tracking active engagement pulses every 30-60 seconds to satisfy the 60-hour theory mandate.",
+      "item": [
+        {
+          "name": "7.1 Record Active Seat-Time Heartbeat Pulse",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/seat-time/heartbeat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "seat-time",
+                "heartbeat"
+              ]
+            },
+            "description": "Client application pulses heartbeat while student actively consumes educational content.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lessonId\": 1,\n  \"courseId\": 1,\n  \"intervalSeconds\": 60,\n  \"engagementScore\": 0.95,\n  \"interactionType\": \"VIDEO_PLAYBACK\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Heartbeat recorded\", () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.totalSeconds).to.be.a(\"number\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.2 Get Course Seat-Time Summary (60-Hour Theory Tracker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/seat-time/summary/course/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "seat-time",
+                "summary",
+                "course",
+                "1"
+              ]
+            },
+            "description": "Aggregates cumulative seat time across all lessons against the 60-hour theory requirement."
+          },
+          "response": []
+        },
+        {
+          "name": "7.3 Get Specific Lesson Seat-Time Breakdown",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/seat-time/lesson/1/course/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "seat-time",
+                "lesson",
+                "1",
+                "course",
+                "1"
+              ]
+            },
+            "description": "View individual lesson seat-time logs and engagement score history."
+          },
+          "response": []
+        },
+        {
+          "name": "7.4 Cohort-Wide Seat-Time Audit Report (Auditor/Instructor)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/seat-time/cohort/1/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "seat-time",
+                "cohort",
+                "1",
+                "report"
+              ]
+            },
+            "description": "Generates regulatory seat-time compliance breakdown for every student in Cohort 1."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "08. Skills Lab Competency Matrix (WAC 246-841A-440(7))",
+      "description": "Tracking, checklist evaluation, and verification of all 22+ Core Washington State Nursing Assistant clinical skills.",
+      "item": [
+        {
+          "name": "8.1 Register Core NA Skill",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/skills-lab/skills",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "skills-lab",
+                "skills"
+              ]
+            },
+            "description": "Instructor/Admin initializes Core NA clinical competency skill.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skillNumber\": \"SKILL-01\",\n  \"title\": \"Hand Hygiene (Medical Asepsis)\",\n  \"category\": \"INFECTION_CONTROL\",\n  \"description\": \"Decontaminates hands using soap and warm water with proper friction, wrist coverage, and clean paper towel technique without recontaminating.\",\n  \"criticalSteps\": [\n    \"Wet hands and wrists thoroughly under running water, keeping hands lower than elbows.\",\n    \"Apply soap and lather all surfaces including wrists, backs of hands, and between fingers for at least 20 seconds.\",\n    \"Clean under fingernails against palm of opposite hand.\",\n    \"Rinse hands thoroughly with fingertips pointing downward.\",\n    \"Dry hands with clean paper towel and discard.\",\n    \"Turn off faucet with a separate clean, dry paper towel without touching clean hands to faucet handle.\"\n  ],\n  \"passingScore\": 100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.id) pm.environment.set(\"skillId\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "8.2 List Core NA Skills",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/skills-lab/skills",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "skills-lab",
+                "skills"
+              ]
+            },
+            "description": "List all registered 22+ core skills and their critical steps."
+          },
+          "response": []
+        },
+        {
+          "name": "8.3 Record Skill Checkoff Evaluation Attempt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/skills-lab/checkoffs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "skills-lab",
+                "checkoffs"
+              ]
+            },
+            "description": "RN Instructor signs off student clinical lab competency.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skillId\": 1,\n  \"studentUserId\": \"{{studentUserId}}\",\n  \"cohortId\": 1,\n  \"status\": \"PASSED\",\n  \"attemptNumber\": 1,\n  \"criticalStepsCompleted\": [\n    \"Wet hands and wrists thoroughly under running water, keeping hands lower than elbows.\",\n    \"Apply soap and lather all surfaces including wrists, backs of hands, and between fingers for at least 20 seconds.\",\n    \"Clean under fingernails against palm of opposite hand.\",\n    \"Rinse hands thoroughly with fingertips pointing downward.\",\n    \"Dry hands with clean paper towel and discard.\",\n    \"Turn off faucet with a separate clean, dry paper towel without touching clean hands to faucet handle.\"\n  ],\n  \"notes\": \"Demonstrated exceptional adherence to medical asepsis; zero recontamination observed.\",\n  \"signatureUrl\": \"https://storage.alikohub.com/signatures/rn-evaluator-mary-smith.png\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Skill checkoff verified\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "8.4 Get Student Skills Lab Matrix",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/skills-lab/matrix/student/{{studentUserId}}/cohort/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "skills-lab",
+                "matrix",
+                "student",
+                "{{studentUserId}}",
+                "cohort",
+                "1"
+              ]
+            },
+            "description": "Retrieves student 22-skill progress matrix (Passed, Practice, Attempted, Incomplete)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "09. Clinical Hours & 1:10 Ratio Enforcement (WAC 246-841A-440(8))",
+      "description": "Enforces statutory 1:10 student-to-instructor ratio in healthcare facility clinicals and tracks completion of 40 direct patient care clinical hours.",
+      "item": [
+        {
+          "name": "9.1 Create Clinical Shift (1:10 Ratio Enforced)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/clinical/shifts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "clinical",
+                "shifts"
+              ]
+            },
+            "description": "Instructor schedules clinical shift capped at maximum 10 students.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cohortId\": 1,\n  \"facilityName\": \"PeaceHealth St. Joseph Medical Center - Transitional Care Unit\",\n  \"facilityAddress\": \"2901 Squalicum Pkwy, Bellingham, WA 98225\",\n  \"instructorId\": \"{{instructorUserId}}\",\n  \"startTime\": \"2026-11-10T07:00:00.000Z\",\n  \"endTime\": \"2026-11-10T15:30:00.000Z\",\n  \"totalHours\": 8,\n  \"maxStudents\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.id) pm.environment.set(\"shiftId\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "9.2 Find Cohort Clinical Shifts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/clinical/shifts/cohort/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "clinical",
+                "shifts",
+                "cohort",
+                "1"
+              ]
+            },
+            "description": "Retrieve all scheduled clinical shifts for Cohort 1."
+          },
+          "response": []
+        },
+        {
+          "name": "9.3 Record Student Clinical Attendance & Hours",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/clinical/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "clinical",
+                "attendance"
+              ]
+            },
+            "description": "Clinical supervisor verifies 8 hours of direct patient care clinical attendance.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": 1,\n  \"studentUserId\": \"{{studentUserId}}\",\n  \"hoursCompleted\": 8,\n  \"status\": \"PRESENT\",\n  \"performanceRating\": 5,\n  \"preceptorFeedback\": \"Excellent morning care rounds; accurately assisted with bathing, transfers, and fluid tracking.\",\n  \"supervisorSignatureUrl\": \"https://storage.alikohub.com/signatures/rn-preceptor-signoff-001.png\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Clinical attendance recorded\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "9.4 Get Cumulative Student Clinical Hours (40h Minimum)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/clinical/hours/student/{{studentUserId}}/cohort/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "clinical",
+                "hours",
+                "student",
+                "{{studentUserId}}",
+                "cohort",
+                "1"
+              ]
+            },
+            "description": "Verifies student total accumulated clinical hours toward the statutory 40-hour graduation threshold."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "10. Exam Security & Proctoring (WAC 246-841A-440(9))",
+      "description": "Webcam snapshot identity verification, active tab-blur telemetry, and post-exam proctoring audit verification.",
+      "item": [
+        {
+          "name": "10.1 Start Proctored Exam Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/exam-security/sessions/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "exam-security",
+                "sessions",
+                "start"
+              ]
+            },
+            "description": "Student begins secure proctored examination with facial & ID snapshot verification.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"exerciseId\": 1,\n  \"webcamSnapshotUrl\": \"https://storage.alikohub.com/proctoring/webcam-face-verify-001.jpg\",\n  \"photoIdSnapshotUrl\": \"https://storage.alikohub.com/proctoring/photo-id-verify-001.jpg\",\n  \"clientIp\": \"198.51.100.42\",\n  \"userAgent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.id) pm.environment.set(\"sessionId\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "10.2 Record Tab-Blur / Window Switch Telemetry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/exam-security/sessions/tab-blur",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "exam-security",
+                "sessions",
+                "tab-blur"
+              ]
+            },
+            "description": "Client reports loss of browser window focus during exam.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": 1,\n  \"blurDurationSeconds\": 4,\n  \"currentQuestionIndex\": 14\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10.3 End Proctored Exam Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/exam-security/sessions/end",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "exam-security",
+                "sessions",
+                "end"
+              ]
+            },
+            "description": "Finalizes exam security session with duration and integrity metrics.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Exam session finalized\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "10.4 Get Exam Session Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/exam-security/sessions/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "exam-security",
+                "sessions",
+                "1"
+              ]
+            },
+            "description": "Retrieve security audit trail including blur counts and identity verification photos."
+          },
+          "response": []
+        },
+        {
+          "name": "10.5 Audit Exam Session (Instructor Verification)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/exam-security/sessions/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "exam-security",
+                "sessions",
+                "audit"
+              ]
+            },
+            "description": "Instructor verifies and approves exam session integrity.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": 1,\n  \"isFlagged\": false,\n  \"auditNotes\": \"Reviewed tab blur incident; minor 4-second notification popup. Identity confirmed. No academic dishonesty.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "11. Instructor Qualifications & RN Credentialing (WAC 246-841A-440(10))",
+      "description": "Validates instructor active RN license, train-the-trainer certificate, and clinical experience prior to cohort instruction.",
+      "item": [
+        {
+          "name": "11.1 Register RN Instructor Credentials",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/instructors/credentials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "instructors",
+                "credentials"
+              ]
+            },
+            "description": "Nurse registers state license and specialized teaching qualifications.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rnLicenseNumber\": \"RN60894512\",\n  \"licenseState\": \"WA\",\n  \"licenseExpiration\": \"2027-08-31T00:00:00.000Z\",\n  \"trainTheTrainerCertUrl\": \"https://storage.alikohub.com/credentials/train-the-trainer-cert.pdf\",\n  \"yearsClinicalExperience\": 7,\n  \"highestDegree\": \"MSN - Nursing Education\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Credentials registered\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "11.2 Get Instructor Credential Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/instructors/credentials/{{instructorUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "instructors",
+                "credentials",
+                "{{instructorUserId}}"
+              ]
+            },
+            "description": "Inspect RN license and verification status."
+          },
+          "response": []
+        },
+        {
+          "name": "11.3 Approve Instructor Credentials (Director)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/instructors/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "instructors",
+                "approve"
+              ]
+            },
+            "description": "Program Director approves RN instructor to lead cohorts.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instructorUserId\": \"{{instructorUserId}}\",\n  \"status\": \"APPROVED\",\n  \"directorNotes\": \"Verified active unencumbered WA RN license on DOH portal. Train-the-trainer certificate verified on file.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "11.4 List All Program Instructors (Auditor/Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/instructors/all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "instructors",
+                "all"
+              ]
+            },
+            "description": "Review all approved instructional staff and their active licensing status."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "12. Course Quality Evaluations (WAC 246-841A-440(11))",
+      "description": "End-of-course student evaluation surveys collecting quality improvement analytics on theory, clinical, instructor effectiveness, and support.",
+      "item": [
+        {
+          "name": "12.1 Submit End-of-Course Evaluation Survey",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/evaluations/surveys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "evaluations",
+                "surveys"
+              ]
+            },
+            "description": "Student submits course feedback.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cohortId\": 1,\n  \"overallSatisfaction\": 5,\n  \"theoryEffectiveness\": 5,\n  \"clinicalRelevance\": 5,\n  \"instructorRating\": 5,\n  \"facilityRating\": 4,\n  \"feedbackComment\": \"The hybrid theory lectures combined with intensive skills checkoffs prepared me thoroughly for the NNAAP state board exam. Preceptor at PeaceHealth was outstanding.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Survey submitted\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "12.2 Get My Submitted Survey",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/evaluations/my-survey/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "evaluations",
+                "my-survey",
+                "1"
+              ]
+            },
+            "description": "Check submission status for Cohort 1."
+          },
+          "response": []
+        },
+        {
+          "name": "12.3 Get Cohort Evaluation Survey Analytics (Director)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/evaluations/cohort/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "evaluations",
+                "cohort",
+                "1"
+              ]
+            },
+            "description": "Aggregated survey statistics for Quality Improvement audits."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "13. Technical Support Desk & SLA Tracking (WAC 246-841A-440(12))",
+      "description": "Technical support ticketing and minimum hardware/software system requirements ensuring equitable student access under WABON distance education rules.",
+      "item": [
+        {
+          "name": "13.1 Get Minimum System Requirements",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/support-desk/system-requirements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "support-desk",
+                "system-requirements"
+              ]
+            },
+            "description": "Retrieve officially mandated hardware, OS, webcam, and internet bandwidth specifications."
+          },
+          "response": []
+        },
+        {
+          "name": "13.2 Create Technical Support Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/support-desk/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "support-desk",
+                "tickets"
+              ]
+            },
+            "description": "Student logs support request.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"EXAM_PROCTORING\",\n  \"priority\": \"HIGH\",\n  \"subject\": \"Webcam snapshot permission denied on Chrome Mac\",\n  \"description\": \"During exam session setup, Chrome indicates media permissions blocked by macOS system security.\",\n  \"deviceInfo\": \"MacBook Air M2, macOS 14.3 Sonoma, Chrome 120\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.id) pm.environment.set(\"ticketId\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "13.3 Get My Support Tickets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/support-desk/tickets/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "support-desk",
+                "tickets",
+                "me"
+              ]
+            },
+            "description": "Student views status of their open and resolved tickets."
+          },
+          "response": []
+        },
+        {
+          "name": "13.4 List All Support Tickets (Staff Queue)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/support-desk/tickets?status=OPEN&priority=HIGH",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "support-desk",
+                "tickets?status=OPEN&priority=HIGH"
+              ]
+            },
+            "description": "Support technicians review unresolved queue."
+          },
+          "response": []
+        },
+        {
+          "name": "13.5 Update Ticket Status & Resolution (SLA Compliance)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/support-desk/tickets/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "support-desk",
+                "tickets",
+                "1"
+              ]
+            },
+            "description": "Staff records ticket resolution and closes issue.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketId\": 1,\n  \"status\": \"RESOLVED\",\n  \"resolutionNotes\": \"Guided student via screen share to macOS System Settings > Privacy & Security > Camera > enable Chrome. Verified video stream functional.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "14. Gradebook & 80% Benchmark Verification (WAC 246-841A-440(13))",
+      "description": "Weighted grade calculations enforcing the mandatory 80% theory passing threshold, orientation census check, and CSV audit export.",
+      "item": [
+        {
+          "name": "14.1 Get Student Grade Report (80% Benchmark Gate)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/gradebook/student/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "gradebook",
+                "student",
+                "1"
+              ]
+            },
+            "description": "Inspect student theory grade, passing status (>=80%), clinical hours, and lab completion."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Grade report generated\", () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.meetsTheoryRequirement).to.be.a(\"boolean\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "14.2 Get Cohort Gradebook Matrix (Instructor)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/gradebook/cohort/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "gradebook",
+                "cohort",
+                "1"
+              ]
+            },
+            "description": "Instructor views comprehensive grade matrix for all enrolled students in Cohort 1."
+          },
+          "response": []
+        },
+        {
+          "name": "14.3 Export Cohort Gradebook CSV (WABON Format)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/gradebook/cohort/1/export-csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "gradebook",
+                "cohort",
+                "1",
+                "export-csv"
+              ]
+            },
+            "description": "Exports downloadable CSV roster with theory scores, attendance, and clinical checkoffs for state compliance files."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "15. Certification & QR Verification (WAC 246-841A-440(14))",
+      "description": "Issues WABON Certificate of Completion with tamper-evident digital verification hash and enables instant employer/state board validation.",
+      "item": [
+        {
+          "name": "15.1 Generate Official WABON Certificate of Completion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/certification/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "certification",
+                "generate"
+              ]
+            },
+            "description": "Validates all statutory prerequisites (60h theory >=80%, 16h lab checkoffs passed, 40h clinical complete) and generates signed certificate.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{studentUserId}}\",\n  \"cohortId\": 1,\n  \"programDirectorName\": \"Mary A. Smith, MSN, RN\",\n  \"programDirectorLicense\": \"RN60894512\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.certificateNumber) pm.environment.set(\"certificateNumber\", res.certificateNumber);",
+                  "    pm.test(\"Certificate generated with verification QR\", () => {",
+                  "        pm.expect(res.verificationUrl).to.exist;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "15.2 Verify WABON Certificate (Public / DOH / Employers)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/certification/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "certification",
+                "verify"
+              ]
+            },
+            "description": "Public/Employer verification endpoint confirming student graduation date and hours.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"certificateNumber\": \"{{certificateNumber}}\",\n  \"verificationCode\": \"WABON-ALIKO-2026-VERIFIED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Certificate authenticity verified\", () => pm.expect(pm.response.code).to.equal(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "16. Regulatory Compliance Dossier (WAC 246-841A-440(15))",
+      "description": "Generates comprehensive regulatory audit dossier assembling student paperwork, attendance, seat-time logs, skills matrix, and proctoring logs for DOH/WABON inspections.",
+      "item": [
+        {
+          "name": "16.1 Generate Complete Regulatory Compliance Dossier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/academy/compliance-exporter/dossier",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "academy",
+                "compliance-exporter",
+                "dossier"
+              ]
+            },
+            "description": "Generates complete regulatory dossier archive.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cohortId\": 1,\n  \"studentUserId\": \"{{studentUserId}}\",\n  \"includeFullLogs\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Compliance dossier generated\", () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.complianceReport).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
