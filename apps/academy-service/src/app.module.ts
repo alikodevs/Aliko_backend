@@ -20,6 +20,22 @@ import { ExercisesModule } from './exercises/exercises.module';
 import { AppController } from './app.controller';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { ChatModule } from './chat/chat.module';
+import { DiscussionsModule } from './discussions/discussions.module';
+import { AdmissionsModule } from './admissions/admissions.module';
+import { OrientationModule } from './orientation/orientation.module';
+import { CurriculumCrosswalkModule } from './curriculum-crosswalk/curriculum-crosswalk.module';
+import { StudyGroupsModule } from './study-groups/study-groups.module';
+import { SeatTimeModule } from './seat-time/seat-time.module';
+import { SkillsLabModule } from './skills-lab/skills-lab.module';
+import { ClinicalModule } from './clinical/clinical.module';
+import { ExamSecurityModule } from './exam-security/exam-security.module';
+import { InstructorsModule } from './instructors/instructors.module';
+import { EvaluationsModule } from './evaluations/evaluations.module';
+import { SupportDeskModule } from './support-desk/support-desk.module';
+import { GradebookModule } from './gradebook/gradebook.module';
+import { CertificationModule } from './certification/certification.module';
+import { ComplianceExporterModule } from './compliance-exporter/compliance-exporter.module';
+import { RubricsModule } from './rubrics/rubrics.module';
 import { PrismaService } from './database/prisma.service';
 import { AcademyOutboxPublisherWorker } from './modules/events/academy-outbox-publisher.worker';
 import { AcademyEventsConsumer } from './modules/events/academy-events.consumer';
@@ -46,6 +62,22 @@ import { UserServiceClient } from './integrations/user-service.client';
     ExercisesModule,
     AnnouncementsModule,
     ChatModule,
+    DiscussionsModule,
+    AdmissionsModule,
+    OrientationModule,
+    CurriculumCrosswalkModule,
+    StudyGroupsModule,
+    SeatTimeModule,
+    SkillsLabModule,
+    ClinicalModule,
+    ExamSecurityModule,
+    InstructorsModule,
+    EvaluationsModule,
+    SupportDeskModule,
+    GradebookModule,
+    CertificationModule,
+    ComplianceExporterModule,
+    RubricsModule,
   ],
   controllers: [AppController],
   providers: [
