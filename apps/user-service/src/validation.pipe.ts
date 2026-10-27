@@ -7,6 +7,10 @@ export class JoiValidationPipe implements PipeTransform {
   constructor(private schema: Joi.ObjectSchema) {}
 
   transform(value: any, metadata: ArgumentMetadata) {
+    if (value === undefined || value === null) {
+      return value;
+    }
+
     const { error, value: validatedValue } = this.schema.validate(value, {
       abortEarly: false,
       stripUnknown: true,

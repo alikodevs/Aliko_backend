@@ -9,8 +9,8 @@ set -e
 
 APP_DIR="/opt/alikohub"
 APP_USER="alikohub"
-REPO_URL="https://github.com/nattisam/alikohub-v2.git"
-BRANCH="dist-deploy"
+REPO_URL="https://github.com/alikodevs/Aliko_backend.git"
+BRANCH="main"
 NODE_VERSION="20"
 
 echo "============================================"

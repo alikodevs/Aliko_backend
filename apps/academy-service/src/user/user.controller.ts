@@ -1,4 +1,4 @@
-import { Controller, Logger, UsePipes } from '@nestjs/common';
+import { Controller, Logger, UsePipes, Get, Req, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { MessagePattern, Payload, EventPattern } from '@nestjs/microservices';
 import {
   UserService,
@@ -7,6 +7,7 @@ import {
 } from './user.service';
 import { AcademyRole } from '@prisma/client/academy';
 import { JoiValidationPipe } from '../common/pipes/joi-validation.pipe';
+import { AcademyProfileGuard } from '../auth';
 import {
   UserProfileSchema,
   SelectRoleSchema,
@@ -21,21 +22,27 @@ export class UserController {
 
   constructor(private readonly userService: UserService) {}
 
+  @Get(['profile', 'academy/profile', 'user/profile'])
   @MessagePattern({ cmd: 'get_academy_profile' })
-  @UsePipes(new JoiValidationPipe(UserProfileSchema))
+  @UseGuards(AcademyProfileGuard)
   async getProfile(
-    @Payload() payload: { user: AuthenticatedUser },
+    @Req() req?: any,
+    @Payload() payload?: { user: AuthenticatedUser },
   ): Promise<AcademyUserProfile> {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Received getProfile request for user: ${payload.user?.firebaseId}`,
+      `Received getProfile request for user: ${user?.firebaseId}`,
     );
     try {
-      return await this.userService.getOrCreateProfile(payload.user);
+      return await this.userService.getOrCreateProfile(user);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Failed to get academy profile for user ${payload.user?.firebaseId}: ${errorMessage}`,
+        `Failed to get academy profile for user ${user?.firebaseId}: ${errorMessage}`,
       );
       throw error;
     }

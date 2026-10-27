@@ -191,7 +191,7 @@ export const FindAllCoursesSchema = Joi.alternatives().try(
     clientCountry: Joi.string().optional().allow('', null),
   }).unknown(true),
   CourseQueryFields
-).description('Schema for fetching all courses with filters');
+).allow(null).optional().description('Schema for fetching all courses with filters');
 
 export const CourseIdSchema = Joi.object({
   id: Joi.number()

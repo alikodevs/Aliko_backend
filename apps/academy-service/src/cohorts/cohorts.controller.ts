@@ -102,7 +102,7 @@ export class CohortsController {
   }
 
   @MessagePattern({ cmd: 'update_cohort' })
-  @UseGuards(RoleGuard)
+  @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(UpdateCohortSchema))
   async update(
@@ -132,7 +132,7 @@ export class CohortsController {
   }
 
   @MessagePattern({ cmd: 'remove_cohort' })
-  @UseGuards(RoleGuard)
+  @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(CohortIdSchema))
   async remove(@Payload() payload: { id: number; user: AuthenticatedUser }) {

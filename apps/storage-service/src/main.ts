@@ -32,6 +32,8 @@ async function bootstrap() {
   };
   app.use('/uploads', express.static(uploadPath, staticOptions));
   app.use('/api/v1/uploads', express.static(uploadPath, staticOptions));
+  app.use('/upload', express.static(uploadPath, staticOptions));
+  app.use('/api/v1/upload', express.static(uploadPath, staticOptions));
   app.use(express.static(uploadPath, staticOptions));
 
   app.setGlobalPrefix('api/v1');

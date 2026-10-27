@@ -330,8 +330,18 @@ export class UserService {
 
 	async deleteProfile(firebaseId: string) {
 		this.logger.log(`Deleting profile for user: ${firebaseId}`);
-		return this.prisma.user.delete({
-			where: { firebaseId }
+		return this.prisma.$transaction(async (tx) => {
+			await tx.application.deleteMany({ where: { userId: firebaseId } });
+			await tx.academyUser.deleteMany({ where: { userId: firebaseId } });
+			await tx.contechUser.deleteMany({ where: { userId: firebaseId } });
+			await tx.consultancyUser.deleteMany({ where: { userId: firebaseId } });
+			await tx.eventsUser.deleteMany({ where: { userId: firebaseId } });
+			await tx.careersUser.deleteMany({ where: { userId: firebaseId } });
+			await tx.conshifterUser.deleteMany({ where: { userId: firebaseId } });
+			await tx.alikowashUser.deleteMany({ where: { userId: firebaseId } });
+			return tx.user.delete({
+				where: { firebaseId }
+			});
 		});
 	}
 

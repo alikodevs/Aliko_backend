@@ -47,14 +47,18 @@ export const GoogleLoginSchema = Joi.object({
 }).description('Schema for Google authentication');
 
 export const SelectAcademyRoleSchema = Joi.object({
-  userId: Joi.string().required().description('Firebase user ID'),
-  role: Joi.string().valid('student', 'teacher', 'instructor').required().lowercase().description('Role selected for Academy'),
-}).description('Schema for Academy role selection');
+  userId: Joi.string().optional().allow('', null).description('Firebase user ID or numeric user ID'),
+  role: Joi.string().valid('student', 'teacher', 'instructor', 'STUDENT', 'TEACHER', 'INSTRUCTOR', 'admin', 'ADMIN').optional().allow('', null).description('Role selected for Academy'),
+  newRole: Joi.string().optional().allow('', null).description('Alias for role'),
+}).unknown(true).description('Schema for Academy role selection');
 
 export const SwitchAcademyRoleSchema = Joi.object({
-  userId: Joi.string().required().description('Firebase user ID'),
-  newRole: Joi.string().valid('student', 'teacher', 'instructor').required().lowercase().description('New role to switch to'),
-}).description('Schema for switching Academy roles');
+  userId: Joi.string().optional().allow('', null).description('Firebase user ID or numeric user ID'),
+  newRole: Joi.string().optional().allow('', null).description('New role to switch to'),
+  role: Joi.string().optional().allow('', null).description('Alias for newRole'),
+  targetRole: Joi.string().optional().allow('', null).description('Alias for newRole'),
+  activeRole: Joi.string().optional().allow('', null).description('Alias for newRole'),
+}).unknown(true).description('Schema for switching Academy roles');
 
 export const UserStatusUpdateSchema = Joi.object({
   firebaseId: Joi.string().required().description('Firebase user ID'),

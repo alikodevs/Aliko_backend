@@ -1,5 +1,6 @@
-import { Controller, UsePipes, Logger, Post, Get, Body, Query, Patch, Param, Delete, UseFilters } from '@nestjs/common';
+import { Controller, UsePipes, Logger, Post, Get, Body, Query, Patch, Param, Delete, UseFilters, Req, BadRequestException } from '@nestjs/common';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
+import * as jwt from 'jsonwebtoken';
 import { AuthService } from './auth.service';
 import { SignUpDto, SignInDto } from './dto';
 import { SelectRoleDto, TeacherApplicationDto } from './dto/academy-roles.dto';
@@ -19,6 +20,29 @@ import {
 	ForgotPasswordSchema,
 	ResetPasswordSchema
 } from './auth.validation';
+
+export const extractUserIdFromReq = (data: any, req?: any): string | undefined => {
+	if (data?.userId) return String(data.userId).trim();
+	if (data?.firebaseId) return String(data.firebaseId).trim();
+	if (data?.id) return String(data.id).trim();
+	if (req?.user) {
+		const u = req.user;
+		return u.firebaseId || u.uid || (u.id ? String(u.id) : undefined) || u.userId;
+	}
+	if (req?.headers?.authorization) {
+		const authHeader = req.headers.authorization;
+		if (authHeader.startsWith('Bearer ')) {
+			const token = authHeader.substring(7);
+			try {
+				const decoded: any = jwt.decode(token);
+				if (decoded) {
+					return decoded.uid || decoded.firebaseId || (decoded.id ? String(decoded.id) : undefined) || decoded.sub || decoded.userId;
+				}
+			} catch (_e) {}
+		}
+	}
+	return undefined;
+};
 
 @Controller()
 @UseFilters(RpcExceptionFilter)
@@ -146,24 +170,44 @@ export class AuthController {
 		}
 	}
 
-	@Post('academy/select-role')
+	@Post(['academy/select-role', 'select-role', 'auth/academy/select-role'])
 	@MessagePattern({ cmd: 'select_academy_role' })
 	@UsePipes(new JoiValidationPipe(SelectAcademyRoleSchema))
-	async handleSelectRole(@Body() dto: SelectRoleDto, @Payload() payload: SelectRoleDto) {
-		const data = dto || payload;
-		this.logger.log(`Selecting Academy role ${data.role} for user: ${data.userId}`);
+	async handleSelectRole(
+		@Body() dto?: any,
+		@Payload() payload?: any,
+		@Req() req?: any,
+	) {
+		const data = dto || payload || {};
+		const userId = extractUserIdFromReq(data, req);
+		const role = data.role || data.newRole;
+		if (!userId) {
+			throw new BadRequestException('User ID is required or user must be authenticated with Bearer token');
+		}
+		if (!role) {
+			throw new BadRequestException('Role is required');
+		}
+		this.logger.log(`Selecting Academy role ${role} for user: ${userId}`);
 		try {
-			return await this.authService.selectAcademyRole(data.userId, data.role);
+			return await this.authService.selectAcademyRole(userId, role);
 		} catch (error) {
-			this.logger.error(`Failed to select Academy role ${data.role} for user ${data.userId}: ${error.message}`, error.stack);
+			this.logger.error(`Failed to select Academy role ${role} for user ${userId}: ${error.message}`, error.stack);
 			throw error;
 		}
 	}
 
-	@Post('academy/apply-teacher')
+	@Post(['academy/apply-teacher', 'apply-teacher', 'auth/academy/apply-teacher'])
 	@MessagePattern({ cmd: 'apply_teacher_role' })
-	async handleTeacherApplication(@Body() dto: TeacherApplicationDto, @Payload() payload: TeacherApplicationDto) {
-		const data = dto || payload;
+	async handleTeacherApplication(
+		@Body() dto?: any,
+		@Payload() payload?: any,
+		@Req() req?: any,
+	) {
+		const data = dto || payload || {};
+		const userId = extractUserIdFromReq(data, req);
+		if (userId && !data.userId) {
+			data.userId = userId;
+		}
 		this.logger.log(`Processing teacher application for user: ${data.userId}`);
 		try {
 			return await this.authService.applyForTeacherRole(data);
@@ -225,16 +269,29 @@ export class AuthController {
 		}
 	}
 
-	@Post('academy/switch-role')
+	@Post(['academy/switch-role', 'switch-role', 'auth/academy/switch-role'])
 	@MessagePattern({ cmd: 'switch_role' })
 	@UsePipes(new JoiValidationPipe(SwitchAcademyRoleSchema))
-	async handleSwitchRole(@Body() dto: { userId: string; newRole: string }, @Payload() payload: { userId: string; newRole: string }) {
-		const data = dto || payload;
-		this.logger.log(`Switching Academy role to ${data.newRole} for user: ${data.userId}`);
+	async handleSwitchRole(
+		@Body() dto?: any,
+		@Payload() payload?: any,
+		@Req() req?: any,
+	) {
+		const data = dto || payload || {};
+		const userId = extractUserIdFromReq(data, req);
+		const rawRole = data.newRole || data.role || data.targetRole || data.activeRole;
+		if (!userId) {
+			throw new BadRequestException('User ID is required or user must be authenticated with Bearer token');
+		}
+		if (!rawRole) {
+			throw new BadRequestException('newRole (or role) is required to switch roles');
+		}
+		const newRole = String(rawRole).trim();
+		this.logger.log(`Switching Academy role to ${newRole} for user: ${userId}`);
 		try {
-			return await this.authService.switchRole(data.userId, data.newRole);
+			return await this.authService.switchRole(userId, newRole);
 		} catch (error) {
-			this.logger.error(`Failed to switch Academy role for user ${data.userId}: ${error.message}`, error.stack);
+			this.logger.error(`Failed to switch Academy role for user ${userId}: ${error.message}`, error.stack);
 			throw error;
 		}
 	}

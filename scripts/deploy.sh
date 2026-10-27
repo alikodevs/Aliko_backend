@@ -36,7 +36,7 @@ npm run prisma:generate:all || {
 }
 
 echo "--> Building production microservices..."
-npx nx run-many --target=build --all
+npx nx run-many --target=build --all --skip-nx-cache
 
 echo "--> Syncing database schemas..."
 ./node_modules/.bin/prisma db push --schema=./apps/user-service/prisma/schema.prisma --accept-data-loss || true

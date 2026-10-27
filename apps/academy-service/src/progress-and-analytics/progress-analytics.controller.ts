@@ -20,71 +20,105 @@ export class ProgressAndAnalyticsController {
   private readonly logger = new Logger(ProgressAndAnalyticsController.name);
   constructor(private readonly service: ProgressAndAnalyticsService) {}
 
+  @Get([
+    'progress/instructor/stats',
+    'academy/progress/instructor/stats',
+  ])
   @MessagePattern({ cmd: 'get_instructor_stats' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
-  @UsePipes(new JoiValidationPipe(UserOnlyProgressSchema))
-  async instructorStats(@Payload() payload: { user: AuthenticatedUser }) {
+  async instructorStats(
+    @Req() req?: any,
+    @Payload() payload?: { user: AuthenticatedUser },
+  ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Instructor ${payload.user.firebaseId} fetching their platform stats`,
+      `Instructor ${user.firebaseId} fetching their platform stats`,
     );
     try {
-      return await this.service.getInstructorStats(payload.user);
+      return await this.service.getInstructorStats(user);
     } catch (error) {
       this.logger.error(
-        `Instructor ${payload.user.firebaseId} failed to fetch platform stats: ${error.message}`,
+        `Instructor ${user.firebaseId} failed to fetch platform stats: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Get([
+    'progress/course/:courseId/user/:targetUserId',
+    'academy/progress/course/:courseId/user/:targetUserId',
+  ])
   @MessagePattern({ cmd: 'get_user_progress' })
-  @UsePipes(new JoiValidationPipe(UserProgressSchema))
   async userProgress(
+    @Param('courseId') paramCourseId?: string,
+    @Param('targetUserId') paramTargetUserId?: string,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       targetUserId: string;
       courseId: number;
       user: AuthenticatedUser;
     },
   ) {
+    const rawCourseId = payload?.courseId !== undefined ? payload.courseId : paramCourseId;
+    const courseId = Number(rawCourseId);
+    const targetUserId = payload?.targetUserId || paramTargetUserId;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Fetching progress of student ${payload.targetUserId} in course ${payload.courseId} (requested by: ${payload.user.firebaseId})`,
+      `Fetching progress of student ${targetUserId} in course ${courseId} (requested by: ${user.firebaseId})`,
     );
     try {
       return await this.service.getUserProgress(
-        payload.user,
-        payload.targetUserId,
-        payload.courseId,
+        user,
+        targetUserId,
+        courseId,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to fetch progress of student ${payload.targetUserId} in course ${payload.courseId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch progress of student ${targetUserId} in course ${courseId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Get([
+    'progress/course/:courseId/analytics',
+    'academy/progress/course/:courseId/analytics',
+  ])
   @MessagePattern({ cmd: 'get_course_analytics' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
-  @UsePipes(new JoiValidationPipe(CourseAnalyticsSchema))
   async courseAnalytics(
-    @Payload() payload: { courseId: number; user: AuthenticatedUser },
+    @Param('courseId') paramCourseId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { courseId: number; user: AuthenticatedUser },
   ) {
+    const rawCourseId = payload?.courseId !== undefined ? payload.courseId : paramCourseId;
+    const courseId = Number(rawCourseId);
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Fetching aggregate analytics for course ID: ${payload.courseId} by: ${payload.user.firebaseId}`,
+      `Fetching aggregate analytics for course ID: ${courseId} by: ${user.firebaseId}`,
     );
     try {
       return await this.service.getCourseAnalytics(
-        payload.courseId,
-        payload.user,
+        courseId,
+        user,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to fetch aggregate analytics for course ID ${payload.courseId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch aggregate analytics for course ID ${courseId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;

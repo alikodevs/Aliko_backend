@@ -823,7 +823,17 @@ export class AuthService {
 
 	// Academy-specific authentication methods
 	async selectAcademyRole(userId: string, role: string) {
-		const user: any = await this.userService.findByFirebaseId(userId);
+		let user: any = null;
+		const numId = parseInt(userId);
+		if (!isNaN(numId) && String(numId) === String(userId).trim()) {
+			user = await this.userService.findById(numId);
+		}
+		if (!user) {
+			user = await this.userService.findByFirebaseId(userId);
+		}
+		if (!user && userId.includes('@')) {
+			user = await this.userService.findByEmail(userId);
+		}
 		if (!user) {
 			throw new RpcException({
 				statusCode: HttpStatus.NOT_FOUND,
@@ -862,11 +872,13 @@ export class AuthService {
 			// Check if user already has approved instructor role
 			if (user.academyUser && user.academyUser.role === 'INSTRUCTOR' && user.academyUser.status === 'ACTIVE') {
 				// User already has approved instructor role
+				const tokens = this.generateTokens(user);
 				return {
 					message: 'Instructor role already assigned',
 					role: 'INSTRUCTOR',
 					status: 'ACTIVE',
 					user: this.toPlain(user),
+					...tokens,
 				};
 			}
 			
@@ -1071,7 +1083,17 @@ export class AuthService {
 	}
 
 	async switchRole(userId: string, newRole: string) {
-		const user: any = await this.userService.findByFirebaseId(userId);
+		let user: any = null;
+		const numId = parseInt(userId);
+		if (!isNaN(numId) && String(numId) === String(userId).trim()) {
+			user = await this.userService.findById(numId);
+		}
+		if (!user) {
+			user = await this.userService.findByFirebaseId(userId);
+		}
+		if (!user && userId.includes('@')) {
+			user = await this.userService.findByEmail(userId);
+		}
 		if (!user) {
 			throw new RpcException({
 				statusCode: HttpStatus.NOT_FOUND,
@@ -1101,17 +1123,48 @@ export class AuthService {
 				error: 'Forbidden',
 			});
 		}
-		const userRole = user.academyUser?.role?.toUpperCase();
+
+		// Check if user has an approved instructor application
+		let hasApprovedInstructorApp = false;
+		try {
+			const app = await this.prisma.application.findFirst({
+				where: {
+					userId: user.firebaseId,
+					domain: 'academy',
+					status: 'APPROVED',
+					requestedRole: { in: ['INSTRUCTOR', 'TEACHER'] }
+				}
+			});
+			if (app) hasApprovedInstructorApp = true;
+		} catch (_e) {}
+
+		let userRole = user.academyUser?.role?.toUpperCase();
 		
 		if (!user.academyUser) {
-			throw new RpcException({
-				statusCode: HttpStatus.FORBIDDEN,
-				message: `User is not enrolled in Academy`,
-				error: 'Forbidden',
+			const defaultRole = hasApprovedInstructorApp ? AcademyRole.INSTRUCTOR : AcademyRole.STUDENT;
+			const createdAcademyUser = await this.prisma.academyUser.create({
+				data: {
+					userId: user.firebaseId,
+					role: defaultRole,
+					activeRole: defaultRole,
+					status: 'ACTIVE'
+				}
 			});
+			user.academyUser = createdAcademyUser;
+			userRole = defaultRole;
 		}
 
-		const userRoleLevel = ROLE_HIERARCHY[userRole] || 0;
+		let userRoleLevel = ROLE_HIERARCHY[userRole] || 0;
+		if (hasApprovedInstructorApp && userRoleLevel < 2) {
+			userRoleLevel = 2;
+			if (user.academyUser.role !== 'INSTRUCTOR') {
+				await this.prisma.academyUser.update({
+					where: { userId: user.firebaseId },
+					data: { role: AcademyRole.INSTRUCTOR }
+				});
+			}
+		}
+
 		const targetRoleLevel = ROLE_HIERARCHY[targetRole];
 
 		if (targetRoleLevel === undefined) {
@@ -1131,7 +1184,7 @@ export class AuthService {
 		}
 
 		// Update active role
-		await this.userService.updateActiveAcademyRole(user.firebaseId, newRole.toUpperCase());
+		await this.userService.updateActiveAcademyRole(user.firebaseId, targetRole);
 
 		// Re-fetch user to get the updated information
 		const updatedUser: any = await this.userService.findById(user.id);
@@ -1141,7 +1194,7 @@ export class AuthService {
 
 		return {
 			message: 'Role switched successfully',
-			activeRole: newRole.toUpperCase(),
+			activeRole: targetRole,
 			user: this.toPlain(updatedUser),
 			...tokens,
 		};
@@ -1494,7 +1547,14 @@ export class AuthService {
 	}
 
 	async syncAcademyUser(userId: string) {
-		const user = await this.userService.findByFirebaseId(userId);
+		let user: any = null;
+		const numId = parseInt(userId);
+		if (!isNaN(numId) && String(numId) === String(userId).trim()) {
+			user = await this.userService.findById(numId);
+		}
+		if (!user) {
+			user = await this.userService.findByFirebaseId(userId);
+		}
 		if (!user) {
 			throw new RpcException({
 				statusCode: HttpStatus.NOT_FOUND,
