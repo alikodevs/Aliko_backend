@@ -40,7 +40,7 @@ export class SupportDeskService {
         profile: {
           select: {
             userId: true,
-            userType: true,
+            role: true,
           },
         },
       },
@@ -61,7 +61,7 @@ export class SupportDeskService {
         profile: {
           select: {
             userId: true,
-            userType: true,
+            role: true,
           },
         },
       },
@@ -108,7 +108,7 @@ export class SupportDeskService {
           profile: {
             select: {
               userId: true,
-              userType: true,
+              role: true,
             },
           },
         },

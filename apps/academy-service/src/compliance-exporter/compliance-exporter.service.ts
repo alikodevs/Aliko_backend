@@ -43,7 +43,7 @@ export class ComplianceExporterService {
         profile: {
           select: {
             userId: true,
-            userType: true,
+            role: true,
           },
         },
       },

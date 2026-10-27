@@ -250,7 +250,7 @@ export class GradebookService {
         profile: {
           select: {
             userId: true,
-            userType: true,
+            role: true,
           },
         },
       },
