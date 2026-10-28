@@ -159,6 +159,10 @@ async function bootstrap() {
         '/api/v1/profile/**',
         '/profile',
         '/profile/**',
+        '/api/v1/forgot-password',
+        '/forgot-password',
+        '/api/v1/reset-password',
+        '/reset-password',
       ],
       pathRewrite: {
         '^/api/v1/auth': '/api/v1',
@@ -167,6 +171,8 @@ async function bootstrap() {
         '^/api/v1/users': '/api/v1',
         '^/rbac': '/api/v1/rbac',
         '^/profile': '/api/v1/profile',
+        '^/forgot-password': '/api/v1/forgot-password',
+        '^/reset-password': '/api/v1/reset-password',
       },
     })
   );

@@ -392,7 +392,7 @@ export class AuthController {
 		}
 	}
 
-	@Post('forgot-password')
+	@Post(['forgot-password', 'auth/forgot-password'])
 	@MessagePattern({ cmd: 'forgot_password' })
 	@UsePipes(new JoiValidationPipe(ForgotPasswordSchema))
 	async forgotPassword(
@@ -413,7 +413,7 @@ export class AuthController {
 		}
 	}
 
-	@Post('reset-password')
+	@Post(['reset-password', 'auth/reset-password'])
 	@MessagePattern({ cmd: 'reset_password' })
 	@UsePipes(new JoiValidationPipe(ResetPasswordSchema))
 	async resetPassword(@Body() body: any, @Payload() payload: any) {

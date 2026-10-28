@@ -1,4 +1,15 @@
-import { Controller, Logger, UsePipes, Get, Req, UseGuards, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Logger,
+  UsePipes,
+  Get,
+  Post,
+  Body,
+  Req,
+  UseGuards,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { MessagePattern, Payload, EventPattern } from '@nestjs/microservices';
 import {
   UserService,
@@ -66,23 +77,36 @@ export class UserController {
     }
   }
 
-  // New method for role selection - matching ConTech pattern more closely
+  // Role selection - supports direct HTTP and microservice TCP
+  @Post(['select-role', 'academy/select-role', 'user/select-role'])
   @MessagePattern({ cmd: 'select_academy_role' })
+  @UseGuards(AcademyProfileGuard)
   @UsePipes(new JoiValidationPipe(SelectRoleSchema))
   async selectRole(
+    @Body() body?: any,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       user: AuthenticatedUser;
       userId: string;
       role: AcademyRole;
     },
   ) {
-    this.logger.log(
-      `Received selectRole request for user: ${payload.userId} to role: ${payload.role}`,
-    );
+    const data = payload || body || {};
+    const user = payload?.user || req?.user;
+    const userId = data.userId || user?.firebaseId || user?.userId || user?.id;
+    const role = data.role;
 
-    const userId = payload.userId;
-    const role = payload.role;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    if (!role) {
+      throw new BadRequestException('Role is required');
+    }
+
+    this.logger.log(
+      `Received selectRole request for user: ${userId} to role: ${role}`,
+    );
 
     try {
       const result = await this.userService.selectRole(userId, role);
@@ -125,34 +149,48 @@ export class UserController {
     }
   }
 
+  @Post(['forgot-password', 'academy/forgot-password'])
   @MessagePattern({ cmd: 'forgot_password' })
   @UsePipes(new JoiValidationPipe(ForgotPasswordSchema))
   async forgotPassword(
+    @Body() body?: { email: string; frontendUrl?: string; app?: string },
     @Payload()
-    payload: { email: string; frontendUrl?: string; app?: string },
+    payload?: { email: string; frontendUrl?: string; app?: string },
   ) {
-    this.logger.log(`Received forgotPassword request for: ${payload.email}`);
+    const data = payload?.email ? payload : body;
+    if (!data?.email) {
+      throw new BadRequestException('Email is required');
+    }
+    this.logger.log(`Received forgotPassword request for: ${data.email}`);
     try {
-      return await this.userService.forgotPassword(payload);
+      return await this.userService.forgotPassword(data);
     } catch (error) {
       this.logger.error(
-        `Forgot password failed for ${payload.email}: ${error.message}`,
+        `Forgot password failed for ${data.email}: ${error.message}`,
       );
       throw error;
     }
   }
 
+  @Post(['reset-password', 'academy/reset-password'])
   @MessagePattern({ cmd: 'reset_password' })
   @UsePipes(new JoiValidationPipe(ResetPasswordSchema))
-  async resetPassword(@Payload() payload: any) {
+  async resetPassword(
+    @Body() body?: any,
+    @Payload() payload?: any,
+  ) {
+    const data = payload?.newPassword || payload?.token ? payload : body;
+    if (!data?.token || !data?.newPassword) {
+      throw new BadRequestException('Token and newPassword are required');
+    }
     this.logger.log(
-      `Received resetPassword request for: ${payload.email || '(token)'}`,
+      `Received resetPassword request for: ${data.email || '(token)'}`,
     );
     try {
-      return await this.userService.resetPassword(payload);
+      return await this.userService.resetPassword(data);
     } catch (error) {
       this.logger.error(
-        `Reset password failed for ${payload.email || '(token)'}: ${error.message}`,
+        `Reset password failed for ${data.email || '(token)'}: ${error.message}`,
       );
       throw error;
     }
