@@ -1,4 +1,20 @@
-import { Controller, UseGuards, UsePipes, Logger } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  UsePipes,
+  Logger,
+  Get,
+  Post,
+  Patch,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  Req,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ContentService } from './content.service';
 import { CreateContentDto } from './dto/create-content.dto';
@@ -34,49 +50,72 @@ export class ContentController {
   private readonly logger = new Logger(ContentController.name);
   constructor(private readonly contentService: ContentService) {}
 
+  @Get(['content/lesson/:lessonId', 'academy/content/lesson/:lessonId'])
   @MessagePattern({ cmd: 'find_content_by_lesson' })
   @UsePipes(new JoiValidationPipe(LessonIdContentSchema))
   async findByLesson(
+    @Param('lessonId') paramLessonId?: string,
+    @Query() query?: any,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       lessonId: number;
       user: AuthenticatedUser;
       query?: any;
     },
   ) {
+    const rawLessonId = payload?.lessonId !== undefined ? payload.lessonId : paramLessonId;
+    const lessonId = Number(rawLessonId);
+    if (!lessonId || isNaN(lessonId)) {
+      throw new BadRequestException('Invalid lesson ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const q = payload?.query || query;
+
     this.logger.log(
-      `Fetching content for lesson ID: ${payload.lessonId} (requested by: ${payload.user.firebaseId})`,
+      `Fetching content for lesson ID: ${lessonId} (requested by: ${user.firebaseId})`,
     );
     try {
-      return await this.contentService.findByLesson(
-        payload.lessonId,
-        payload.user,
-        payload.query,
-      );
+      return await this.contentService.findByLesson(lessonId, user, q);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch content for lesson ID ${payload.lessonId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch content for lesson ID ${lessonId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Post(['content', 'academy/content'])
   @MessagePattern({ cmd: 'create_content' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(CreateContentSchema))
   async create(
-    @Payload() payload: { dto: CreateContentDto; user: AuthenticatedUser },
+    @Body() body?: CreateContentDto,
+    @Req() req?: any,
+    @Payload() payload?: { dto: CreateContentDto; user: AuthenticatedUser },
   ) {
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Content data is required');
+    }
+
     this.logger.log(
-      `Creating content "${payload.dto.title}" for lesson ${payload.dto.lessonId} by user: ${payload.user.firebaseId}`,
+      `Creating content "${dto.title}" for lesson ${dto.lessonId} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.contentService.create(payload.dto, payload.user);
+      return await this.contentService.create(dto, user);
     } catch (error) {
       this.logger.error(
-        `Failed to create content "${payload.dto.title}" for lesson ${payload.dto.lessonId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to create content "${dto.title}" for lesson ${dto.lessonId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -114,149 +153,245 @@ export class ContentController {
     }
   }
 
+  @Get(['content', 'academy/content'])
   @MessagePattern({ cmd: 'find_all_content' })
   @UseGuards(RoleGuard)
   @Roles('ADMIN')
   @UsePipes(new JoiValidationPipe(FindContentQuerySchema))
-  async findAll(@Payload() payload: { user: AuthenticatedUser; query?: any }) {
+  async findAll(
+    @Query() query?: any,
+    @Req() req?: any,
+    @Payload() payload?: { user: AuthenticatedUser; query?: any },
+  ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const q = payload?.query || query;
+
     this.logger.log(
-      `Admin ${payload.user.firebaseId} fetching all content with query: ${JSON.stringify(payload.query)}`,
+      `Admin ${user.firebaseId} fetching all content with query: ${JSON.stringify(q)}`,
     );
     try {
-      return await this.contentService.findAll(payload.user, payload.query);
+      return await this.contentService.findAll(user, q);
     } catch (error) {
       this.logger.error(
-        `Admin ${payload.user.firebaseId} failed to fetch all content: ${error.message}`,
+        `Admin ${user.firebaseId} failed to fetch all content: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Get(['content/instructor', 'academy/content/instructor'])
   @MessagePattern({ cmd: 'find_instructor_content' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(FindContentQuerySchema))
   async findInstructorContent(
-    @Payload() payload: { user: AuthenticatedUser; query?: any },
+    @Query() query?: any,
+    @Req() req?: any,
+    @Payload() payload?: { user: AuthenticatedUser; query?: any },
   ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const q = payload?.query || query;
+
     this.logger.log(
-      `Instructor ${payload.user.firebaseId} fetching their content`,
+      `Instructor ${user.firebaseId} fetching their content`,
     );
     try {
-      return await this.contentService.findByInstructor(
-        payload.user,
-        payload.query,
-      );
+      return await this.contentService.findByInstructor(user, q);
     } catch (error) {
       this.logger.error(
-        `Instructor ${payload.user.firebaseId} failed to fetch their content: ${error.message}`,
+        `Instructor ${user.firebaseId} failed to fetch their content: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Get(['content/:id', 'academy/content/:id'])
   @MessagePattern({ cmd: 'find_content_by_id' })
   @UsePipes(new JoiValidationPipe(ContentIdSchema))
-  async findOne(@Payload() payload: { id: number; user: AuthenticatedUser }) {
+  async findOne(
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
+  ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid content ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
     this.logger.log(
-      `Fetching content details for ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+      `Fetching content details for ID: ${id} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.contentService.findOne(payload);
+      return await this.contentService.findOne({ id, user });
     } catch (error) {
       this.logger.error(
-        `Failed to fetch content details for ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch content details for ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Patch(['content/:id', 'academy/content/:id'])
+  @Put(['content/:id', 'academy/content/:id'])
   @MessagePattern({ cmd: 'update_content' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(UpdateContentSchema))
   async update(
+    @Param('id') paramId?: string,
+    @Body() body?: UpdateContentDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       id: number;
       dto: UpdateContentDto;
       user: AuthenticatedUser;
     },
   ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid content ID');
+    }
+    const dto = payload?.dto || body;
+    if (!dto) {
+      throw new BadRequestException('Content update data is required');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
     this.logger.log(
-      `Updating content ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+      `Updating content ID: ${id} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.contentService.update(payload);
+      return await this.contentService.update({ id, dto, user });
     } catch (error) {
       this.logger.error(
-        `Failed to update content ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to update content ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Delete(['content/:id', 'academy/content/:id'])
   @MessagePattern({ cmd: 'remove_content' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(ContentIdSchema))
-  async remove(@Payload() payload: { id: number; user: AuthenticatedUser }) {
+  async remove(
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
+  ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid content ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
     this.logger.log(
-      `Removing content ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+      `Removing content ID: ${id} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.contentService.remove(payload);
+      return await this.contentService.remove({ id, user });
     } catch (error) {
       this.logger.error(
-        `Failed to remove content ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to remove content ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Get(['content/course/:courseId', 'academy/content/course/:courseId'])
   @MessagePattern({ cmd: 'find_content_by_course' })
   @UsePipes(new JoiValidationPipe(CourseIdContentSchema))
   async findByCourse(
-    @Payload() payload: { courseId: number; user: AuthenticatedUser },
+    @Param('courseId') paramCourseId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { courseId: number; user: AuthenticatedUser },
   ) {
+    const rawCourseId = payload?.courseId !== undefined ? payload.courseId : paramCourseId;
+    const courseId = Number(rawCourseId);
+    if (!courseId || isNaN(courseId)) {
+      throw new BadRequestException('Invalid course ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
     this.logger.log(
-      `Fetching all content for course ID: ${payload.courseId} (requested by: ${payload.user.firebaseId})`,
+      `Fetching all content for course ID: ${courseId} (requested by: ${user.firebaseId})`,
     );
     try {
-      return await this.contentService.findByCourse(payload);
+      return await this.contentService.findByCourse({ courseId, user });
     } catch (error) {
       this.logger.error(
-        `Failed to fetch content for course ID ${payload.courseId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch content for course ID ${courseId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Get(['content/search/query', 'academy/content/search/query'])
   @MessagePattern({ cmd: 'search_content' })
   @UsePipes(new JoiValidationPipe(SearchContentSchema))
   async searchContent(
+    @Query('query') queryParam?: string,
+    @Query('type') typeParam?: string,
+    @Query('courseId') courseIdParam?: string,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       query: string;
       type?: string;
       courseId?: number;
       user: AuthenticatedUser;
     },
   ) {
+    const query = payload?.query || queryParam;
+    if (!query) {
+      throw new BadRequestException('Search query is required');
+    }
+    const type = payload?.type || typeParam;
+    const rawCourseId = payload?.courseId !== undefined ? payload.courseId : courseIdParam;
+    const courseId = rawCourseId ? Number(rawCourseId) : undefined;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
     this.logger.log(
-      `Searching content with query: "${payload.query}" (requested by: ${payload.user.firebaseId})`,
+      `Searching content with query: "${query}" (requested by: ${user.firebaseId})`,
     );
     try {
-      return await this.contentService.searchContent(payload as any);
+      return await this.contentService.searchContent({ query, type, courseId, user } as any);
     } catch (error) {
       this.logger.error(
-        `Failed to search content with query "${payload.query}" by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to search content with query "${query}" by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;

@@ -298,6 +298,10 @@ async function bootstrap() {
         '/api/v1/compliance-exporter/**',
         '/compliance-exporter',
         '/compliance-exporter/**',
+        '/api/v1/teaching-schedule',
+        '/api/v1/teaching-schedule/**',
+        '/teaching-schedule',
+        '/teaching-schedule/**',
       ],
       pathRewrite: {
         '^/api/v1/academy': '/api/v1',
@@ -329,6 +333,7 @@ async function bootstrap() {
         '^/gradebook': '/api/v1/gradebook',
         '^/certification': '/api/v1/certification',
         '^/compliance-exporter': '/api/v1/compliance-exporter',
+        '^/teaching-schedule': '/api/v1/teaching-schedule',
       },
 
 
