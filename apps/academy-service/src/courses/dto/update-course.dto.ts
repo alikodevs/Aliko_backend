@@ -15,6 +15,10 @@ export class UpdateCourseDto {
 
   @IsString()
   @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsOptional()
   shortDescription?: string;
 
   @IsString()

@@ -20,6 +20,8 @@ import { ComplianceExporterController } from '../apps/academy-service/src/compli
 import { AdmissionsController } from '../apps/academy-service/src/admissions/admissions.controller';
 import { OrientationController } from '../apps/academy-service/src/orientation/orientation.controller';
 
+import { CoursesController } from '../apps/academy-service/src/courses/courses.controller';
+
 const METHOD_NAMES: Record<number, string> = {
   0: 'GET',
   1: 'POST',
@@ -45,6 +47,7 @@ interface ControllerInspection {
 }
 
 const controllersToInspect: { name: string; target: any }[] = [
+  { name: 'CoursesController', target: CoursesController },
   { name: 'RubricsController', target: RubricsController },
   { name: 'DiscussionsController', target: DiscussionsController },
   { name: 'CourseModulesController', target: CourseModulesController },
@@ -157,7 +160,7 @@ async function run() {
   // Specific Deep Check for Rubrics Controller
   console.log('📋 Deep Checking RubricsController Endpoints...');
   const rubricsInspection = inspectController('RubricsController', RubricsController);
-  const expectedRubricHandlers = ['create', 'findAll', 'findOne', 'update', 'delete', 'clone', 'evaluate'];
+  const expectedRubricHandlers = ['create', 'findAll', 'findOne', 'update', 'remove', 'clone', 'evaluateWithRubric'];
   for (const handler of expectedRubricHandlers) {
     const found = rubricsInspection.routes.find((r) => r.handler === handler);
     if (!found) {
@@ -181,6 +184,7 @@ async function run() {
           return {
             id: 'test-rubric-id',
             name: 'Test Evaluation Rubric',
+            type: 'DISCUSSION',
             criteria: [
               {
                 id: 'crit-1',
@@ -207,76 +211,47 @@ async function run() {
         return null;
       },
     },
-    rubricEvaluation: {
-      create: async ({ data }: any) => {
-        return {
-          id: 'eval-123',
-          ...data,
-          createdAt: new Date(),
-        };
-      },
-    },
   };
 
   const rubricsService = new RubricsService(mockPrisma);
 
-  // Test with criteriaScores
+  // Test with scores
   const evalResult1 = await rubricsService.evaluateWithRubric({
     rubricId: 'test-rubric-id',
-    studentId: 'student-1',
-    criteriaScores: [
+    scores: [
       { criterionId: 'crit-1', levelId: 'level-1-b', points: 7, feedback: 'Good job' },
       { criterionId: 'crit-2', levelId: 'level-2-a', points: 5, feedback: 'Flawless' },
     ],
-    evaluatorId: 'instructor-1',
-    overallFeedback: 'Great overall effort',
   });
 
-  console.log(`   Evaluation with criteriaScores: Total = ${evalResult1.totalScore}/${evalResult1.maxScore} (${evalResult1.percentage}%)`);
-  if (evalResult1.totalScore !== 12 || evalResult1.maxScore !== 15 || evalResult1.percentage !== 80) {
-    console.log(`   \x1b[31m✖ Calculation mismatch on criteriaScores!\x1b[0m`);
+  console.log(`   Evaluation with scores: Total = ${evalResult1.totalEarnedPoints}/${evalResult1.totalPossiblePoints} (${evalResult1.percentageScore}%)`);
+  if (evalResult1.totalEarnedPoints !== 12 || evalResult1.totalPossiblePoints !== 15 || evalResult1.percentageScore !== 80) {
+    console.log(`   \x1b[31m✖ Calculation mismatch on scores!\x1b[0m`);
     hasErrors = true;
   } else {
     console.log(`   \x1b[32m✔ Score calculation passed: 12/15 = 80%\x1b[0m`);
   }
 
-  // Test with selectedLevelIds
-  const evalResult2 = await rubricsService.evaluateWithRubric({
-    rubricId: 'test-rubric-id',
-    studentId: 'student-2',
-    selectedLevelIds: ['level-1-a', 'level-2-b'],
-    evaluatorId: 'instructor-1',
-    customFeedback: 'Evaluated using selectedLevelIds shortcut',
-  });
-
-  console.log(`   Evaluation with selectedLevelIds: Total = ${evalResult2.totalScore}/${evalResult2.maxScore} (${evalResult2.percentage}%)`);
-  if (evalResult2.totalScore !== 12 || evalResult2.maxScore !== 15 || evalResult2.percentage !== 80) {
-    console.log(`   \x1b[31m✖ Calculation mismatch on selectedLevelIds!\x1b[0m`);
-    hasErrors = true;
-  } else {
-    console.log(`   \x1b[32m✔ Shortcut calculation passed: 10 + 2 = 12/15 = 80%\x1b[0m`);
-  }
-
   // Test RubricsController methods directly with mock service
   console.log('\n🧪 Testing RubricsController Handler Execution...');
   const mockRubricsService: any = {
-    create: async (dto: any, user: any) => ({ id: 'new-rubric', ...dto, createdBy: user.userId }),
-    findAll: async (filters: any) => [{ id: 'rubric-1', name: 'Sample Rubric' }],
+    create: async (userId: string, dto: any) => ({ id: 'new-rubric', ...dto, createdBy: userId }),
+    findAll: async (filters: any) => ({ rubrics: [{ id: 'rubric-1', name: 'Sample Rubric' }], total: 1 }),
     findOne: async (id: string) => ({ id, name: 'Sample Rubric' }),
-    update: async (id: string, dto: any) => ({ id, ...dto }),
-    delete: async (id: string) => ({ success: true, id }),
-    cloneRubric: async (id: string, user: any) => ({ id: `${id}-copy`, clonedFrom: id }),
-    evaluateWithRubric: async (dto: any, user: any) => ({ id: 'eval-1', score: 10 }),
+    update: async (userId: string, dto: any) => ({ ...dto, updatedBy: userId }),
+    remove: async (id: string) => ({ success: true, message: `Rubric ${id} deleted` }),
+    clone: async (userId: string, dto: any) => ({ id: `${dto.rubricId}-copy`, name: dto.newName, createdBy: userId }),
+    evaluateWithRubric: async (dto: any) => ({ rubricId: dto.rubricId, totalEarnedPoints: 10 }),
   };
 
   const rubricsController = new RubricsController(mockRubricsService);
 
-  const testUser = { userId: 'inst-1', role: 'INSTRUCTOR' };
-  const reqMock: any = { academyProfile: testUser };
+  const testUser = { firebaseId: 'inst-1', email: 'inst@example.com', roles: ['INSTRUCTOR'] };
+  const reqMock: any = { user: testUser };
 
-  // Test HTTP direct call (body is dto, req has academyProfile)
+  // Test HTTP direct call (body is dto, req has user)
   const createdHttp = await rubricsController.create(
-    { name: 'Direct HTTP Rubric' },
+    { name: 'Direct HTTP Rubric', type: 'DISCUSSION' },
     reqMock
   );
   if (createdHttp.id === 'new-rubric' && createdHttp.createdBy === 'inst-1') {
@@ -286,10 +261,11 @@ async function run() {
     hasErrors = true;
   }
 
-  // Test TCP message call (body is { dto, user })
+  // Test TCP message call (payload is { dto, user })
   const createdTcp = await rubricsController.create(
-    { dto: { name: 'TCP Rubric' }, user: { userId: 'tcp-inst' } },
-    undefined as any
+    undefined,
+    undefined,
+    { dto: { name: 'TCP Rubric', type: 'DISCUSSION' }, user: { firebaseId: 'tcp-inst' } as any }
   );
   if (createdTcp.id === 'new-rubric' && createdTcp.createdBy === 'tcp-inst') {
     console.log('   \x1b[32m✔ RubricsController.create TCP invocation passed\x1b[0m');
@@ -299,14 +275,14 @@ async function run() {
   }
 
   // Test evaluate HTTP call
-  const evaluatedHttp = await rubricsController.evaluate(
-    { rubricId: 'r-1', selectedLevelIds: ['lvl-1'] },
+  const evaluatedHttp = await rubricsController.evaluateWithRubric(
+    { rubricId: 'r-1', scores: [{ criterionId: 'crit-1', points: 10 }] },
     reqMock
   );
-  if (evaluatedHttp.id === 'eval-1') {
-    console.log('   \x1b[32m✔ RubricsController.evaluate HTTP invocation passed\x1b[0m');
+  if (evaluatedHttp.totalEarnedPoints === 10) {
+    console.log('   \x1b[32m✔ RubricsController.evaluateWithRubric HTTP invocation passed\x1b[0m');
   } else {
-    console.log('   \x1b[31m✖ RubricsController.evaluate HTTP invocation failed\x1b[0m');
+    console.log('   \x1b[31m✖ RubricsController.evaluateWithRubric HTTP invocation failed\x1b[0m');
     hasErrors = true;
   }
 

@@ -17,11 +17,15 @@ export class CreateCourseDto {
 
   @IsString()
   @IsOptional()
-  shortDescription: string;
+  description?: string;
 
   @IsString()
   @IsOptional()
-  longDescription: string;
+  shortDescription?: string;
+
+  @IsString()
+  @IsOptional()
+  longDescription?: string;
 
   @IsString()
   @IsOptional()
@@ -32,7 +36,8 @@ export class CreateCourseDto {
   category?: string;
 
   @IsEnum(CourseStatus)
-  status: CourseStatus;
+  @IsOptional()
+  status?: CourseStatus;
 
   @IsArray()
   @IsString({ each: true })

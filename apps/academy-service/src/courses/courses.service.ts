@@ -85,12 +85,11 @@ export class CoursesService {
     }
 
     // Create course with only the fields that exist in the Prisma model
-    // Automatically set status to PUBLISHED for instructors to make courses visible on homepage
     const course = await this.prisma.course.create({
       data: {
         title: dto.title,
-        shortDescription: dto.shortDescription,
-        longDescription: dto.longDescription,
+        shortDescription: dto.shortDescription || (dto as any).description,
+        longDescription: dto.longDescription || (dto as any).description,
         thumbnail: dto.thumbnail,
         category: dto.category,
         // Automatically set to DRAFT to allow teacher to add content before approval
@@ -98,12 +97,12 @@ export class CoursesService {
         skills: dto.skills || [],
         conceptsLearned: dto.conceptsLearned || [],
         outcomes: (dto as any).outcomes || [],
-        estimatedTime: dto.estimatedTime,
-        targetLevel: dto.targetLevel,
-        enrolledNum: dto.enrolledNum || 0,
-        rating: dto.rating,
-        price: dto.price,
-        priceInUsd: dto.priceInUsd,
+        estimatedTime: dto.estimatedTime ? Number(dto.estimatedTime) : null,
+        targetLevel: dto.targetLevel || (dto as any).level,
+        enrolledNum: dto.enrolledNum ? Number(dto.enrolledNum) : 0,
+        rating: dto.rating ? Number(dto.rating) : null,
+        price: dto.price !== undefined && dto.price !== null ? Number(dto.price) : null,
+        priceInUsd: dto.priceInUsd !== undefined && dto.priceInUsd !== null ? Number(dto.priceInUsd) : null,
         prerequisites: dto.prerequisites || [],
         languages: dto.languages || [],
         instructorId: instructorId,
