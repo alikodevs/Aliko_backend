@@ -1,4 +1,17 @@
-import { Controller, UseGuards, UsePipes } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  UsePipes,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  Req,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { SupportDeskService } from './support-desk.service';
 import {
@@ -23,30 +36,62 @@ import { AuthenticatedUser } from '../user/user.service';
 export class SupportDeskController {
   constructor(private readonly supportDeskService: SupportDeskService) {}
 
+  @Post(['support-desk/tickets', 'academy/support-desk/tickets'])
   @MessagePattern('create_support_ticket')
   @UsePipes(new JoiValidationPipe(createSupportTicketSchema))
   async createTicket(
-    @Payload() payload: { dto: CreateSupportTicketDto; user: AuthenticatedUser },
+    @Body() body?: CreateSupportTicketDto,
+    @Req() req?: any,
+    @Payload() payload?: { dto: CreateSupportTicketDto; user: AuthenticatedUser },
   ) {
-    return this.supportDeskService.createTicket(payload.user.firebaseId, payload.dto);
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Ticket data is required');
+    }
+    return this.supportDeskService.createTicket(user.firebaseId, dto);
   }
 
+  @Get(['support-desk/tickets/me', 'academy/support-desk/tickets/me'])
   @MessagePattern('get_my_support_tickets')
-  async getMyTickets(@Payload() payload: { user: AuthenticatedUser }) {
-    return this.supportDeskService.getMyTickets(payload.user.firebaseId);
+  async getMyTickets(
+    @Req() req?: any,
+    @Payload() payload?: { user: AuthenticatedUser },
+  ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    return this.supportDeskService.getMyTickets(user.firebaseId);
   }
 
+  @Get(['support-desk/tickets/:ticketId', 'academy/support-desk/tickets/:ticketId'])
   @MessagePattern('get_support_ticket_by_id')
   async getTicketById(
-    @Payload() payload: { ticketId: number; user: AuthenticatedUser },
+    @Param('ticketId') paramTicketId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { ticketId: number; user: AuthenticatedUser },
   ) {
+    const rawTicketId = payload?.ticketId !== undefined ? payload.ticketId : paramTicketId;
+    const ticketId = Number(rawTicketId);
+    if (!ticketId || isNaN(ticketId)) {
+      throw new BadRequestException('Invalid ticket ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     return this.supportDeskService.getTicketById(
-      payload.ticketId,
-      payload.user.firebaseId,
-      payload.user.role,
+      ticketId,
+      user.firebaseId,
+      user.role,
     );
   }
 
+  @Get(['support-desk/tickets', 'academy/support-desk/tickets'])
   @MessagePattern('list_all_support_tickets')
   @Roles(
     AcademyRole.ADMIN,
@@ -56,20 +101,40 @@ export class SupportDeskController {
   )
   @UsePipes(new JoiValidationPipe(listSupportTicketsSchema))
   async listAllTickets(
-    @Payload() payload: { dto: ListSupportTicketsDto; user: AuthenticatedUser },
+    @Query() query?: any,
+    @Req() req?: any,
+    @Payload() payload?: { dto: ListSupportTicketsDto; user: AuthenticatedUser },
   ) {
-    return this.supportDeskService.listAllTickets(payload.dto);
+    const rawDto = payload?.dto || query || {};
+    const dto: ListSupportTicketsDto = {
+      ...rawDto,
+      page: rawDto.page ? Number(rawDto.page) : undefined,
+      limit: rawDto.limit ? Number(rawDto.limit) : undefined,
+    };
+    return this.supportDeskService.listAllTickets(dto);
   }
 
+  @Patch(['support-desk/tickets/:ticketId', 'academy/support-desk/tickets/:ticketId'])
   @MessagePattern('update_support_ticket')
   @Roles(AcademyRole.ADMIN, AcademyRole.COURSE_MANAGER, AcademyRole.INSTRUCTOR)
   @UsePipes(new JoiValidationPipe(updateSupportTicketSchema))
   async updateTicket(
-    @Payload() payload: { dto: UpdateSupportTicketDto; user: AuthenticatedUser },
+    @Param('ticketId') paramTicketId?: string,
+    @Body() body?: UpdateSupportTicketDto,
+    @Req() req?: any,
+    @Payload() payload?: { dto: UpdateSupportTicketDto; user: AuthenticatedUser },
   ) {
-    return this.supportDeskService.updateTicketStatus(payload.dto);
+    const rawTicketId = payload?.dto?.ticketId !== undefined ? payload.dto.ticketId : paramTicketId;
+    const ticketId = Number(rawTicketId);
+    if (!ticketId || isNaN(ticketId)) {
+      throw new BadRequestException('Invalid ticket ID');
+    }
+    const rawDto = payload?.dto || body || {};
+    const dto: UpdateSupportTicketDto = { ...rawDto, ticketId };
+    return this.supportDeskService.updateTicketStatus(dto);
   }
 
+  @Get(['support-desk/system-requirements', 'academy/support-desk/system-requirements'])
   @MessagePattern('get_system_requirements')
   async getSystemRequirements() {
     return this.supportDeskService.getSystemRequirements();

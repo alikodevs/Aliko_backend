@@ -1,4 +1,13 @@
-import { Controller, UseGuards, UsePipes } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  UsePipes,
+  Post,
+  Body,
+  Req,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ComplianceExporterService } from './compliance-exporter.service';
 import { GenerateComplianceDossierDto } from './dto';
@@ -15,6 +24,7 @@ import { AuthenticatedUser } from '../user/user.service';
 export class ComplianceExporterController {
   constructor(private readonly complianceExporterService: ComplianceExporterService) {}
 
+  @Post(['compliance-exporter/dossier', 'academy/compliance-exporter/dossier'])
   @MessagePattern('generate_compliance_dossier')
   @Roles(
     AcademyRole.INSTRUCTOR,
@@ -24,8 +34,18 @@ export class ComplianceExporterController {
   )
   @UsePipes(new JoiValidationPipe(generateComplianceDossierSchema))
   async generateDossier(
-    @Payload() payload: { dto: GenerateComplianceDossierDto; user: AuthenticatedUser },
+    @Body() body?: GenerateComplianceDossierDto,
+    @Req() req?: any,
+    @Payload() payload?: { dto: GenerateComplianceDossierDto; user: AuthenticatedUser },
   ) {
-    return this.complianceExporterService.generateDossier(payload.dto);
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Dossier generation parameters required');
+    }
+    return this.complianceExporterService.generateDossier(dto);
   }
 }

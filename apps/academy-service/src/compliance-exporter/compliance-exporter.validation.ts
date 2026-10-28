@@ -1,9 +1,14 @@
 import * as Joi from 'joi';
 
-export const generateComplianceDossierSchema = Joi.object({
-  dto: Joi.object({
-    courseId: Joi.number().integer().positive().required(),
-    cohortId: Joi.number().integer().positive().optional(),
-  }).required(),
-  user: Joi.object().required(),
+const generateComplianceDossierDtoSchema = Joi.object({
+  courseId: Joi.number().integer().positive().required(),
+  cohortId: Joi.number().integer().positive().optional(),
 });
+
+export const generateComplianceDossierSchema = Joi.alternatives().try(
+  Joi.object({
+    dto: generateComplianceDossierDtoSchema.required(),
+    user: Joi.object().optional(),
+  }),
+  generateComplianceDossierDtoSchema
+);

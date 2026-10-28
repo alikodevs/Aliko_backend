@@ -1,4 +1,13 @@
-import { Controller, UseGuards, UsePipes } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  UsePipes,
+  Post,
+  Body,
+  Req,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CertificationService } from './certification.service';
 import { GenerateCertificateDto, VerifyCertificateDto } from './dto';
@@ -15,24 +24,43 @@ import { AuthenticatedUser } from '../user/user.service';
 export class CertificationController {
   constructor(private readonly certificationService: CertificationService) {}
 
+  @Post(['certification/generate', 'academy/certification/generate'])
   @MessagePattern('generate_wabon_certificate')
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @UsePipes(new JoiValidationPipe(generateCertificateSchema))
   async generateCertificate(
-    @Payload() payload: { dto: GenerateCertificateDto; user: AuthenticatedUser },
+    @Body() body?: GenerateCertificateDto,
+    @Req() req?: any,
+    @Payload() payload?: { dto: GenerateCertificateDto; user: AuthenticatedUser },
   ) {
-    const targetUserId = payload.dto.userId || payload.user.firebaseId;
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Certificate generation data required');
+    }
+    const targetUserId = dto.userId || user.firebaseId;
     return this.certificationService.generateCertificate(
       targetUserId,
-      payload.dto,
-      payload.user.firebaseId,
-      payload.user.role,
+      dto,
+      user.firebaseId,
+      user.role,
     );
   }
 
+  @Post(['certification/verify', 'academy/certification/verify'])
   @MessagePattern('verify_wabon_certificate')
   @UsePipes(new JoiValidationPipe(verifyCertificateSchema))
-  async verifyCertificate(@Payload() payload: { dto: VerifyCertificateDto }) {
-    return this.certificationService.verifyCertificate(payload.dto);
+  async verifyCertificate(
+    @Body() body?: VerifyCertificateDto,
+    @Payload() payload?: { dto: VerifyCertificateDto },
+  ) {
+    const dto = payload?.dto || body;
+    if (!dto) {
+      throw new BadRequestException('Verification data required');
+    }
+    return this.certificationService.verifyCertificate(dto);
   }
 }

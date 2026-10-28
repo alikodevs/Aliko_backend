@@ -1,4 +1,16 @@
-import { Controller, UseGuards, UsePipes, Logger } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  UsePipes,
+  Logger,
+  Get,
+  Post,
+  Param,
+  Body,
+  Req,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ExamSecurityService } from './exam-security.service';
 import {
@@ -28,91 +40,167 @@ export class ExamSecurityController {
 
   constructor(private readonly examSecurityService: ExamSecurityService) {}
 
+  @Post(['exam-security/sessions/start', 'academy/exam-security/sessions/start'])
   @MessagePattern({ cmd: 'start_exam_session' })
   @UsePipes(new JoiValidationPipe(StartExamSessionSchema))
   async startSession(
+    @Body() body?: StartExamSessionDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       dto: StartExamSessionDto;
       user: AuthenticatedUser;
     },
   ) {
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Exam session data is required');
+    }
     this.logger.log(
-      `Starting exam session for exercise ${payload.dto.exerciseId} by user ${payload.user.firebaseId}`,
+      `Starting exam session for exercise ${dto.exerciseId} by user ${user.firebaseId}`,
     );
-    return this.examSecurityService.startSession(payload.dto, payload.user);
+    return this.examSecurityService.startSession(dto, user);
   }
 
+  @Post(['exam-security/sessions/tab-blur', 'academy/exam-security/sessions/tab-blur'])
   @MessagePattern({ cmd: 'record_exam_tab_blur' })
   @UsePipes(new JoiValidationPipe(RecordTabBlurSchema))
   async recordTabBlur(
+    @Body() body?: RecordTabBlurDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       dto: RecordTabBlurDto;
       user: AuthenticatedUser;
     },
   ) {
-    return this.examSecurityService.recordTabBlur(payload.dto, payload.user);
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Tab blur data is required');
+    }
+    return this.examSecurityService.recordTabBlur(dto, user);
   }
 
+  @Post(['exam-security/sessions/end', 'academy/exam-security/sessions/end'])
   @MessagePattern({ cmd: 'end_exam_session' })
   @UsePipes(new JoiValidationPipe(EndExamSessionSchema))
   async endSession(
+    @Body() body?: EndExamSessionDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       dto: EndExamSessionDto;
       user: AuthenticatedUser;
     },
   ) {
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('End session data is required');
+    }
     this.logger.log(
-      `Ending exam session ${payload.dto.sessionId} by user ${payload.user.firebaseId}`,
+      `Ending exam session ${dto.sessionId} by user ${user.firebaseId}`,
     );
-    return this.examSecurityService.endSession(payload.dto, payload.user);
+    return this.examSecurityService.endSession(dto, user);
   }
 
+  @Get([
+    'exam-security/sessions/:sessionId',
+    'academy/exam-security/sessions/:sessionId',
+    'exam-security/sessions/by-id/:sessionId',
+    'academy/exam-security/sessions/by-id/:sessionId',
+  ])
   @MessagePattern({ cmd: 'get_exam_session' })
   @UsePipes(new JoiValidationPipe(ExamSessionIdSchema))
   async getSession(
+    @Param('sessionId') paramSessionId?: string,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       sessionId: number;
       user: AuthenticatedUser;
     },
   ) {
-    return this.examSecurityService.getSession(payload.sessionId, payload.user);
+    const rawSessionId = payload?.sessionId !== undefined ? payload.sessionId : paramSessionId;
+    const sessionId = Number(rawSessionId);
+    if (!sessionId || isNaN(sessionId)) {
+      throw new BadRequestException('Invalid session ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    return this.examSecurityService.getSession(sessionId, user);
   }
 
+  @Get([
+    'exam-security/sessions/exercise/:exerciseId',
+    'academy/exam-security/sessions/exercise/:exerciseId',
+  ])
   @MessagePattern({ cmd: 'get_exercise_exam_sessions' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN', 'COMMISSION_AUDITOR')
   @UsePipes(new JoiValidationPipe(ExerciseExamSessionsSchema))
   async getSessionsByExercise(
+    @Param('exerciseId') paramExerciseId?: string,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       exerciseId: number;
       user: AuthenticatedUser;
     },
   ) {
+    const rawExerciseId = payload?.exerciseId !== undefined ? payload.exerciseId : paramExerciseId;
+    const exerciseId = Number(rawExerciseId);
+    if (!exerciseId || isNaN(exerciseId)) {
+      throw new BadRequestException('Invalid exercise ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     return this.examSecurityService.getSessionsByExercise(
-      payload.exerciseId,
-      payload.user,
+      exerciseId,
+      user,
     );
   }
 
+  @Post(['exam-security/sessions/audit', 'academy/exam-security/sessions/audit'])
   @MessagePattern({ cmd: 'audit_exam_session' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN', 'COMMISSION_AUDITOR')
   @UsePipes(new JoiValidationPipe(AuditExamSessionSchema))
   async auditSession(
+    @Body() body?: AuditExamSessionDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       dto: AuditExamSessionDto;
       user: AuthenticatedUser;
     },
   ) {
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Audit data is required');
+    }
     this.logger.log(
-      `Auditing exam session ${payload.dto.sessionId} by ${payload.user.firebaseId}`,
+      `Auditing exam session ${dto.sessionId} by ${user.firebaseId}`,
     );
-    return this.examSecurityService.auditSession(payload.dto, payload.user);
+    return this.examSecurityService.auditSession(dto, user);
   }
 }

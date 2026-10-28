@@ -1,46 +1,76 @@
 import * as Joi from 'joi';
 
-export const StartExamSessionSchema = Joi.object({
-  dto: Joi.object({
-    exerciseId: Joi.number().integer().required(),
-    idPhotoUrl: Joi.string().uri().optional(),
-    webcamSnapUrl: Joi.string().uri().optional(),
-    ipAddress: Joi.string().optional(),
-    userAgent: Joi.string().optional(),
-    honorCodeAccepted: Joi.boolean().required().valid(true),
-  }).required(),
-  user: Joi.any().required(),
-});
-
-export const RecordTabBlurSchema = Joi.object({
-  dto: Joi.object({
-    sessionId: Joi.number().integer().required(),
-  }).required(),
-  user: Joi.any().required(),
-});
-
-export const EndExamSessionSchema = Joi.object({
-  dto: Joi.object({
-    sessionId: Joi.number().integer().required(),
-    score: Joi.number().min(0).optional(),
-  }).required(),
-  user: Joi.any().required(),
-});
-
-export const AuditExamSessionSchema = Joi.object({
-  dto: Joi.object({
-    sessionId: Joi.number().integer().required(),
-    isAudited: Joi.boolean().required(),
-  }).required(),
-  user: Joi.any().required(),
-});
-
-export const ExamSessionIdSchema = Joi.object({
-  sessionId: Joi.number().integer().required(),
-  user: Joi.any().required(),
-});
-
-export const ExerciseExamSessionsSchema = Joi.object({
+const startExamSessionDtoSchema = Joi.object({
   exerciseId: Joi.number().integer().required(),
-  user: Joi.any().required(),
+  idPhotoUrl: Joi.string().uri().optional().allow('', null),
+  webcamSnapUrl: Joi.string().uri().optional().allow('', null),
+  ipAddress: Joi.string().optional().allow('', null),
+  userAgent: Joi.string().optional().allow('', null),
+  honorCodeAccepted: Joi.boolean().required().valid(true),
 });
+
+export const StartExamSessionSchema = Joi.alternatives().try(
+  Joi.object({
+    dto: startExamSessionDtoSchema.required(),
+    user: Joi.any().optional(),
+  }),
+  startExamSessionDtoSchema
+);
+
+const recordTabBlurDtoSchema = Joi.object({
+  sessionId: Joi.number().integer().required(),
+});
+
+export const RecordTabBlurSchema = Joi.alternatives().try(
+  Joi.object({
+    dto: recordTabBlurDtoSchema.required(),
+    user: Joi.any().optional(),
+  }),
+  recordTabBlurDtoSchema
+);
+
+const endExamSessionDtoSchema = Joi.object({
+  sessionId: Joi.number().integer().required(),
+  score: Joi.number().min(0).optional(),
+});
+
+export const EndExamSessionSchema = Joi.alternatives().try(
+  Joi.object({
+    dto: endExamSessionDtoSchema.required(),
+    user: Joi.any().optional(),
+  }),
+  endExamSessionDtoSchema
+);
+
+const auditExamSessionDtoSchema = Joi.object({
+  sessionId: Joi.number().integer().required(),
+  isAudited: Joi.boolean().required(),
+});
+
+export const AuditExamSessionSchema = Joi.alternatives().try(
+  Joi.object({
+    dto: auditExamSessionDtoSchema.required(),
+    user: Joi.any().optional(),
+  }),
+  auditExamSessionDtoSchema
+);
+
+export const ExamSessionIdSchema = Joi.alternatives().try(
+  Joi.object({
+    sessionId: Joi.number().integer().required(),
+    user: Joi.any().optional(),
+  }),
+  Joi.object({
+    sessionId: Joi.number().integer().required(),
+  })
+);
+
+export const ExerciseExamSessionsSchema = Joi.alternatives().try(
+  Joi.object({
+    exerciseId: Joi.number().integer().required(),
+    user: Joi.any().optional(),
+  }),
+  Joi.object({
+    exerciseId: Joi.number().integer().required(),
+  })
+);

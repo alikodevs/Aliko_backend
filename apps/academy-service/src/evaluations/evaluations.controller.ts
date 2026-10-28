@@ -1,4 +1,15 @@
-import { Controller, UseGuards, UsePipes } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  UsePipes,
+  Get,
+  Post,
+  Param,
+  Body,
+  Req,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { EvaluationsService } from './evaluations.service';
 import { SubmitSurveyDto, GetCohortSurveysDto } from './dto';
@@ -15,21 +26,51 @@ import { AuthenticatedUser } from '../user/user.service';
 export class EvaluationsController {
   constructor(private readonly evaluationsService: EvaluationsService) {}
 
+  @Post(['evaluations/surveys', 'academy/evaluations/surveys'])
   @MessagePattern('submit_evaluation_survey')
   @UsePipes(new JoiValidationPipe(submitSurveySchema))
   async submitSurvey(
-    @Payload() payload: { dto: SubmitSurveyDto; user: AuthenticatedUser },
+    @Body() body?: SubmitSurveyDto,
+    @Req() req?: any,
+    @Payload() payload?: { dto: SubmitSurveyDto; user: AuthenticatedUser },
   ) {
-    return this.evaluationsService.submitSurvey(payload.user.firebaseId, payload.dto);
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Survey data is required');
+    }
+    return this.evaluationsService.submitSurvey(user.firebaseId, dto);
   }
 
+  @Get([
+    'evaluations/my-survey/:cohortId',
+    'academy/evaluations/my-survey/:cohortId',
+  ])
   @MessagePattern('get_my_evaluation_survey')
   async getMySurvey(
-    @Payload() payload: { cohortId: number; user: AuthenticatedUser },
+    @Param('cohortId') paramCohortId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { cohortId: number; user: AuthenticatedUser },
   ) {
-    return this.evaluationsService.getMySurvey(payload.user.firebaseId, payload.cohortId);
+    const rawCohortId = payload?.cohortId !== undefined ? payload.cohortId : paramCohortId;
+    const cohortId = Number(rawCohortId);
+    if (!cohortId || isNaN(cohortId)) {
+      throw new BadRequestException('Valid cohort ID is required');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    return this.evaluationsService.getMySurvey(user.firebaseId, cohortId);
   }
 
+  @Get([
+    'evaluations/cohort/:cohortId',
+    'academy/evaluations/cohort/:cohortId',
+  ])
   @MessagePattern('get_cohort_evaluation_surveys')
   @Roles(
     AcademyRole.INSTRUCTOR,
@@ -39,8 +80,15 @@ export class EvaluationsController {
   )
   @UsePipes(new JoiValidationPipe(getCohortSurveysSchema))
   async getCohortSurveys(
-    @Payload() payload: { dto: GetCohortSurveysDto; user: AuthenticatedUser },
+    @Param('cohortId') paramCohortId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { dto: GetCohortSurveysDto; user: AuthenticatedUser },
   ) {
-    return this.evaluationsService.getCohortSurveys(payload.dto);
+    const rawCohortId = payload?.dto?.cohortId !== undefined ? payload.dto.cohortId : paramCohortId;
+    const cohortId = Number(rawCohortId);
+    if (!cohortId || isNaN(cohortId)) {
+      throw new BadRequestException('Valid cohort ID is required');
+    }
+    return this.evaluationsService.getCohortSurveys({ cohortId });
   }
 }

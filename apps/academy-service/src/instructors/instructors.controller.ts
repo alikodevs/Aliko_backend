@@ -1,4 +1,17 @@
-import { Controller, UseGuards, UsePipes, Logger } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  UsePipes,
+  Logger,
+  Get,
+  Post,
+  Put,
+  Param,
+  Body,
+  Req,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { InstructorsService } from './instructors.service';
 import {
@@ -26,79 +39,132 @@ export class InstructorsController {
 
   constructor(private readonly instructorsService: InstructorsService) {}
 
+  @Post(['instructors/credentials', 'academy/instructors/credentials'])
   @MessagePattern({ cmd: 'register_instructor_credential' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(RegisterCredentialSchema))
   async registerCredential(
+    @Body() body?: RegisterInstructorCredentialDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       dto: RegisterInstructorCredentialDto;
       user: AuthenticatedUser;
     },
   ) {
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Credential data required');
+    }
     this.logger.log(
-      `Registering instructor credentials for ${payload.user.firebaseId}`,
+      `Registering instructor credentials for ${user.firebaseId}`,
     );
-    return this.instructorsService.registerCredential(payload.dto, payload.user);
+    return this.instructorsService.registerCredential(dto, user);
   }
 
+  @Put(['instructors/credentials', 'academy/instructors/credentials'])
   @MessagePattern({ cmd: 'update_instructor_credential' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(UpdateCredentialSchema))
   async updateCredential(
+    @Body() body?: UpdateInstructorCredentialDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       dto: UpdateInstructorCredentialDto;
       user: AuthenticatedUser;
     },
   ) {
-    return this.instructorsService.updateCredential(payload.dto, payload.user);
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Credential update data required');
+    }
+    return this.instructorsService.updateCredential(dto, user);
   }
 
+  @Get([
+    'instructors/credentials/:instructorUserId',
+    'academy/instructors/credentials/:instructorUserId',
+  ])
   @MessagePattern({ cmd: 'get_instructor_credential' })
   @UsePipes(new JoiValidationPipe(InstructorUserIdSchema))
   async getCredential(
+    @Param('instructorUserId') paramInstructorUserId?: string,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       instructorUserId: string;
       user: AuthenticatedUser;
     },
   ) {
+    const instructorUserId = payload?.instructorUserId || paramInstructorUserId;
+    if (!instructorUserId) {
+      throw new BadRequestException('Instructor user ID required');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     return this.instructorsService.getCredential(
-      payload.instructorUserId,
-      payload.user,
+      instructorUserId,
+      user,
     );
   }
 
+  @Post(['instructors/approve', 'academy/instructors/approve'])
   @MessagePattern({ cmd: 'approve_instructor' })
   @UseGuards(RoleGuard)
   @Roles('ADMIN')
   @UsePipes(new JoiValidationPipe(ApproveInstructorSchema))
   async approveInstructor(
+    @Body() body?: ApproveInstructorDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       dto: ApproveInstructorDto;
       user: AuthenticatedUser;
     },
   ) {
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Approval data required');
+    }
     this.logger.log(
-      `Director ${payload.user.firebaseId} approving instructor ${payload.dto.instructorUserId}`,
+      `Director ${user.firebaseId} approving instructor ${dto.instructorUserId}`,
     );
-    return this.instructorsService.approveInstructor(payload.dto, payload.user);
+    return this.instructorsService.approveInstructor(dto, user);
   }
 
+  @Get(['instructors/all', 'academy/instructors/all'])
   @MessagePattern({ cmd: 'list_all_instructors' })
   @UseGuards(RoleGuard)
   @Roles('ADMIN', 'COMMISSION_AUDITOR')
   @UsePipes(new JoiValidationPipe(ListInstructorsSchema))
   async listAllInstructors(
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       user: AuthenticatedUser;
     },
   ) {
-    return this.instructorsService.listAllInstructors(payload.user);
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    return this.instructorsService.listAllInstructors(user);
   }
 }
