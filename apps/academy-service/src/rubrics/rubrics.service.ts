@@ -254,11 +254,36 @@ export class RubricsService {
     const rubric = await this.findOne(dto.rubricId);
     const criteriaMap = new Map((rubric.criteria || []).map((c) => [c.id, c]));
 
+    let scores = dto.scores || dto.criteriaScores;
+    if ((!scores || scores.length === 0) && dto.selectedLevelIds && Array.isArray(dto.selectedLevelIds)) {
+      scores = [];
+      for (const levelId of dto.selectedLevelIds) {
+        let found = false;
+        for (const crit of rubric.criteria || []) {
+          const matched = (crit.levels || []).find((l) => l.id === levelId);
+          if (matched) {
+            scores.push({
+              criterionId: crit.id,
+              levelId: matched.id,
+              points: matched.points,
+              feedback: dto.customFeedback,
+            });
+            found = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!scores || scores.length === 0) {
+      throw new BadRequestException('Either scores or selectedLevelIds must be provided');
+    }
+
     let totalEarned = 0;
     let totalPossible = 0;
     const evaluatedCriteria: any[] = [];
 
-    for (const score of dto.scores) {
+    for (const score of scores) {
       const criterion = criteriaMap.get(score.criterionId);
       if (!criterion) {
         throw new BadRequestException(

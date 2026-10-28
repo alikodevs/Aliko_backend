@@ -97,5 +97,11 @@ export class EvaluateCriterionScoreDto {
 
 export class EvaluateWithRubricDto {
   rubricId: string;
-  scores: EvaluateCriterionScoreDto[];
+  scores?: EvaluateCriterionScoreDto[];
+  criteriaScores?: EvaluateCriterionScoreDto[];
+  studentId?: string;
+  evaluatorId?: string;
+  overallFeedback?: string;
+  selectedLevelIds?: string[];
+  customFeedback?: string;
 }
