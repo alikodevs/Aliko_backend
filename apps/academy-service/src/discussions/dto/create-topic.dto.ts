@@ -14,10 +14,19 @@ export class CreateDiscussionTopicDto {
   rubric?: any;
 
   @IsOptional()
+  @IsString()
+  rubricId?: string;
+
+  @IsOptional()
   @IsNumber()
   maxPoints?: number;
 
   @IsOptional()
   @IsDateString()
   dueDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dueAt?: string;
 }
+

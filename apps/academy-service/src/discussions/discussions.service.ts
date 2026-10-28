@@ -43,11 +43,12 @@ export class DiscussionsService {
         moduleId: dto.moduleId,
         title: dto.title,
         prompt: dto.prompt,
-        rubric: dto.rubric,
+        rubric: dto.rubric ?? (dto as any).rubricId,
         maxPoints: dto.maxPoints ?? 10,
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+        dueDate: dto.dueDate ? new Date(dto.dueDate) : ((dto as any).dueAt ? new Date((dto as any).dueAt) : null),
       },
     });
+
 
     this.logger.log(`Created discussion topic ${topic.id} in module ${dto.moduleId}`);
     return topic;
@@ -170,22 +171,24 @@ export class DiscussionsService {
       throw new ForbiddenException('Only instructors or admins can grade discussion posts');
     }
 
+    const finalScore = dto.score ?? dto.grade ?? 0;
     const grade = await this.prisma.discussionGrade.upsert({
       where: { postId },
       update: {
-        score: dto.score,
+        score: finalScore,
         rubricScores: dto.rubricScores,
         feedback: dto.feedback,
         graderId: user.firebaseId,
       },
       create: {
         postId,
-        score: dto.score,
+        score: finalScore,
         rubricScores: dto.rubricScores,
         feedback: dto.feedback,
         graderId: user.firebaseId,
       },
     });
+
 
     this.logger.log(
       `Graded discussion post ${postId} with score ${dto.score} by grader ${user.firebaseId}`,

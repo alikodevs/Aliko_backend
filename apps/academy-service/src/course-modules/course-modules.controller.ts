@@ -4,6 +4,17 @@ import {
   UseFilters,
   UsePipes,
   Logger,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  Req,
+  UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CourseModulesService } from './course-modules.service';
@@ -30,159 +41,268 @@ export class CourseModulesController {
   private readonly logger = new Logger(CourseModulesController.name);
   constructor(private readonly courseModulesService: CourseModulesService) {}
 
+  @Post(['modules', 'academy/modules', 'course-modules', 'academy/course-modules'])
   @MessagePattern({ cmd: 'create_course_module' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(CreateCourseModuleSchema))
   async create(
-    @Payload() payload: { dto: CreateCourseModuleDto; user: AuthenticatedUser },
+    @Body() body?: CreateCourseModuleDto,
+    @Req() req?: any,
+    @Payload() payload?: { dto: CreateCourseModuleDto; user: AuthenticatedUser },
   ) {
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Module data required');
+    }
     this.logger.log(
-      `Creating course module "${payload.dto.title}" for course ${payload.dto.courseId} by user: ${payload.user.firebaseId}`,
+      `Creating course module "${dto.title}" for course ${dto.courseId} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.courseModulesService.create(payload.dto, payload.user);
+      return await this.courseModulesService.create(dto, user);
     } catch (error) {
       this.logger.error(
-        `Failed to create course module "${payload.dto.title}" for course ${payload.dto.courseId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to create course module "${dto.title}" for course ${dto.courseId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Get(['modules', 'academy/modules', 'course-modules', 'academy/course-modules'])
   @MessagePattern({ cmd: 'find_all_modules' })
   @UsePipes(new JoiValidationPipe(FindAllModulesSchema))
-  async findAll(@Payload() payload: { user: AuthenticatedUser; query?: any }) {
+  async findAll(
+    @Query() query?: any,
+    @Req() req?: any,
+    @Payload() payload?: { user: AuthenticatedUser; query?: any },
+  ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const q = payload?.query || query;
     this.logger.log(
-      `Fetching all modules (requested by: ${payload.user.firebaseId})`,
+      `Fetching all modules (requested by: ${user.firebaseId})`,
     );
     try {
-      return await this.courseModulesService.findAll(
-        payload.user,
-        payload.query,
-      );
+      return await this.courseModulesService.findAll(user, q);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch all modules by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch all modules by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Get([
+    'modules/course/:courseId',
+    'academy/modules/course/:courseId',
+    'course-modules/course/:courseId',
+    'academy/course-modules/course/:courseId',
+  ])
   @MessagePattern({ cmd: 'find_modules_by_course' })
   @UsePipes(new JoiValidationPipe(CourseIdModuleSchema))
   async findAllByCourse(
+    @Param('courseId') paramCourseId?: string,
+    @Query() query?: any,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       courseId: number;
       user: AuthenticatedUser;
       query?: any;
     },
   ) {
+    const rawCourseId = payload?.courseId !== undefined ? payload.courseId : paramCourseId;
+    const courseId = Number(rawCourseId);
+    if (!courseId || isNaN(courseId)) {
+      throw new BadRequestException('Invalid course ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const q = payload?.query || query;
     this.logger.log(
-      `Fetching modules for course ID: ${payload.courseId} (requested by: ${payload.user.firebaseId})`,
+      `Fetching modules for course ID: ${courseId} (requested by: ${user.firebaseId})`,
     );
     try {
-      return await this.courseModulesService.findAllByCourse(
-        payload.courseId,
-        payload.user,
-        payload.query,
-      );
+      return await this.courseModulesService.findAllByCourse(courseId, user, q);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch modules for course ID ${payload.courseId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch modules for course ID ${courseId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Get([
+    'modules/:id',
+    'academy/modules/:id',
+    'course-modules/:id',
+    'academy/course-modules/:id',
+  ])
   @MessagePattern({ cmd: 'find_module_by_id' })
   @UsePipes(new JoiValidationPipe(ModuleIdSchema))
-  async findOne(@Payload() payload: { id: number; user: AuthenticatedUser }) {
+  async findOne(
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
+  ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid module ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Fetching module details for ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+      `Fetching module details for ID: ${id} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.courseModulesService.findOne(payload.id, payload.user);
+      return await this.courseModulesService.findOne(id, user);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch details for module ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch details for module ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Get([
+    'modules/:id/instructor',
+    'academy/modules/:id/instructor',
+    'course-modules/:id/instructor',
+    'academy/course-modules/:id/instructor',
+  ])
   @MessagePattern({ cmd: 'get_instructor_module' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(ModuleIdSchema))
   async findOneForInstructor(
-    @Payload() payload: { id: number; user: AuthenticatedUser },
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
   ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid module ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Instructor ${payload.user.firebaseId} fetching module ID: ${payload.id}`,
+      `Instructor ${user.firebaseId} fetching module ID: ${id}`,
     );
     try {
-      return await this.courseModulesService.findOneForInstructor(
-        payload.id,
-        payload.user,
-      );
+      return await this.courseModulesService.findOneForInstructor(id, user);
     } catch (error) {
       this.logger.error(
-        `Instructor ${payload.user.firebaseId} failed to fetch module ID ${payload.id}: ${error.message}`,
+        `Instructor ${user.firebaseId} failed to fetch module ID ${id}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Put([
+    'modules/:id',
+    'academy/modules/:id',
+    'course-modules/:id',
+    'academy/course-modules/:id',
+  ])
+  @Patch([
+    'modules/:id',
+    'academy/modules/:id',
+    'course-modules/:id',
+    'academy/course-modules/:id',
+  ])
   @MessagePattern({ cmd: 'update_course_module' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(UpdateCourseModuleSchema))
   async update(
+    @Param('id') paramId?: string,
+    @Body() body?: UpdateCourseModuleDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       id: number;
       dto: UpdateCourseModuleDto;
       user: AuthenticatedUser;
     },
   ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid module ID');
+    }
+    const dto = payload?.dto || body;
+    if (!dto) {
+      throw new BadRequestException('Module update data required');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Updating module ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+      `Updating module ID: ${id} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.courseModulesService.update(
-        payload.id,
-        payload.dto,
-        payload.user,
-      );
+      return await this.courseModulesService.update(id, dto, user);
     } catch (error) {
       this.logger.error(
-        `Failed to update module ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to update module ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Delete([
+    'modules/:id',
+    'academy/modules/:id',
+    'course-modules/:id',
+    'academy/course-modules/:id',
+  ])
   @MessagePattern({ cmd: 'remove_course_module' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(ModuleIdSchema))
-  async remove(@Payload() payload: { id: number; user: AuthenticatedUser }) {
+  async remove(
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
+  ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid module ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Removing module ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+      `Removing module ID: ${id} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.courseModulesService.remove(payload.id, payload.user);
+      return await this.courseModulesService.remove(id, user);
     } catch (error) {
       this.logger.error(
-        `Failed to remove module ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to remove module ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
