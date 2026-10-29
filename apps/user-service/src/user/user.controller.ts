@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Req, UsePipes, Logger, UseFilters, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Req, UsePipes, Logger, UseFilters, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UserService } from './user.service';
 import { JoiValidationPipe } from '../validation.pipe';
@@ -28,6 +28,7 @@ export class UserController {
 		@Inject('CONSHIFTER_SERVICE') private readonly conshifterClient: ClientProxy,
 	) {}
 
+	@Get(['users', 'users/all', 'get-all-users'])
 	@Post('get-all-users')
 	@MessagePattern({ cmd: 'get_all_users' })
 	async getAllUsers() {
@@ -70,16 +71,21 @@ export class UserController {
 		return user;
 	}
 
-	@Post('get-user-profile')
+	@Get(['users/:firebaseId', 'user/:firebaseId'])
+	@Post(['get-user-profile', 'users/get-user-profile'])
 	@MessagePattern({ cmd: 'get_user_profile' })
 	@UsePipes(new JoiValidationPipe(GetUserProfileSchema))
-	async getProfile(@Body() body: { firebaseId: string }, @Payload() payload: { firebaseId: string }) {
-		const data = body || payload;
-		this.logger.log(`Fetching profile for user: ${data.firebaseId}`);
+	async getProfile(
+		@Param('firebaseId') paramFirebaseId?: string,
+		@Body() body?: { firebaseId: string },
+		@Payload() payload?: { firebaseId: string },
+	) {
+		const firebaseId = paramFirebaseId || body?.firebaseId || payload?.firebaseId;
+		this.logger.log(`Fetching profile for user: ${firebaseId}`);
 		try {
-			return await this.userService.findByFirebaseId(data.firebaseId);
+			return await this.userService.findByFirebaseId(firebaseId);
 		} catch (error) {
-			this.logger.error(`Failed to fetch profile for user ${data.firebaseId}: ${error.message}`, error.stack);
+			this.logger.error(`Failed to fetch profile for user ${firebaseId}: ${error.message}`, error.stack);
 			throw error;
 		}
 	}

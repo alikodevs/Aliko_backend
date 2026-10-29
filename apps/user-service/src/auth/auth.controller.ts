@@ -217,7 +217,8 @@ export class AuthController {
 		}
 	}
 
-	@Post('academy/teacher-applications')
+	@Get(['academy/teacher-applications', 'auth/academy/teacher-applications'])
+	@Post(['academy/teacher-applications', 'auth/academy/teacher-applications'])
 	@MessagePattern({ cmd: 'get_teacher_applications' })
 	async handleGetTeacherApplications(@Query() query: { requestingUserRole?: string }, @Payload() payload: { requestingUserRole?: string }) {
 		const role = query?.requestingUserRole || payload?.requestingUserRole;
@@ -230,10 +231,15 @@ export class AuthController {
 		}
 	}
 
-	@Post('academy/instructor/:id')
+	@Get(['academy/instructor/:id', 'auth/academy/instructor/:id'])
+	@Post(['academy/instructor/:id', 'auth/academy/instructor/:id'])
 	@MessagePattern({ cmd: 'get_instructor_by_id' })
-	async handleGetInstructorById(@Body() dto: { id: string }, @Payload() payload: { id: string }) {
-		const id = dto?.id || payload?.id;
+	async handleGetInstructorById(
+		@Param('id') paramId?: string,
+		@Body() dto?: { id: string },
+		@Payload() payload?: { id: string },
+	) {
+		const id = paramId || dto?.id || payload?.id;
 		this.logger.log(`Fetching instructor details for ID: ${id}`);
 		try {
 			return await this.authService.getInstructorById(id);
@@ -440,14 +446,15 @@ export class AuthController {
 		}
 	}
 
+  @Post(['update-careers-role', 'auth/update-careers-role'])
   @MessagePattern({ cmd: 'update_careers_role' })
   async handleUpdateCareersRole(@Body() dto: { userId: string; role: string }, @Payload() payload: { userId: string; role: string }) {
     const data = dto || payload;
-    this.logger.log(`Updating Careers role for ${data.userId} to ${data.role}`);
+    this.logger.log(`Updating Careers role for ${data?.userId} to ${data?.role}`);
     try {
       return await this.authService.updateCareersRole(data.userId, data.role);
     } catch (error) {
-      this.logger.error(`Failed to update Careers role for user ${data.userId}: ${error.message}`, error.stack);
+      this.logger.error(`Failed to update Careers role for user ${data?.userId}: ${error.message}`, error.stack);
       throw error;
     }
   }
