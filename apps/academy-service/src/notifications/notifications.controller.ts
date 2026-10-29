@@ -227,7 +227,7 @@ export class NotificationsController {
       `Internal: Notifying instructors about student ${payload.studentId} finishing module: ${payload.moduleTitle}`,
     );
     try {
-      return await this.service.notifyInstructors(
+      return await this.service.notifyInstructorProgress(
         payload.studentId,
         payload.courseId,
         payload.moduleTitle,

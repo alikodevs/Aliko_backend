@@ -1,11 +1,8 @@
 import * as Joi from 'joi';
 
-export const GetUserProfileSchema = Joi.alternatives().try(
-  Joi.object({
-    firebaseId: Joi.string().required().description('Firebase unique identifier of the user'),
-  }),
-  Joi.object().unknown(true)
-).description('Schema for fetching a user profile');
+export const GetUserProfileSchema = Joi.object({
+  firebaseId: Joi.string().optional().description('Firebase unique identifier of the user'),
+}).unknown(true).description('Schema for fetching a user profile');
 
 export const UpdateUserProfileSchema = Joi.object({
   firebaseId: Joi.string().required().description('Firebase UID of the user to update'),
