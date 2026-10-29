@@ -1,43 +1,52 @@
 import * as Joi from 'joi';
 
-export const CreateNotificationSchema = Joi.object({
-  dto: Joi.object({
-    userId: Joi.string()
+const createNotificationDtoSchema = Joi.object({
+  userId: Joi.string()
+    .required()
+    .description(
+      'The unique identifier of the user to receive the notification',
+    ),
+  message: Joi.string()
+    .required()
+    .description('The notification message content'),
+  type: Joi.string()
+    .optional()
+    .description(
+      'The category of the notification (e.g., SYSTEM, COURSE_UPDATE)',
+    ),
+  meta: Joi.object()
+    .unknown(true)
+    .optional()
+    .description('Optional structured details for this notification'),
+});
+
+export const CreateNotificationSchema = Joi.alternatives().try(
+  Joi.object({
+    dto: createNotificationDtoSchema.required().description('Notification creation details'),
+    user: Joi.any().optional().description('The authenticated user performing the action'),
+  }),
+  createNotificationDtoSchema
+).description('Schema for creating a new notification');
+
+export const NotificationIdSchema = Joi.alternatives().try(
+  Joi.object({
+    id: Joi.number()
+      .integer()
       .required()
-      .description(
-        'The unique identifier of the user to receive the notification',
-      ),
-    message: Joi.string()
-      .required()
-      .description('The notification message content'),
-    type: Joi.string()
-      .optional()
-      .description(
-        'The category of the notification (e.g., SYSTEM, COURSE_UPDATE)',
-      ),
-    meta: Joi.object()
-      .unknown(true)
-      .optional()
-      .description('Optional structured details for this notification'),
+      .description('The unique identifier of the notification'),
+    user: Joi.any().optional().description('The authenticated user'),
+  }),
+  Joi.object({
+    id: Joi.number().integer().required(),
   })
-    .required()
-    .description('Notification creation details'),
-  user: Joi.any()
-    .required()
-    .description('The authenticated user performing the action'),
-}).description('Schema for creating a new notification');
+).description('Schema for operations requiring a single notification ID');
 
-export const NotificationIdSchema = Joi.object({
-  id: Joi.number()
-    .integer()
-    .required()
-    .description('The unique identifier of the notification'),
-  user: Joi.any().required().description('The authenticated user'),
-}).description('Schema for operations requiring a single notification ID');
-
-export const UserOnlyNotificationSchema = Joi.object({
-  user: Joi.any().required().description('The authenticated user context'),
-}).description('Schema for fetching notifications belonging to the user');
+export const UserOnlyNotificationSchema = Joi.alternatives().try(
+  Joi.object({
+    user: Joi.any().optional().description('The authenticated user context'),
+  }),
+  Joi.object().unknown(true)
+).description('Schema for fetching notifications belonging to the user');
 
 export const InternalProgressSchema = Joi.object({
   userId: Joi.string()

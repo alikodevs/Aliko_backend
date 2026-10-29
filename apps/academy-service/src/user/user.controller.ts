@@ -59,19 +59,27 @@ export class UserController {
     }
   }
 
+  @Post(['profile', 'academy/profile', 'user/profile'])
   @MessagePattern({ cmd: 'create_academy_profile' })
   @UsePipes(new JoiValidationPipe(UserProfileSchema))
-  async createProfile(@Payload() payload: { user: AuthenticatedUser }) {
+  async createProfile(
+    @Req() req?: any,
+    @Payload() payload?: { user: AuthenticatedUser },
+  ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Received createProfile request for user: ${payload.user?.firebaseId}`,
+      `Received createProfile request for user: ${user?.firebaseId}`,
     );
     try {
-      return await this.userService.getOrCreateProfile(payload.user);
+      return await this.userService.getOrCreateProfile(user);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Failed to create academy profile for user ${payload.user?.firebaseId}: ${errorMessage}`,
+        `Failed to create academy profile for user ${user?.firebaseId}: ${errorMessage}`,
       );
       throw error;
     }

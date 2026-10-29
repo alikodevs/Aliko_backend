@@ -1,51 +1,42 @@
-import { Controller, UseGuards, UsePipes, Logger, HttpException, Get, Post, Body, Req, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  UsePipes,
+  Logger,
+  Get,
+  Post,
+  Delete,
+  Query,
+  Param,
+  Body,
+  Req,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { EnrollmentsService } from './enrollments.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
-import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { AuthenticatedUser } from '../user/user.service';
-import { AcademyProfileGuard } from '../auth/academy-profile.guard';
-import { Roles } from '../auth/role-guard/roles.decorator';
+import { AcademyProfileGuard } from '../auth';
 import { RoleGuard } from '../auth/role-guard/role-guard';
+import { Roles } from '../auth/role-guard/roles.decorator';
 import { JoiValidationPipe } from '../common/pipes/joi-validation.pipe';
 import {
   CreateEnrollmentSchema,
-  EnrollmentIdSchema,
   FindAllEnrollmentsSchema,
   CohortIdEnrollmentSchema,
+  EnrollmentIdSchema,
   UserIdEnrollmentSchema,
   CourseIdEnrollmentSchema,
-  UserOnlySchema,
 } from './enrollments.validation';
 
-/**
- * Helper to convert any thrown exception into an RpcException
- * that preserves the original HTTP status code and message.
- * This is necessary because NestJS microservice transports
- * do NOT apply HTTP exception filters — they serialize
- * unrecognised errors as generic "Internal server error".
- */
 function toRpcException(error: any): RpcException {
-  if (error instanceof RpcException) return error;
-
-  const statusCode =
-    error instanceof HttpException ? error.getStatus() : 500;
-
-  let message = error?.message || 'Internal server error';
-  let errorName = 'Internal Server Error';
-
-  if (error instanceof HttpException) {
-    const response = error.getResponse();
-    if (typeof response === 'object') {
-      const res = response as any;
-      message = Array.isArray(res.message)
-        ? res.message[0]
-        : res.message || message;
-      errorName = res.error || error.name || errorName;
-    } else {
-      message = response as string;
-    }
+  if (error instanceof RpcException) {
+    return error;
   }
-
+  const statusCode = error?.status || error?.statusCode || 500;
+  const message = error?.message || 'Internal server error';
+  const errorName = error?.name || 'Error';
   return new RpcException({
     statusCode,
     message,
@@ -62,6 +53,7 @@ export class EnrollmentsController {
 
   @Post(['enrollment', 'enrollments', 'academy/enrollment', 'academy/enrollments'])
   @MessagePattern({ cmd: 'create_enrollment' })
+  @UsePipes(new JoiValidationPipe(CreateEnrollmentSchema))
   async create(
     @Body() body?: CreateEnrollmentDto,
     @Req() req?: any,
@@ -97,112 +89,169 @@ export class EnrollmentsController {
     }
   }
 
+  @Get(['enrollments', 'academy/enrollments'])
   @MessagePattern({ cmd: 'find_all_enrollments' })
   @UseGuards(RoleGuard)
   @Roles('ADMIN')
   @UsePipes(new JoiValidationPipe(FindAllEnrollmentsSchema))
-  async findAll(@Payload() payload: { user: AuthenticatedUser; query?: any }) {
+  async findAll(
+    @Query() query?: any,
+    @Req() req?: any,
+    @Payload() payload?: { user: AuthenticatedUser; query?: any },
+  ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const q = payload?.query || query || {};
     this.logger.log(
-      `Admin ${payload.user.firebaseId} is fetching all enrollments with query: ${JSON.stringify(payload.query)}`,
+      `Admin ${user.firebaseId} is fetching all enrollments with query: ${JSON.stringify(q)}`,
     );
     try {
-      return await this.enrollmentsService.findAll(payload.user, payload.query);
+      return await this.enrollmentsService.findAll(user, q);
     } catch (error) {
       this.logger.error(
-        `Admin ${payload.user.firebaseId} failed to fetch all enrollments: ${error.message}`,
+        `Admin ${user.firebaseId} failed to fetch all enrollments: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
     }
   }
 
+  @Get(['enrollments/instructor', 'academy/enrollments/instructor'])
   @MessagePattern({ cmd: 'find_instructor_enrollments' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(FindAllEnrollmentsSchema))
   async findInstructorEnrollments(
-    @Payload() payload: { user: AuthenticatedUser; query?: any },
+    @Query() query?: any,
+    @Req() req?: any,
+    @Payload() payload?: { user: AuthenticatedUser; query?: any },
   ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const q = payload?.query || query || {};
     this.logger.log(
-      `Instructor ${payload.user.firebaseId} is fetching their student enrollments`,
+      `Instructor ${user.firebaseId} is fetching their student enrollments`,
     );
     try {
       return await this.enrollmentsService.findByInstructor(
-        payload.user,
-        payload.query,
+        user,
+        q,
       );
     } catch (error) {
       this.logger.error(
-        `Instructor ${payload.user.firebaseId} failed to fetch their enrollments: ${error.message}`,
+        `Instructor ${user.firebaseId} failed to fetch their enrollments: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
     }
   }
 
+  @Get(['enrollments/cohort/:cohortId', 'academy/enrollments/cohort/:cohortId'])
   @MessagePattern({ cmd: 'find_enrollments_by_cohort' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(CohortIdEnrollmentSchema))
   async findByCohort(
+    @Param('cohortId') paramCohortId?: string,
+    @Query() query?: any,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       cohortId: number;
       user: AuthenticatedUser;
       query?: any;
     },
   ) {
+    const rawCohortId = payload?.cohortId !== undefined ? payload.cohortId : paramCohortId;
+    const cohortId = Number(rawCohortId);
+    if (!cohortId || isNaN(cohortId)) {
+      throw new BadRequestException('Invalid cohort ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const q = payload?.query || query || {};
     this.logger.log(
-      `Fetching enrollments for cohort ID: ${payload.cohortId} (requested by: ${payload.user.firebaseId})`,
+      `Fetching enrollments for cohort ID: ${cohortId} (requested by: ${user.firebaseId})`,
     );
     try {
       return await this.enrollmentsService.findByCohort(
-        payload.cohortId,
-        payload.user,
-        payload.query,
+        cohortId,
+        user,
+        q,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to fetch enrollments for cohort ID ${payload.cohortId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch enrollments for cohort ID ${cohortId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
     }
   }
 
+  @Delete(['enrollments/:id', 'academy/enrollments/:id'])
   @MessagePattern({ cmd: 'remove_enrollment' })
   @UsePipes(new JoiValidationPipe(EnrollmentIdSchema))
-  async remove(@Payload() payload: { id: number; user: AuthenticatedUser }) {
+  async remove(
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
+  ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid enrollment ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Removing enrollment ID: ${payload.id} (requested by: ${payload.user.firebaseId})`,
+      `Removing enrollment ID: ${id} (requested by: ${user.firebaseId})`,
     );
     try {
-      return await this.enrollmentsService.remove(payload.id, payload.user);
+      return await this.enrollmentsService.remove(id, user);
     } catch (error) {
       this.logger.error(
-        `Failed to remove enrollment ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to remove enrollment ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
     }
   }
 
+  @Get(['enrollments/user/:userId', 'academy/enrollments/user/:userId'])
   @MessagePattern({ cmd: 'find_enrollments_by_user' })
   @UsePipes(new JoiValidationPipe(UserIdEnrollmentSchema))
   async findEnrollmentsByUser(
-    @Payload() payload: { userId: string; user: AuthenticatedUser },
+    @Param('userId') paramUserId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { userId: string; user: AuthenticatedUser },
   ) {
+    const userId = payload?.userId || paramUserId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Fetching enrollments for user ID: ${payload.userId} (requested by: ${payload.user.firebaseId})`,
+      `Fetching enrollments for user ID: ${userId} (requested by: ${user.firebaseId})`,
     );
     try {
       return await this.enrollmentsService.findByUserId(
-        payload.userId,
-        payload.user,
+        userId,
+        user,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to fetch enrollments for user ID ${payload.userId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch enrollments for user ID ${userId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
@@ -233,28 +282,42 @@ export class EnrollmentsController {
     }
   }
 
+  @Get(['enrollments/course/:courseId', 'academy/enrollments/course/:courseId'])
   @MessagePattern({ cmd: 'find_enrollments_by_course' })
   @UsePipes(new JoiValidationPipe(CourseIdEnrollmentSchema))
   async findEnrollmentsByCourse(
+    @Param('courseId') paramCourseId?: string,
+    @Query() query?: any,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       courseId: number;
       user: AuthenticatedUser;
       query?: any;
     },
   ) {
+    const rawCourseId = payload?.courseId !== undefined ? payload.courseId : paramCourseId;
+    const courseId = Number(rawCourseId);
+    if (!courseId || isNaN(courseId)) {
+      throw new BadRequestException('Invalid course ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const q = payload?.query || query || {};
     this.logger.log(
-      `Fetching enrollments for course ID: ${payload.courseId} (requested by: ${payload.user.firebaseId})`,
+      `Fetching enrollments for course ID: ${courseId} (requested by: ${user.firebaseId})`,
     );
     try {
       return await this.enrollmentsService.findByCourse(
-        payload.courseId,
-        payload.user,
-        payload.query,
+        courseId,
+        user,
+        q,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to fetch enrollments for course ID ${payload.courseId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to fetch enrollments for course ID ${courseId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);

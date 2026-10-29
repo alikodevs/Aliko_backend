@@ -122,31 +122,43 @@ export class ContentController {
     }
   }
 
+  @Post(['content/upload', 'academy/content/upload'])
   @MessagePattern({ cmd: 'upload_content_file' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(UploadContentSchema))
   async uploadFile(
+    @Body() body?: UploadContentDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       dto: UploadContentDto;
       file?: UploadedFile;
       user: AuthenticatedUser;
     },
   ) {
-    const fileName = payload.file?.originalname || payload.dto?.contentUrl || 'N/A';
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Content upload data required');
+    }
+    const file = payload?.file || req?.file;
+    const fileName = file?.originalname || dto?.contentUrl || 'N/A';
     this.logger.log(
-      `Uploading content "${fileName}" for lesson ${payload.dto.lessonId} by user: ${payload.user.firebaseId}`,
+      `Uploading content "${fileName}" for lesson ${dto.lessonId} by user: ${user.firebaseId}`,
     );
     try {
       return await this.contentService.uploadFile(
-        payload.dto,
-        payload.file || null,
-        payload.user,
+        dto,
+        file || null,
+        user,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to upload content "${fileName}" for lesson ${payload.dto.lessonId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to upload content "${fileName}" for lesson ${dto.lessonId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;

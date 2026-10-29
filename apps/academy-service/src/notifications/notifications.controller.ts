@@ -1,4 +1,19 @@
-import { Controller, UseGuards, UsePipes, Logger, Get, Req, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  UsePipes,
+  Logger,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Req,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
@@ -21,21 +36,32 @@ export class NotificationsController {
   private readonly logger = new Logger(NotificationsController.name);
   constructor(private readonly service: NotificationsService) {}
 
+  @Post(['notifications', 'academy/notifications'])
   @MessagePattern({ cmd: 'create_notification' })
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(CreateNotificationSchema))
   async create(
-    @Payload() payload: { dto: CreateNotificationDto; user: AuthenticatedUser },
+    @Body() body?: CreateNotificationDto,
+    @Req() req?: any,
+    @Payload() payload?: { dto: CreateNotificationDto; user: AuthenticatedUser },
   ) {
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Notification data required');
+    }
     this.logger.log(
-      `Creating notification for user: ${payload.dto.userId} by: ${payload.user.firebaseId}`,
+      `Creating notification for user: ${dto.userId} by: ${user.firebaseId}`,
     );
     try {
-      return await this.service.createNotification(payload.user, payload.dto);
+      return await this.service.createNotification(user, dto);
     } catch (error) {
       this.logger.error(
-        `Failed to create notification for user ${payload.dto.userId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to create notification for user ${dto.userId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
@@ -67,57 +93,98 @@ export class NotificationsController {
     }
   }
 
+  @Get(['notifications/:id', 'academy/notifications/:id'])
   @MessagePattern({ cmd: 'get_notification_by_id' })
   @UseGuards(AcademyProfileGuard)
   @UsePipes(new JoiValidationPipe(NotificationIdSchema))
   async getById(
-    @Payload() payload: { id: number; user: AuthenticatedUser },
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
   ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid notification ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `User ${payload.user.firebaseId} fetching notification ${payload.id}`,
+      `User ${user.firebaseId} fetching notification ${id}`,
     );
     try {
-      return await this.service.getNotificationById(payload.user, payload.id);
+      return await this.service.getNotificationById(user, id);
     } catch (error) {
       this.logger.error(
-        `User ${payload.user.firebaseId} failed to fetch notification ${payload.id}: ${error.message}`,
+        `User ${user.firebaseId} failed to fetch notification ${id}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
     }
   }
 
+  @Put(['notifications/:id/read', 'academy/notifications/:id/read'])
+  @Patch(['notifications/:id/read', 'academy/notifications/:id/read'])
   @MessagePattern({ cmd: 'mark_notification_read' })
   @UseGuards(AcademyProfileGuard)
   @UsePipes(new JoiValidationPipe(NotificationIdSchema))
-  async markRead(@Payload() payload: { id: number; user: AuthenticatedUser }) {
+  async markRead(
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
+  ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid notification ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `User ${payload.user.firebaseId} marking notification ${payload.id} as read`,
+      `User ${user.firebaseId} marking notification ${id} as read`,
     );
     try {
-      return await this.service.markAsRead(payload.user, payload.id);
+      return await this.service.markAsRead(user, id);
     } catch (error) {
       this.logger.error(
-        `User ${payload.user.firebaseId} failed to mark notification ${payload.id} as read: ${error.message}`,
+        `User ${user.firebaseId} failed to mark notification ${id} as read: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
     }
   }
 
+  @Delete(['notifications/:id', 'academy/notifications/:id'])
   @MessagePattern({ cmd: 'delete_notification' })
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(NotificationIdSchema))
-  async delete(@Payload() payload: { id: number; user: AuthenticatedUser }) {
+  async delete(
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
+  ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid notification ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `User ${payload.user.firebaseId} deleting notification ${payload.id}`,
+      `User ${user.firebaseId} deleting notification ${id}`,
     );
     try {
-      return await this.service.deleteNotification(payload.user, payload.id);
+      return await this.service.deleteNotification(user, id);
     } catch (error) {
       this.logger.error(
-        `User ${payload.user.firebaseId} failed to delete notification ${payload.id}: ${error.message}`,
+        `User ${user.firebaseId} failed to delete notification ${id}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
@@ -139,7 +206,7 @@ export class NotificationsController {
       );
     } catch (error) {
       this.logger.error(
-        `Internal: Failed to create progress notification for user ${payload.userId}: ${error.message}`,
+        `Failed to create internal progress notification for user ${payload.userId}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
@@ -157,17 +224,17 @@ export class NotificationsController {
     },
   ) {
     this.logger.log(
-      `Internal: Notifying instructors about student ${payload.studentId} progress in course ${payload.courseId}`,
+      `Internal: Notifying instructors about student ${payload.studentId} finishing module: ${payload.moduleTitle}`,
     );
     try {
-      return await this.service.notifyInstructorProgress(
+      return await this.service.notifyInstructors(
         payload.studentId,
         payload.courseId,
         payload.moduleTitle,
       );
     } catch (error) {
       this.logger.error(
-        `Internal: Failed to notify instructors about student ${payload.studentId} progress in course ${payload.courseId}: ${error.message}`,
+        `Failed to notify instructors for student ${payload.studentId} in course ${payload.courseId}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);

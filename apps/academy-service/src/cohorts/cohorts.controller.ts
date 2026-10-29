@@ -1,4 +1,20 @@
-import { Controller, UseGuards, UsePipes, Logger, Get, Post, Patch, Delete, Body, Query, Param, Req } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  UsePipes,
+  Logger,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Query,
+  Param,
+  Body,
+  Req,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CohortsService } from './cohorts.service';
 import { CreateCohortDto } from './dto/create-cohort.dto';
@@ -21,21 +37,32 @@ export class CohortsController {
   private readonly logger = new Logger(CohortsController.name);
   constructor(private readonly cohortsService: CohortsService) {}
 
+  @Post(['cohorts', 'academy/cohorts'])
   @MessagePattern({ cmd: 'create_cohort' })
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(CreateCohortSchema))
   async create(
-    @Payload() payload: { dto: CreateCohortDto; user: AuthenticatedUser },
+    @Body() body?: CreateCohortDto,
+    @Req() req?: any,
+    @Payload() payload?: { dto: CreateCohortDto; user: AuthenticatedUser },
   ) {
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Cohort data required');
+    }
     this.logger.log(
-      `Creating cohort "${payload.dto.name}" for course ${payload.dto.courseId} by user: ${payload.user.firebaseId}`,
+      `Creating cohort "${dto.name}" for course ${dto.courseId} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.cohortsService.create(payload.dto, payload.user);
+      return await this.cohortsService.create(dto, user);
     } catch (error) {
       this.logger.error(
-        `Failed to create cohort "${payload.dto.name}" for course ${payload.dto.courseId} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to create cohort "${dto.name}" for course ${dto.courseId} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -60,24 +87,32 @@ export class CohortsController {
     }
   }
 
+  @Get(['cohorts/instructor', 'academy/cohorts/instructor'])
   @MessagePattern({ cmd: 'find_instructor_cohorts' })
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(InstructorOnlyEventsSchema))
   async findInstructorCohorts(
-    @Payload() payload: { user: AuthenticatedUser; query?: any },
+    @Query() query?: any,
+    @Req() req?: any,
+    @Payload() payload?: { user: AuthenticatedUser; query?: any },
   ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const q = payload?.query || query || {};
     this.logger.log(
-      `Instructor ${payload.user.firebaseId} fetching their cohorts`,
+      `Instructor ${user.firebaseId} fetching their cohorts`,
     );
     try {
       return await this.cohortsService.findByInstructor(
-        payload.user,
-        payload.query,
+        user,
+        q,
       );
     } catch (error) {
       this.logger.error(
-        `Instructor ${payload.user.firebaseId} failed to fetch their cohorts: ${error.message}`,
+        `Instructor ${user.firebaseId} failed to fetch their cohorts: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -89,6 +124,9 @@ export class CohortsController {
   async findOne(@Param('id') paramId?: string, @Payload() payload?: { id: number }) {
     const rawId = payload?.id !== undefined ? payload.id : paramId;
     const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid cohort ID');
+    }
     this.logger.log(`Fetching details for cohort ID: ${id}`);
     try {
       return await this.cohortsService.findOne(id);
@@ -101,49 +139,81 @@ export class CohortsController {
     }
   }
 
+  @Put(['cohorts/:id', 'academy/cohorts/:id'])
+  @Patch(['cohorts/:id', 'academy/cohorts/:id'])
   @MessagePattern({ cmd: 'update_cohort' })
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(UpdateCohortSchema))
   async update(
+    @Param('id') paramId?: string,
+    @Body() body?: UpdateCohortDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       id: number;
       dto: UpdateCohortDto;
       user: AuthenticatedUser;
     },
   ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid cohort ID');
+    }
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Cohort update data required');
+    }
     this.logger.log(
-      `Updating cohort ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+      `Updating cohort ID: ${id} by user: ${user.firebaseId}`,
     );
     try {
       return await this.cohortsService.update(
-        payload.id,
-        payload.dto,
-        payload.user,
+        id,
+        dto,
+        user,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to update cohort ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to update cohort ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;
     }
   }
 
+  @Delete(['cohorts/:id', 'academy/cohorts/:id'])
   @MessagePattern({ cmd: 'remove_cohort' })
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(CohortIdSchema))
-  async remove(@Payload() payload: { id: number; user: AuthenticatedUser }) {
+  async remove(
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
+  ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid cohort ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Removing cohort ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+      `Removing cohort ID: ${id} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.cohortsService.remove(payload.id, payload.user);
+      return await this.cohortsService.remove(id, user);
     } catch (error) {
       this.logger.error(
-        `Failed to remove cohort ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to remove cohort ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw error;

@@ -1,4 +1,20 @@
-import { Controller, UseGuards, UsePipes, Logger, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  UsePipes,
+  Logger,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Query,
+  Param,
+  Body,
+  Req,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AnnouncementsService } from './announcements.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
@@ -23,21 +39,32 @@ export class AnnouncementsController {
 
   constructor(private readonly announcementsService: AnnouncementsService) {}
 
+  @Post(['announcements', 'academy/announcements'])
   @MessagePattern({ cmd: 'create_announcement' })
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(CreateAnnouncementSchema))
   async create(
-    @Payload() payload: { dto: CreateAnnouncementDto; user: AuthenticatedUser },
+    @Body() body?: CreateAnnouncementDto,
+    @Req() req?: any,
+    @Payload() payload?: { dto: CreateAnnouncementDto; user: AuthenticatedUser },
   ) {
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Announcement data required');
+    }
     this.logger.log(
-      `Creating announcement "${payload.dto.title}" by user: ${payload.user.firebaseId}`,
+      `Creating announcement "${dto.title}" by user: ${user.firebaseId}`,
     );
     try {
-      return await this.announcementsService.create(payload.dto, payload.user);
+      return await this.announcementsService.create(dto, user);
     } catch (error) {
       this.logger.error(
-        `Failed to create announcement "${payload.dto.title}" by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to create announcement "${dto.title}" by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
@@ -65,68 +92,108 @@ export class AnnouncementsController {
     }
   }
 
+  @Get(['announcements/:id', 'academy/announcements/:id'])
   @MessagePattern({ cmd: 'find_announcement_by_id' })
   @UsePipes(new JoiValidationPipe(FindOneAnnouncementSchema))
-  async findOne(@Payload() payload: { id: number }) {
-    this.logger.log(`Fetching announcement ID: ${payload.id}`);
+  async findOne(
+    @Param('id') paramId?: string,
+    @Payload() payload?: { id: number },
+  ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid announcement ID');
+    }
+    this.logger.log(`Fetching announcement ID: ${id}`);
     try {
-      return await this.announcementsService.findOne(payload.id);
+      return await this.announcementsService.findOne(id);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch announcement ID ${payload.id}: ${error.message}`,
+        `Failed to fetch announcement ID ${id}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
     }
   }
 
+  @Put(['announcements/:id', 'academy/announcements/:id'])
+  @Patch(['announcements/:id', 'academy/announcements/:id'])
   @MessagePattern({ cmd: 'update_announcement' })
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(UpdateAnnouncementSchema))
   async update(
+    @Param('id') paramId?: string,
+    @Body() body?: UpdateAnnouncementDto,
+    @Req() req?: any,
     @Payload()
-    payload: {
+    payload?: {
       id: number;
       dto: UpdateAnnouncementDto;
       user: AuthenticatedUser;
     },
   ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid announcement ID');
+    }
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Update data required');
+    }
     this.logger.log(
-      `Updating announcement ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+      `Updating announcement ID: ${id} by user: ${user.firebaseId}`,
     );
     try {
       return await this.announcementsService.update(
-        payload.id,
-        payload.dto,
-        payload.user,
+        id,
+        dto,
+        user,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to update announcement ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to update announcement ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
     }
   }
 
+  @Delete(['announcements/:id', 'academy/announcements/:id'])
   @MessagePattern({ cmd: 'remove_announcement' })
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
   @UsePipes(new JoiValidationPipe(AnnouncementIdSchema))
-  async remove(@Payload() payload: { id: number; user: AuthenticatedUser }) {
+  async remove(
+    @Param('id') paramId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { id: number; user: AuthenticatedUser },
+  ) {
+    const rawId = payload?.id !== undefined ? payload.id : paramId;
+    const id = Number(rawId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid announcement ID');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
     this.logger.log(
-      `Removing announcement ID: ${payload.id} by user: ${payload.user.firebaseId}`,
+      `Removing announcement ID: ${id} by user: ${user.firebaseId}`,
     );
     try {
-      return await this.announcementsService.remove(payload.id, payload.user);
+      return await this.announcementsService.remove(id, user);
     } catch (error) {
       this.logger.error(
-        `Failed to remove announcement ID ${payload.id} by user ${payload.user.firebaseId}: ${error.message}`,
+        `Failed to remove announcement ID ${id} by user ${user.firebaseId}: ${error.message}`,
         error.stack,
       );
       throw toRpcException(error);
     }
   }
 }
-
