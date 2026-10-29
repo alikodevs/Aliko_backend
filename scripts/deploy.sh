@@ -19,7 +19,10 @@ export CI=true
 unset NODE_OPTIONS
 
 echo "--> Current working directory: $(pwd)"
-echo "--> Pulling latest code..."
+echo "--> Pulling latest code and ensuring clean git state..."
+git fetch origin main || true
+git checkout -f main || true
+git reset --hard origin/main || true
 git pull origin main || git pull origin master || true
 
 echo "--> Installing dependencies..."

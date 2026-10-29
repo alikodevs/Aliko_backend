@@ -90,5 +90,7 @@ jobs:
             elif [ -d "/root/Aliko_backend" ]; then
               cd /root/Aliko_backend
             fi
-            git pull origin ${{ github.ref_name }}
+            git fetch origin ${{ github.ref_name }}
+            git checkout -f ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
             bash scripts/deploy.sh

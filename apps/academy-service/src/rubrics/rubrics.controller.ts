@@ -186,3 +186,5 @@ export class RubricsController {
     return this.rubricsService.evaluateWithRubric(dto);
   }
 }
+
+export default RubricsController;
