@@ -563,12 +563,14 @@ model DiscussionTopic {
   moduleId    Int
   title       String
   prompt      String
+  rubricId    String?
   rubric      Json?
   maxPoints   Float             @default(10)
   dueDate     DateTime?
   createdAt   DateTime          @default(now())
 
   module      Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  rubricRef   Rubric?           @relation(fields: [rubricId], references: [id], onDelete: SetNull)
   posts       DiscussionPost[]
 }
 
@@ -786,7 +788,8 @@ model Rubric {
   updatedAt   DateTime          @updatedAt
 
   creator     AcademyProfile    @relation("CreatedRubrics", fields: [createdBy], references: [userId], onDelete: Cascade)
-  criteria    RubricCriterion[]
+  criteria         RubricCriterion[]
+  discussionTopics DiscussionTopic[]
 }
 
 model RubricCriterion {

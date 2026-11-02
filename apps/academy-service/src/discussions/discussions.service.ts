@@ -6,8 +6,10 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser, UserService } from '../user/user.service';
+import { RubricsService } from '../rubrics/rubrics.service';
 import {
   CreateDiscussionTopicDto,
+  UpdateDiscussionTopicDto,
   CreateDiscussionPostDto,
   GradeDiscussionPostDto,
 } from './dto';
@@ -19,6 +21,7 @@ export class DiscussionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
+    private readonly rubricsService: RubricsService,
   ) {}
 
   async createTopic(dto: CreateDiscussionTopicDto, user: AuthenticatedUser) {
@@ -38,20 +41,160 @@ export class DiscussionsService {
       );
     }
 
+    let resolvedRubricId: string | null = dto.rubricId || null;
+    let calculatedMaxPoints = dto.maxPoints ?? 10;
+
+    // Attach existing rubric or create new inline rubric
+    if (dto.rubricId) {
+      const existingRubric = await this.rubricsService.findOne(dto.rubricId);
+      if (existingRubric && existingRubric.criteria && existingRubric.criteria.length > 0) {
+        if (!dto.maxPoints || dto.maxPoints === 10) {
+          calculatedMaxPoints = existingRubric.criteria.reduce(
+            (acc, c) => acc + (c.maxPoints || 0),
+            0,
+          );
+        }
+      }
+    } else if (dto.rubric && typeof dto.rubric === 'object' && dto.rubric.criteria) {
+      const createdRubric = await this.rubricsService.create(user.firebaseId, {
+        ...dto.rubric,
+        type: 'DISCUSSION',
+      });
+      resolvedRubricId = createdRubric.id;
+      if (createdRubric.criteria && createdRubric.criteria.length > 0) {
+        calculatedMaxPoints = createdRubric.criteria.reduce(
+          (acc, c) => acc + (c.maxPoints || 0),
+          0,
+        );
+      }
+    }
+
     const topic = await this.prisma.discussionTopic.create({
       data: {
         moduleId: dto.moduleId,
         title: dto.title,
         prompt: dto.prompt,
-        rubric: dto.rubric ?? (dto as any).rubricId,
-        maxPoints: dto.maxPoints ?? 10,
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : ((dto as any).dueAt ? new Date((dto as any).dueAt) : null),
+        rubricId: resolvedRubricId,
+        rubric: dto.rubric ?? undefined,
+        maxPoints: calculatedMaxPoints,
+        dueDate: dto.dueDate
+          ? new Date(dto.dueDate)
+          : (dto as any).dueAt
+          ? new Date((dto as any).dueAt)
+          : null,
+      },
+      include: {
+        rubricRef: {
+          include: {
+            criteria: {
+              orderBy: { order: 'asc' },
+              include: {
+                levels: {
+                  orderBy: { order: 'asc' },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
-
-    this.logger.log(`Created discussion topic ${topic.id} in module ${dto.moduleId}`);
+    this.logger.log(
+      `Created discussion topic ${topic.id} in module ${dto.moduleId} with rubric ${resolvedRubricId}`,
+    );
     return topic;
+  }
+
+  async updateTopic(
+    topicId: number,
+    dto: UpdateDiscussionTopicDto,
+    user: AuthenticatedUser,
+  ) {
+    const academyProfile = await this.userService.getOrCreateProfile(user);
+    const topic = await this.prisma.discussionTopic.findUnique({
+      where: { id: topicId },
+      include: {
+        module: {
+          include: { course: true },
+        },
+      },
+    });
+    if (!topic) throw new NotFoundException('Discussion topic not found');
+
+    const isInstructor =
+      topic.module.course.instructorId === user.firebaseId;
+    const isAdmin = academyProfile.role === 'ADMIN';
+
+    if (!isInstructor && !isAdmin) {
+      throw new ForbiddenException(
+        'Only instructors or admins can edit discussion topics.',
+      );
+    }
+
+    let resolvedRubricId = topic.rubricId;
+    let calculatedMaxPoints = dto.maxPoints ?? topic.maxPoints;
+
+    if (dto.rubricId !== undefined) {
+      resolvedRubricId = dto.rubricId;
+      if (dto.rubricId) {
+        const existingRubric = await this.rubricsService.findOne(dto.rubricId);
+        if (existingRubric && existingRubric.criteria && existingRubric.criteria.length > 0) {
+          if (!dto.maxPoints) {
+            calculatedMaxPoints = existingRubric.criteria.reduce(
+              (acc, c) => acc + (c.maxPoints || 0),
+              0,
+            );
+          }
+        }
+      }
+    } else if (dto.rubric && typeof dto.rubric === 'object' && dto.rubric.criteria) {
+      const createdRubric = await this.rubricsService.create(user.firebaseId, {
+        ...dto.rubric,
+        type: 'DISCUSSION',
+      });
+      resolvedRubricId = createdRubric.id;
+      if (createdRubric.criteria && createdRubric.criteria.length > 0) {
+        calculatedMaxPoints = createdRubric.criteria.reduce(
+          (acc, c) => acc + (c.maxPoints || 0),
+          0,
+        );
+      }
+    }
+
+    const updated = await this.prisma.discussionTopic.update({
+      where: { id: topicId },
+      data: {
+        title: dto.title ?? topic.title,
+        prompt: dto.prompt ?? topic.prompt,
+        rubricId: resolvedRubricId,
+        rubric: dto.rubric ?? topic.rubric,
+        maxPoints: calculatedMaxPoints,
+        dueDate: dto.dueDate
+          ? new Date(dto.dueDate)
+          : (dto as any).dueAt
+          ? new Date((dto as any).dueAt)
+          : topic.dueDate,
+      },
+      include: {
+        rubricRef: {
+          include: {
+            criteria: {
+              orderBy: { order: 'asc' },
+              include: {
+                levels: {
+                  orderBy: { order: 'asc' },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    this.logger.log(
+      `Updated discussion topic ${topicId} with rubric ${resolvedRubricId}`,
+    );
+    return updated;
   }
 
   async findAllByModule(moduleId: number, user: AuthenticatedUser) {
@@ -64,6 +207,18 @@ export class DiscussionsService {
     return this.prisma.discussionTopic.findMany({
       where: { moduleId },
       include: {
+        rubricRef: {
+          include: {
+            criteria: {
+              orderBy: { order: 'asc' },
+              include: {
+                levels: {
+                  orderBy: { order: 'asc' },
+                },
+              },
+            },
+          },
+        },
         _count: {
           select: { posts: true },
         },
@@ -79,6 +234,18 @@ export class DiscussionsService {
       include: {
         module: {
           select: { id: true, title: true, courseId: true },
+        },
+        rubricRef: {
+          include: {
+            criteria: {
+              orderBy: { order: 'asc' },
+              include: {
+                levels: {
+                  orderBy: { order: 'asc' },
+                },
+              },
+            },
+          },
         },
         posts: {
           where: { parentId: null }, // Fetch root posts
@@ -107,7 +274,7 @@ export class DiscussionsService {
   }
 
   async createPost(dto: CreateDiscussionPostDto, user: AuthenticatedUser) {
-    const profile = await this.userService.getOrCreateProfile(user);
+    await this.userService.getOrCreateProfile(user);
     const topic = await this.prisma.discussionTopic.findUnique({
       where: { id: dto.topicId },
       include: { module: true },
@@ -156,6 +323,7 @@ export class DiscussionsService {
             module: {
               include: { course: true },
             },
+            rubricRef: true,
           },
         },
       },
@@ -171,27 +339,45 @@ export class DiscussionsService {
       throw new ForbiddenException('Only instructors or admins can grade discussion posts');
     }
 
-    const finalScore = dto.score ?? dto.grade ?? 0;
+    let finalScore = dto.score ?? dto.grade ?? 0;
+    let rubricBreakdown = dto.rubricScores || null;
+
+    // Execute Rubric Evaluation if rubric selection or criteria scores provided
+    const targetRubricId = dto.rubricId || post.topic.rubricId;
+    if (
+      targetRubricId &&
+      ((dto.selectedLevelIds && dto.selectedLevelIds.length > 0) ||
+        (dto.criteriaScores && dto.criteriaScores.length > 0))
+    ) {
+      const evaluation = await this.rubricsService.evaluateWithRubric({
+        rubricId: targetRubricId,
+        selectedLevelIds: dto.selectedLevelIds,
+        criteriaScores: dto.criteriaScores,
+        customFeedback: dto.feedback,
+      });
+      finalScore = evaluation.totalEarnedPoints;
+      rubricBreakdown = evaluation.criteriaEvaluations;
+    }
+
     const grade = await this.prisma.discussionGrade.upsert({
       where: { postId },
       update: {
         score: finalScore,
-        rubricScores: dto.rubricScores,
+        rubricScores: rubricBreakdown,
         feedback: dto.feedback,
         graderId: user.firebaseId,
       },
       create: {
         postId,
         score: finalScore,
-        rubricScores: dto.rubricScores,
+        rubricScores: rubricBreakdown,
         feedback: dto.feedback,
         graderId: user.firebaseId,
       },
     });
 
-
     this.logger.log(
-      `Graded discussion post ${postId} with score ${dto.score} by grader ${user.firebaseId}`,
+      `Graded discussion post ${postId} with score ${finalScore} by grader ${user.firebaseId}`,
     );
     return grade;
   }

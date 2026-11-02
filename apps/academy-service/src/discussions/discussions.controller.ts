@@ -5,6 +5,8 @@ import {
   Logger,
   Get,
   Post,
+  Put,
+  Patch,
   Param,
   Body,
   Req,
@@ -15,6 +17,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { DiscussionsService } from './discussions.service';
 import {
   CreateDiscussionTopicDto,
+  UpdateDiscussionTopicDto,
   CreateDiscussionPostDto,
   GradeDiscussionPostDto,
 } from './dto';
@@ -25,6 +28,7 @@ import { Roles } from '../auth/role-guard/roles.decorator';
 import { JoiValidationPipe } from '../common/pipes/joi-validation.pipe';
 import {
   CreateTopicSchema,
+  UpdateTopicSchema,
   TopicIdSchema,
   ModuleIdDiscussionsSchema,
   CreatePostSchema,
@@ -64,6 +68,42 @@ export class DiscussionsController {
       `Creating discussion topic "${dto.title}" for module ${dto.moduleId} by user ${user.firebaseId}`,
     );
     return this.discussionsService.createTopic(dto, user);
+  }
+
+  @Put(['discussions/topics/:topicId', 'academy/discussions/topics/:topicId'])
+  @Patch(['discussions/topics/:topicId', 'academy/discussions/topics/:topicId'])
+  @MessagePattern({ cmd: 'update_discussion_topic' })
+  @UseGuards(RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  @UsePipes(new JoiValidationPipe(UpdateTopicSchema))
+  async updateTopic(
+    @Param('topicId') paramTopicId?: string,
+    @Body() body?: UpdateDiscussionTopicDto,
+    @Req() req?: any,
+    @Payload()
+    payload?: {
+      topicId: number;
+      dto: UpdateDiscussionTopicDto;
+      user: AuthenticatedUser;
+    },
+  ) {
+    const rawTopicId = payload?.topicId !== undefined ? payload.topicId : paramTopicId;
+    const topicId = Number(rawTopicId);
+    if (!topicId || isNaN(topicId)) {
+      throw new BadRequestException('Invalid topic ID');
+    }
+    const dto = payload?.dto || body;
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!dto) {
+      throw new BadRequestException('Update data is required');
+    }
+    this.logger.log(
+      `Updating discussion topic ${topicId} by user ${user.firebaseId}`,
+    );
+    return this.discussionsService.updateTopic(topicId, dto, user);
   }
 
   @Get(['discussions/modules/:moduleId', 'academy/discussions/modules/:moduleId'])
@@ -175,3 +215,5 @@ export class DiscussionsController {
     return this.discussionsService.gradePost(postId, dto, user);
   }
 }
+
+export default DiscussionsController;

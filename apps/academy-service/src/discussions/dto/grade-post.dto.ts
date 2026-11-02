@@ -1,4 +1,11 @@
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+
+export class CriterionScoreInput {
+  criterionId: string;
+  levelId?: string;
+  points: number;
+  feedback?: string;
+}
 
 export class GradeDiscussionPostDto {
   @IsOptional()
@@ -9,6 +16,18 @@ export class GradeDiscussionPostDto {
   @IsNumber()
   grade?: number;
 
+  @IsOptional()
+  @IsString()
+  rubricId?: string;
+
+  @IsOptional()
+  @IsArray()
+  selectedLevelIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  criteriaScores?: CriterionScoreInput[];
+
   @IsString()
   feedback: string;
 
@@ -16,6 +35,6 @@ export class GradeDiscussionPostDto {
   rubricScores?: any;
 
   @IsOptional()
+  @IsBoolean()
   isSubstantive?: boolean;
 }
-
