@@ -54,3 +54,4 @@ export const CourseIdParamSchema = Joi.alternatives().try(
     courseId: Joi.number().integer().required(),
   }),
 );
+

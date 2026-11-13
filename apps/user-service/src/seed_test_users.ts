@@ -1,5 +1,16 @@
-import { PrismaClient, AcademyRole } from '@prisma/client/user';
 import * as argon2 from 'argon2';
+import * as path from 'path';
+
+function loadUserPrisma() {
+  try {
+    return require('@prisma/client/user');
+  } catch {
+    const directPath = path.resolve(__dirname, '../../../node_modules/@prisma/client/user');
+    return require(directPath);
+  }
+}
+
+const { PrismaClient, AcademyRole } = loadUserPrisma();
 
 const prisma = new PrismaClient();
 

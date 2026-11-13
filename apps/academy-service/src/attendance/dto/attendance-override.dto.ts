@@ -16,3 +16,4 @@ export class RunCensusDto {
   @IsString()
   reason?: string;
 }
+

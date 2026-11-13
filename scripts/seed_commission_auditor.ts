@@ -1,11 +1,21 @@
-import { PrismaClient as UserPrismaClient } from '@prisma/client/user';
-import { PrismaClient as AcademyPrismaClient } from '@prisma/client/academy';
 import * as argon2 from 'argon2';
 import * as jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
+
+function loadPrismaClient(clientName: string) {
+  try {
+    return require(`@prisma/client/${clientName}`).PrismaClient;
+  } catch {
+    const directPath = path.resolve(__dirname, `../node_modules/@prisma/client/${clientName}`);
+    return require(directPath).PrismaClient;
+  }
+}
+
+const UserPrismaClient = loadPrismaClient('user');
+const AcademyPrismaClient = loadPrismaClient('academy');
 
 const userPrisma = new UserPrismaClient();
 const academyPrisma = new AcademyPrismaClient();

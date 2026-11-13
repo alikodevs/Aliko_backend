@@ -12,3 +12,4 @@ export class AttendanceReportQueryDto {
   @Type(() => Number)
   courseId?: number;
 }
+

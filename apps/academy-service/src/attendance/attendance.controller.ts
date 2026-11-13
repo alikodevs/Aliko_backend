@@ -156,3 +156,4 @@ export class AttendanceController {
     return this.attendanceService.overrideAttendance(enrollmentId, dto, user);
   }
 }
+
