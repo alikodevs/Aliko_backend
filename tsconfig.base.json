@@ -20,6 +20,7 @@
     "noImplicitAny": false,
     "strictPropertyInitialization": false,
     "useUnknownInCatchVariables": false,
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
       "@workspace/config": ["libs/config/src/index.ts"],
