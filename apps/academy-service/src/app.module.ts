@@ -36,6 +36,7 @@ import { GradebookModule } from './gradebook/gradebook.module';
 import { CertificationModule } from './certification/certification.module';
 import { ComplianceExporterModule } from './compliance-exporter/compliance-exporter.module';
 import { RubricsModule } from './rubrics/rubrics.module';
+import { AttendanceModule } from './attendance/attendance.module';
 import { PrismaService } from './database/prisma.service';
 import { AcademyOutboxPublisherWorker } from './modules/events/academy-outbox-publisher.worker';
 import { AcademyEventsConsumer } from './modules/events/academy-events.consumer';
@@ -78,6 +79,7 @@ import { UserServiceClient } from './integrations/user-service.client';
     CertificationModule,
     ComplianceExporterModule,
     RubricsModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [

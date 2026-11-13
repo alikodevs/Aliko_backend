@@ -82,6 +82,8 @@ export class DiscussionsService {
           : (dto as any).dueAt
           ? new Date((dto as any).dueAt)
           : null,
+        isWeekOneAttendanceGate: dto.isWeekOneAttendanceGate ?? false,
+        courseOutcome: dto.courseOutcome ?? null,
       },
       include: {
         rubricRef: {
@@ -174,6 +176,14 @@ export class DiscussionsService {
           : (dto as any).dueAt
           ? new Date((dto as any).dueAt)
           : topic.dueDate,
+        isWeekOneAttendanceGate:
+          dto.isWeekOneAttendanceGate !== undefined
+            ? dto.isWeekOneAttendanceGate
+            : topic.isWeekOneAttendanceGate,
+        courseOutcome:
+          dto.courseOutcome !== undefined
+            ? dto.courseOutcome
+            : topic.courseOutcome,
       },
       include: {
         rubricRef: {
@@ -305,6 +315,25 @@ export class DiscussionsService {
       },
     });
 
+    // WABON WAC 246-841A-440 (Req 12): Week 1 Attendance Gate verification via discussion post
+    if (topic.isWeekOneAttendanceGate) {
+      await this.prisma.enrollment.updateMany({
+        where: {
+          userId: user.firebaseId,
+          courseId: topic.module.courseId,
+        },
+        data: {
+          attendanceStatus: 'VERIFIED_PRESENT',
+          attendanceVerifiedAt: new Date(),
+          attendanceVerifiedBy: `AUTO_DISCUSSION_${topic.id}`,
+          attendanceNotes: `Verified via Week 1 Attendance Gate Discussion: "${topic.title}" (Course Outcome: ${topic.courseOutcome || 'N/A'})`,
+        },
+      });
+      this.logger.log(
+        `Student ${user.firebaseId} verified attendance via Week 1 Discussion Gate (Topic ${topic.id})`,
+      );
+    }
+
     this.logger.log(`Created discussion post ${post.id} by user ${user.firebaseId}`);
     return post;
   }
@@ -379,6 +408,23 @@ export class DiscussionsService {
     this.logger.log(
       `Graded discussion post ${postId} with score ${finalScore} by grader ${user.firebaseId}`,
     );
+
+    // WABON Req 12: Week 1 Attendance Gate verification via discussion post grading
+    if (post.topic.isWeekOneAttendanceGate) {
+      await this.prisma.enrollment.updateMany({
+        where: {
+          userId: post.userId,
+          courseId: post.topic.module.courseId,
+        },
+        data: {
+          attendanceStatus: 'VERIFIED_PRESENT',
+          attendanceVerifiedAt: new Date(),
+          attendanceVerifiedBy: `INSTRUCTOR_GRADE_${user.firebaseId}`,
+          attendanceNotes: `Verified via Instructor grading on Week 1 Discussion Gate: "${post.topic.title}" (Score: ${finalScore})`,
+        },
+      });
+    }
+
     return grade;
   }
 }

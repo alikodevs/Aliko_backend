@@ -130,6 +130,8 @@ model Enrollment {
   // WABON Attendance Tracking (WAC Req 12)
   attendanceStatus     AttendanceStatus  @default(PENDING_VERIFICATION)
   attendanceVerifiedAt DateTime?
+  attendanceVerifiedBy String?
+  attendanceNotes      String?
 
   cohort  Cohort?        @relation(fields: [cohortId], references: [id], onDelete: Cascade)
   course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -395,6 +397,7 @@ model Exercise {
 
   // WABON Attendance Gate & Exam Security
   isWeekOneAttendanceGate Boolean       @default(false)
+  courseOutcome           String?
   examSessions            ExamSession[]
 
   module      Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
@@ -567,6 +570,8 @@ model DiscussionTopic {
   rubric      Json?
   maxPoints   Float             @default(10)
   dueDate     DateTime?
+  isWeekOneAttendanceGate Boolean           @default(false)
+  courseOutcome           String?
   createdAt   DateTime          @default(now())
 
   module      Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)

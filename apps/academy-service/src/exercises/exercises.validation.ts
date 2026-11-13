@@ -37,6 +37,14 @@ const createExerciseDtoSchema = Joi.object({
     .optional()
     .default(0)
     .description('Order of the exercise'),
+  isWeekOneAttendanceGate: Joi.boolean()
+    .optional()
+    .default(false)
+    .description('Designates this assignment as the WAC 246-841A-440 Week-1 Attendance Gate'),
+  courseOutcome: Joi.string()
+    .allow('', null)
+    .optional()
+    .description('Course outcome or competency standard tied to this assignment'),
 });
 
 export const CreateExerciseSchema = Joi.alternatives().try(
@@ -59,6 +67,8 @@ const bulkExerciseItemSchema = Joi.object({
   hints: Joi.array().items(Joi.string()).optional(),
   points: Joi.number().integer().optional().default(1),
   order: Joi.number().integer().optional().default(0),
+  isWeekOneAttendanceGate: Joi.boolean().optional().default(false),
+  courseOutcome: Joi.string().allow('', null).optional(),
 });
 
 export const CreateBulkExercisesSchema = Joi.alternatives().try(
@@ -101,6 +111,13 @@ const updateExerciseDtoSchema = Joi.object({
     .description('The updated hints'),
   points: Joi.number().integer().optional().description('The updated points'),
   order: Joi.number().integer().optional().description('The updated order'),
+  isWeekOneAttendanceGate: Joi.boolean()
+    .optional()
+    .description('The updated WAC attendance gate flag'),
+  courseOutcome: Joi.string()
+    .allow('', null)
+    .optional()
+    .description('The updated course outcome tied to this assignment'),
 }).min(1);
 
 export const UpdateExerciseSchema = Joi.alternatives().try(

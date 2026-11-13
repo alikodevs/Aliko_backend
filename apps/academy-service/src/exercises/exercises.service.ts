@@ -359,6 +359,8 @@ export class ExercisesService {
         data: {
           attendanceStatus: 'VERIFIED_PRESENT',
           attendanceVerifiedAt: new Date(),
+          attendanceVerifiedBy: `AUTO_ASSIGNMENT_${exercise.id}`,
+          attendanceNotes: `Verified via Week 1 Attendance Gate Exercise: "${exercise.title}" (Course Outcome: ${exercise.courseOutcome || 'N/A'})`,
         },
       });
       this.logger.log(
@@ -405,6 +407,25 @@ export class ExercisesService {
         exercise: { include: { module: true } },
       },
     });
+
+    // WABON Req 12: Week 1 Academic Attendance Verification upon grading
+    if (submission.exercise.isWeekOneAttendanceGate) {
+      await this.prisma.enrollment.updateMany({
+        where: {
+          userId: submission.userId,
+          courseId: submission.exercise.module.courseId,
+        },
+        data: {
+          attendanceStatus: 'VERIFIED_PRESENT',
+          attendanceVerifiedAt: new Date(),
+          attendanceVerifiedBy: `INSTRUCTOR_GRADE_${user.firebaseId}`,
+          attendanceNotes: `Verified via Instructor grading on Week 1 Attendance Gate Exercise: "${submission.exercise.title}" (Score: ${dto.score})`,
+        },
+      });
+      this.logger.log(
+        `Student ${submission.userId} verified attendance via Week 1 Gate Exercise ${submission.exerciseId} graded by instructor ${user.firebaseId}`,
+      );
+    }
 
     // WABON Req 15: Early Warning and Remediation for scores < 80%
     const totalPoints = submission.exercise.points || 1;

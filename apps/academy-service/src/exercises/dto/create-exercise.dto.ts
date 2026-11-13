@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsArray,
+  IsBoolean,
   ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -59,4 +60,12 @@ export class CreateExerciseDto {
   @IsInt()
   @Type(() => Number)
   order?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isWeekOneAttendanceGate?: boolean;
+
+  @IsOptional()
+  @IsString()
+  courseOutcome?: string;
 }

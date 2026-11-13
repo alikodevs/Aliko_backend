@@ -1,4 +1,4 @@
-import { IsDateString, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDateString, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateDiscussionTopicDto {
   @IsOptional()
@@ -27,5 +27,13 @@ export class UpdateDiscussionTopicDto {
   @IsOptional()
   @IsDateString()
   dueAt?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isWeekOneAttendanceGate?: boolean;
+
+  @IsOptional()
+  @IsString()
+  courseOutcome?: string;
 }
 

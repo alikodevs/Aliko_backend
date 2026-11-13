@@ -9,6 +9,8 @@ const createTopicDtoSchema = Joi.object({
   maxPoints: Joi.number().positive().optional().default(10),
   dueDate: Joi.date().optional().allow(null),
   dueAt: Joi.date().optional().allow(null),
+  isWeekOneAttendanceGate: Joi.boolean().optional().default(false),
+  courseOutcome: Joi.string().allow('', null).optional(),
 });
 
 export const CreateTopicSchema = Joi.alternatives().try(
@@ -27,6 +29,8 @@ const updateTopicDtoSchema = Joi.object({
   maxPoints: Joi.number().positive().optional(),
   dueDate: Joi.date().optional().allow(null),
   dueAt: Joi.date().optional().allow(null),
+  isWeekOneAttendanceGate: Joi.boolean().optional(),
+  courseOutcome: Joi.string().allow('', null).optional(),
 });
 
 export const UpdateTopicSchema = Joi.alternatives().try(
