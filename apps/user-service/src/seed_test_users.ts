@@ -12,7 +12,15 @@ function loadUserPrisma() {
 
 const { PrismaClient, AcademyRole } = loadUserPrisma();
 
-const prisma = new PrismaClient();
+// Match user-service/src/database/prisma.service.ts datasource resolution
+const userDbUrl =
+  process.env.DATABASE_URL_USER ||
+  process.env.DATABASE_URL ||
+  'postgresql://postgres:postgres@localhost:5432/user_db?schema=public';
+
+const prisma = new PrismaClient({
+  datasources: { db: { url: userDbUrl } },
+});
 
 async function seedTestUsers() {
   console.log('\n========================================================================');

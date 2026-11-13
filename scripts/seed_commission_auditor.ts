@@ -17,8 +17,32 @@ function loadPrismaClient(clientName: string) {
 const UserPrismaClient = loadPrismaClient('user');
 const AcademyPrismaClient = loadPrismaClient('academy');
 
-const userPrisma = new UserPrismaClient();
-const academyPrisma = new AcademyPrismaClient();
+// Match user-service/src/database/prisma.service.ts datasource resolution
+const userDbUrl =
+  process.env.DATABASE_URL_USER ||
+  process.env.DATABASE_URL ||
+  'postgresql://postgres:postgres@localhost:5432/user_db?schema=public';
+
+const userPrisma = new UserPrismaClient({
+  datasources: { db: { url: userDbUrl } },
+});
+
+// Match academy-service/src/database/prisma.service.ts datasource resolution
+let academyDbUrl =
+  process.env.DATABASE_URL_ACADEMY ||
+  process.env.ACADEMY_DATABASE_URL ||
+  process.env.DATABASE_URL ||
+  'postgresql://alikohub:SecurePassword123!@127.0.0.1:5432/alikohub_db?schema=academy';
+
+if (academyDbUrl.includes('schema=')) {
+  academyDbUrl = academyDbUrl.replace(/schema=[^&]+/, 'schema=academy');
+} else {
+  academyDbUrl += (academyDbUrl.includes('?') ? '&' : '?') + 'schema=academy';
+}
+
+const academyPrisma = new AcademyPrismaClient({
+  datasources: { db: { url: academyDbUrl } },
+});
 
 const AUDITOR_DATA = {
   email: 'auditor@alikohub.com',
