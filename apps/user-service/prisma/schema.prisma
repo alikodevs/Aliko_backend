@@ -148,6 +148,7 @@ enum AcademyRole {
   INSTRUCTOR
   COURSE_MANAGER
   ADMIN
+  COMMISSION_AUDITOR
 }
 
 enum ConsultancyRole {

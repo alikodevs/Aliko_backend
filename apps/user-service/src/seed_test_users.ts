@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client/user';
+import { PrismaClient, AcademyRole } from '@prisma/client/user';
 import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
@@ -18,6 +18,7 @@ async function seedTestUsers() {
       firstname: 'System',
       lastname: 'Admin',
       globalRole: 'ADMIN' as const,
+      academyRole: AcademyRole.ADMIN,
       phone: '+251911000001',
     },
     {
@@ -26,6 +27,7 @@ async function seedTestUsers() {
       firstname: 'Abebe',
       lastname: 'Bekele',
       globalRole: 'USER' as const,
+      academyRole: AcademyRole.INSTRUCTOR,
       phone: '+251911000002',
     },
     {
@@ -34,7 +36,17 @@ async function seedTestUsers() {
       firstname: 'Almaz',
       lastname: 'Haile',
       globalRole: 'USER' as const,
+      academyRole: AcademyRole.STUDENT,
       phone: '+251911000003',
+    },
+    {
+      email: 'auditor@alikohub.com',
+      firebaseId: 'seed-auditor-001',
+      firstname: 'State Commission',
+      lastname: 'Auditor',
+      globalRole: 'USER' as const,
+      academyRole: AcademyRole.COMMISSION_AUDITOR,
+      phone: '+251911000004',
     },
   ];
 
@@ -44,9 +56,11 @@ async function seedTestUsers() {
       where: { OR: [{ email: u.email }, { firebaseId: u.firebaseId }] },
     });
 
+    let userId = u.firebaseId;
+
     if (existing) {
       console.log(`Updating user [${u.email}]...`);
-      await prisma.user.update({
+      const updated = await prisma.user.update({
         where: { id: existing.id },
         data: {
           firstname: u.firstname,
@@ -57,9 +71,10 @@ async function seedTestUsers() {
           status: 'ACTIVE',
         },
       });
+      userId = updated.firebaseId;
     } else {
       console.log(`Creating user [${u.email}] with role [${u.globalRole}]...`);
-      await prisma.user.create({
+      const created = await prisma.user.create({
         data: {
           email: u.email,
           firebaseId: u.firebaseId,
@@ -72,10 +87,27 @@ async function seedTestUsers() {
           authProvider: 'EMAIL',
         },
       });
+      userId = created.firebaseId;
     }
+
+    // Upsert AcademyUser in User Service
+    await prisma.academyUser.upsert({
+      where: { userId },
+      update: {
+        role: u.academyRole,
+        activeRole: u.academyRole,
+        status: 'ACTIVE',
+      },
+      create: {
+        userId,
+        role: u.academyRole,
+        activeRole: u.academyRole,
+        status: 'ACTIVE',
+      },
+    });
   }
 
-  console.log('\n✔ All test users seeded successfully!');
+  console.log('\n✔ All test users seeded successfully (including COMMISSION_AUDITOR)!');
   console.log('Credentials: Password@123 for all seeded accounts.');
   console.log('========================================================================\n');
 }

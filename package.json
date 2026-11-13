@@ -34,6 +34,7 @@
     "prisma:generate:all": "npm run prisma:generate:user && npm run prisma:generate:academy && npm run prisma:generate:financial && npm run prisma:generate:contech && npm run prisma:generate:events && npm run prisma:generate:careers",
     "seed:admin": "ts-node -r dotenv/config apps/user-service/src/seed_test_users.ts",
     "seed:users": "ts-node -r dotenv/config apps/user-service/src/seed_test_users.ts",
+    "seed:auditor": "ts-node -r dotenv/config scripts/seed_commission_auditor.ts",
     "postman:generate": "node update_postman_collection.js",
     "test:endpoints": "node tests/test_all_endpoints.js",
     "test:integration": "node tests/test_service_integration.js",
