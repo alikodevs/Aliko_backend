@@ -61,7 +61,7 @@ export class AuthController {
 		return { status: 'up', service: 'auth-service', timestamp: new Date().toISOString() };
 	}
 
-	@Post('register')
+	@Post(['register', 'auth/register'])
 	@MessagePattern({ cmd: 'register' })
 	@UsePipes(new JoiValidationPipe(SignUpSchema))
 	async register(@Body() dto: SignUpDto, @Payload() payload: SignUpDto) {
@@ -117,7 +117,7 @@ export class AuthController {
 		}
 	}
 
-	@Post('login')
+	@Post(['login', 'auth/login'])
 	@MessagePattern({ cmd: 'login' })
 	@UsePipes(new JoiValidationPipe(SignInSchema))
 	async login(@Body() dto: SignInDto, @Payload() payload: SignInDto) {
@@ -131,7 +131,7 @@ export class AuthController {
 		}
 	}
 
-	@Post(['login-google', 'login/google'])
+	@Post(['login-google', 'login/google', 'auth/login-google', 'auth/login/google'])
 	@MessagePattern({ cmd: 'login_google' })
 	@UsePipes(new JoiValidationPipe(GoogleLoginSchema))
 	async loginWithGoogle(@Body() body: { idToken: string }, @Payload() payload: { idToken: string }) {
@@ -145,7 +145,7 @@ export class AuthController {
 		}
 	}
 
-	@Post('verify')
+	@Post(['verify', 'auth/verify'])
 	@MessagePattern({ cmd: 'verify' })
 	async verify(@Body() dto: { type: 'cookie' | 'token'; value: string }, @Payload() payload: { type: 'cookie' | 'token'; value: string }) {
 		this.logger.log(`Verifying authentication`);

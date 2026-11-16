@@ -28,7 +28,7 @@ export class UserController {
 		@Inject('CONSHIFTER_SERVICE') private readonly conshifterClient: ClientProxy,
 	) {}
 
-	@Get(['users', 'users/all', 'get-all-users'])
+	@Get(['', 'users', 'users/all', 'get-all-users'])
 	@Post('get-all-users')
 	@MessagePattern({ cmd: 'get_all_users' })
 	async getAllUsers() {
@@ -71,7 +71,7 @@ export class UserController {
 		return this.userService.sanitizeUser(user);
 	}
 
-	@Get(['users/:firebaseId', 'user/:firebaseId'])
+	@Get([':firebaseId', 'users/:firebaseId', 'user/:firebaseId'])
 	@Post(['get-user-profile', 'users/get-user-profile'])
 	@MessagePattern({ cmd: 'get_user_profile' })
 	@UsePipes(new JoiValidationPipe(GetUserProfileSchema))

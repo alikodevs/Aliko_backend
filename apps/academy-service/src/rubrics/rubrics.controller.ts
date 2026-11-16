@@ -51,15 +51,19 @@ export class RubricsController {
     @Req() req?: any,
     @Payload() payload?: { dto: CreateRubricDto; user: AuthenticatedUser },
   ) {
-    const dto = payload?.dto || (body as any)?.dto || body;
+    const rawDto = payload?.dto || (body as any)?.dto || body;
     const user = payload?.user || req?.user || (body as any)?.user;
     if (!user) {
       throw new UnauthorizedException('Authentication required');
     }
     const userId = user.firebaseId || user.userId || user.id;
-    if (!dto) {
+    if (!rawDto) {
       throw new BadRequestException('Rubric data is required');
     }
+    const dto: CreateRubricDto = {
+      ...rawDto,
+      name: rawDto.name || rawDto.title,
+    };
     return this.rubricsService.create(userId, dto);
   }
 

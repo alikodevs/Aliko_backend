@@ -18,12 +18,13 @@ const criterionSchema = Joi.object({
 });
 
 const createRubricDtoSchema = Joi.object({
-  name: Joi.string().min(2).max(150).required(),
+  name: Joi.string().min(2).max(150).optional(),
+  title: Joi.string().min(2).max(150).optional(),
   description: Joi.string().allow('', null).optional(),
   type: Joi.string().valid('DISCUSSION', 'ASSIGNMENT').required(),
   isActive: Joi.boolean().optional(),
   criteria: Joi.array().items(criterionSchema).min(1).required(),
-});
+}).or('name', 'title');
 
 export const createRubricSchema = Joi.alternatives().try(
   Joi.object({
@@ -36,6 +37,7 @@ export const createRubricSchema = Joi.alternatives().try(
 const updateRubricDtoSchema = Joi.object({
   id: Joi.string().optional(),
   name: Joi.string().min(2).max(150).optional(),
+  title: Joi.string().min(2).max(150).optional(),
   description: Joi.string().allow('', null).optional(),
   type: Joi.string().valid('DISCUSSION', 'ASSIGNMENT').optional(),
   isActive: Joi.boolean().optional(),

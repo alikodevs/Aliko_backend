@@ -33,7 +33,7 @@ async function bootstrap() {
   });
 
   app.setGlobalPrefix('api/v1');
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalPipes(new ValidationPipe({ whitelist: false, transform: true }));
   app.useGlobalFilters(new RpcExceptionFilter());
 
   const tcpPort = Number(process.env.ACADEMY_TCP_PORT) || 3015;

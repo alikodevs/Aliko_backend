@@ -22,11 +22,15 @@ export class RubricsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(userId: string, dto: CreateRubricDto): Promise<Rubric> {
+    const rubricName = dto.name || (dto as any).title;
+    if (!rubricName) {
+      throw new BadRequestException('Rubric name is required');
+    }
     const rubricType = dto.type as RubricType;
 
     const created = await this.prisma.rubric.create({
       data: {
-        name: dto.name,
+        name: rubricName,
         description: dto.description,
         type: rubricType,
         createdBy: userId,
@@ -143,7 +147,8 @@ export class RubricsService {
     }
 
     const updateData: any = {};
-    if (dto.name !== undefined) updateData.name = dto.name;
+    const updatedName = dto.name !== undefined ? dto.name : (dto as any).title;
+    if (updatedName !== undefined) updateData.name = updatedName;
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.type !== undefined) updateData.type = dto.type as RubricType;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;

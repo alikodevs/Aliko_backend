@@ -11,7 +11,23 @@ import * as Joi from 'joi';
 export class JoiValidationPipe implements PipeTransform {
   constructor(private schema: Joi.Schema) {}
 
-  transform(value: any, _metadata: ArgumentMetadata) {
+  transform(value: any, metadata?: ArgumentMetadata) {
+    if (value === undefined || value === null) {
+      return value;
+    }
+
+    // Skip primitive route params / query params if schema expects complex object
+    if (metadata?.type === 'param' || metadata?.type === 'query') {
+      if (typeof value !== 'object') {
+        return value;
+      }
+    }
+
+    // In TCP microservice requests, @Body() receives {} while the actual data is in @Payload()
+    if (metadata?.type === 'body' && typeof value === 'object' && Object.keys(value).length === 0) {
+      return value;
+    }
+
     const { error, value: validatedValue } = this.schema.validate(value, {
       abortEarly: false,
       stripUnknown: true,
