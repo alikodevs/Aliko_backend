@@ -22,8 +22,13 @@ echo "--> Current working directory: $(pwd)"
 echo "--> Pulling latest code and ensuring clean git state..."
 git fetch origin main || true
 git checkout -f main || true
-git reset --hard origin/main || true
-git pull origin main || git pull origin master || true
+if [ -n "$(git log origin/main..HEAD --oneline 2>/dev/null)" ]; then
+  echo "--> Preserving local production commits via rebase on origin/main..."
+  git rebase origin/main || { git rebase --abort; git merge origin/main || true; }
+else
+  git reset --hard origin/main || true
+  git pull origin main || git pull origin master || true
+fi
 
 echo "--> Installing dependencies..."
 npm install
