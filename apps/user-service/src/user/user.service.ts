@@ -129,8 +129,8 @@ export class UserService {
 	async updateAcademyRole(firebaseId: string, role: string, status: string) {
 		return this.prisma.academyUser.upsert({
 			where: { userId: firebaseId },
-			update: { role: role as any, status },
-			create: { userId: firebaseId, role: role as any, status },
+			update: { role: role as any, activeRole: role as any, status },
+			create: { userId: firebaseId, role: role as any, activeRole: role as any, status },
 		});
 	}
 
@@ -159,9 +159,14 @@ export class UserService {
 		}
 
 		// Find user's firebaseId since application model uses it as a relation
-		const user = await this.prisma.user.findUnique({
-			where: { id: parseInt(userId) }
-		});
+		let user = null;
+		const numId = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
+		if (!isNaN(numId)) {
+			user = await this.prisma.user.findUnique({ where: { id: numId } });
+		}
+		if (!user && typeof userId === 'string') {
+			user = await this.prisma.user.findUnique({ where: { firebaseId: userId } });
+		}
 
 		if (!user) throw new Error('User not found');
 
@@ -211,11 +216,14 @@ export class UserService {
 		});
 	}
 
-	async getTeacherApplication(applicationId: string) {
-		if (applicationId.startsWith('mock-id')) return null;
+	async getTeacherApplication(applicationId: string | number) {
+		const strId = String(applicationId ?? '');
+		if (strId.startsWith('mock-id')) return null;
+		const id = typeof applicationId === 'number' ? applicationId : parseInt(strId, 10);
+		if (isNaN(id)) return null;
 		
 		return this.prisma.application.findUnique({
-			where: { id: parseInt(applicationId) },
+			where: { id },
 			include: { 
 				user: {
 					select: {
@@ -233,8 +241,11 @@ export class UserService {
 		});
 	}
 
-	async updateTeacherApplicationStatus(applicationId: string, status: string, reviewedBy?: string, reviewNotes?: string) {
-		if (applicationId.startsWith('mock-id')) return { id: applicationId, status };
+	async updateTeacherApplicationStatus(applicationId: string | number, status: string, reviewedBy?: string, reviewNotes?: string) {
+		const strId = String(applicationId ?? '');
+		if (strId.startsWith('mock-id')) return { id: applicationId, status };
+		const id = typeof applicationId === 'number' ? applicationId : parseInt(strId, 10);
+		if (isNaN(id)) throw new Error(`Invalid application ID: ${applicationId}`);
 
 		// Enforce review details for final states
 		if ((status === 'APPROVED' || status === 'REJECTED') && !reviewedBy) {
@@ -246,14 +257,14 @@ export class UserService {
 		}
 
 		if (status === 'APPROVED') {
-			const app = await this.prisma.application.findUnique({ where: { id: parseInt(applicationId) } });
+			const app = await this.prisma.application.findUnique({ where: { id } });
 			const formData = app?.formData as Record<string, any>;
-			
-			if (!formData?.resumeUrl) throw new Error('Cannot approve application without a resume');
+			const resume = formData?.resumeUrl || formData?.resume || formData?.cvUrl || formData?.cv || (Array.isArray(formData?.documents) && formData.documents.length > 0);
+			if (!resume) throw new Error('Cannot approve application without a resume');
 		}
 
 		return this.prisma.application.update({
-			where: { id: parseInt(applicationId) },
+			where: { id },
 			data: { 
 				status: status as any,
 				reviewedBy,
@@ -263,12 +274,17 @@ export class UserService {
 		});
 	}
 
-	async hasPendingTeacherApplication(userId: string) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: parseInt(userId) }
-        });
+	async hasPendingTeacherApplication(userId: string | number) {
+		let user = null;
+		const numId = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
+		if (!isNaN(numId)) {
+			user = await this.prisma.user.findUnique({ where: { id: numId } });
+		}
+		if (!user && typeof userId === 'string') {
+			user = await this.prisma.user.findUnique({ where: { firebaseId: userId } });
+		}
 
-        if (!user) return false;
+		if (!user) return false;
 
 		const application = await this.prisma.application.findFirst({
 			where: {

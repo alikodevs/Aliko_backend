@@ -970,7 +970,7 @@ export class AuthService {
 		};
 	}
 
-	async approveTeacherApplication(applicationId: string, requestingUserRole?: string, reviewerId?: string, reviewNotes?: string) {
+	async approveTeacherApplication(applicationId: string | number, requestingUserRole?: string, reviewerId?: string, reviewNotes?: string) {
 		if (requestingUserRole !== 'ADMIN') {
 			throw new RpcException({
 				statusCode: HttpStatus.FORBIDDEN,
@@ -979,15 +979,20 @@ export class AuthService {
 			});
 		}
 
-		if (!reviewNotes) {
+		const notes = (reviewNotes && String(reviewNotes).trim()) || 'Approved by administrator';
+
+		let application;
+		try {
+			application = await this.userService.getTeacherApplication(applicationId);
+		} catch (error: any) {
+			this.logger.error(`Error finding application ${applicationId}: ${error.message}`);
 			throw new RpcException({
 				statusCode: HttpStatus.BAD_REQUEST,
-				message: 'Review notes are required for approval',
+				message: error.message || 'Error finding application',
 				error: 'Bad Request',
 			});
 		}
 
-		const application = await this.userService.getTeacherApplication(applicationId);
 		if (!application) {
 			throw new RpcException({
 				statusCode: HttpStatus.NOT_FOUND,
@@ -1008,7 +1013,7 @@ export class AuthService {
 
 		// Update application status with reviewer info
 		try {
-			await this.userService.updateTeacherApplicationStatus(applicationId, 'APPROVED', reviewerId, reviewNotes);
+			await this.userService.updateTeacherApplicationStatus(applicationId, 'APPROVED', reviewerId || 'ADMIN', notes);
 		} catch (error: any) {
 			this.logger.error(`Failed to approve teacher application: ${error.message}`);
 			throw new RpcException({
@@ -1029,7 +1034,7 @@ export class AuthService {
 		};
 	}
 
-	async rejectTeacherApplication(applicationId: string, requestingUserRole?: string, reviewerId?: string, reviewNotes?: string) {
+	async rejectTeacherApplication(applicationId: string | number, requestingUserRole?: string, reviewerId?: string, reviewNotes?: string) {
 		if (requestingUserRole !== 'ADMIN') {
 			throw new RpcException({
 				statusCode: HttpStatus.FORBIDDEN,
@@ -1038,15 +1043,20 @@ export class AuthService {
 			});
 		}
 
-		if (!reviewNotes) {
+		const notes = (reviewNotes && String(reviewNotes).trim()) || 'Rejected by administrator';
+
+		let application;
+		try {
+			application = await this.userService.getTeacherApplication(applicationId);
+		} catch (error: any) {
+			this.logger.error(`Error finding application ${applicationId}: ${error.message}`);
 			throw new RpcException({
 				statusCode: HttpStatus.BAD_REQUEST,
-				message: 'Review notes are required for rejection',
+				message: error.message || 'Error finding application',
 				error: 'Bad Request',
 			});
 		}
 
-		const application = await this.userService.getTeacherApplication(applicationId);
 		if (!application) {
 			throw new RpcException({
 				statusCode: HttpStatus.NOT_FOUND,
@@ -1065,7 +1075,7 @@ export class AuthService {
 
 		// Update application status with reviewer info
 		try {
-			await this.userService.updateTeacherApplicationStatus(applicationId, 'REJECTED', reviewerId, reviewNotes);
+			await this.userService.updateTeacherApplicationStatus(applicationId, 'REJECTED', reviewerId || 'ADMIN', notes);
 		} catch (error: any) {
 			this.logger.error(`Failed to reject teacher application: ${error.message}`);
 			throw new RpcException({

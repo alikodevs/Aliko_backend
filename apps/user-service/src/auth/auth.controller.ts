@@ -249,28 +249,60 @@ export class AuthController {
 		}
 	}
 
-	@Post('academy/approve-teacher')
+	@Post(['academy/approve-teacher', 'auth/academy/approve-teacher'])
 	@MessagePattern({ cmd: 'approve_teacher_application' })
-	async handleApproveTeacher(@Body() dto: any, @Payload() payload: any) {
-		const data = dto || payload;
-		this.logger.log(`Approving teacher application: ${data.applicationId} by reviewer: ${data.reviewerId}`);
+	async handleApproveTeacher(@Body() dto: any, @Payload() payload: any, @Req() req?: any) {
+		const data = payload?.data || dto || payload || {};
+		let user = req?.user || data?.user;
+		if (!user && req?.headers?.authorization) {
+			const authHeader = req.headers.authorization;
+			if (authHeader.startsWith('Bearer ')) {
+				try {
+					const decoded: any = jwt.decode(authHeader.substring(7));
+					if (decoded) user = decoded;
+				} catch (_e) {}
+			}
+		}
+
+		const requestingUserRole = data.requestingUserRole || user?.globalRole || user?.role || user?.academyRole;
+		const reviewerId = data.reviewerId || user?.email || user?.id || user?.userId || user?.firebaseId;
+		const reviewNotes = data.reviewNotes || data.notes || data.comment;
+		const applicationId = data.applicationId ?? data.id;
+
+		this.logger.log(`Approving teacher application: ${applicationId} by reviewer: ${reviewerId} (role: ${requestingUserRole})`);
 		try {
-			return await this.authService.approveTeacherApplication(data.applicationId, data.requestingUserRole, data.reviewerId, data.reviewNotes);
+			return await this.authService.approveTeacherApplication(applicationId, requestingUserRole, reviewerId, reviewNotes);
 		} catch (error) {
-			this.logger.error(`Failed to approve teacher application ${data.applicationId}: ${error.message}`, error.stack);
+			this.logger.error(`Failed to approve teacher application ${applicationId}: ${error.message}`, error.stack);
 			throw error;
 		}
 	}
 
-	@Post('academy/reject-teacher')
+	@Post(['academy/reject-teacher', 'auth/academy/reject-teacher'])
 	@MessagePattern({ cmd: 'reject_teacher_application' })
-	async handleRejectTeacher(@Body() dto: any, @Payload() payload: any) {
-		const data = dto || payload;
-		this.logger.log(`Rejecting teacher application: ${data.applicationId} by reviewer: ${data.reviewerId}`);
+	async handleRejectTeacher(@Body() dto: any, @Payload() payload: any, @Req() req?: any) {
+		const data = payload?.data || dto || payload || {};
+		let user = req?.user || data?.user;
+		if (!user && req?.headers?.authorization) {
+			const authHeader = req.headers.authorization;
+			if (authHeader.startsWith('Bearer ')) {
+				try {
+					const decoded: any = jwt.decode(authHeader.substring(7));
+					if (decoded) user = decoded;
+				} catch (_e) {}
+			}
+		}
+
+		const requestingUserRole = data.requestingUserRole || user?.globalRole || user?.role || user?.academyRole;
+		const reviewerId = data.reviewerId || user?.email || user?.id || user?.userId || user?.firebaseId;
+		const reviewNotes = data.reviewNotes || data.notes || data.comment || data.reason;
+		const applicationId = data.applicationId ?? data.id;
+
+		this.logger.log(`Rejecting teacher application: ${applicationId} by reviewer: ${reviewerId} (role: ${requestingUserRole})`);
 		try {
-			return await this.authService.rejectTeacherApplication(data.applicationId, data.requestingUserRole, data.reviewerId, data.reviewNotes);
+			return await this.authService.rejectTeacherApplication(applicationId, requestingUserRole, reviewerId, reviewNotes);
 		} catch (error) {
-			this.logger.error(`Failed to reject teacher application ${data.applicationId}: ${error.message}`, error.stack);
+			this.logger.error(`Failed to reject teacher application ${applicationId}: ${error.message}`, error.stack);
 			throw error;
 		}
 	}
