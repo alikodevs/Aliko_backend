@@ -538,13 +538,36 @@ export class AuthService {
 		try {
 			userRecord = await firebase.getUserByEmail(dto.email);
 		} catch (e: any) {
-			this.logger.error(`Failed to find Firebase user by email: ${dto.email}`, e);
-			// If missing in Firebase but in DB, we might want to sync, but for now unauthorized
-			throw new RpcException({
-				statusCode: HttpStatus.UNAUTHORIZED,
-				message: 'Firebase user not found',
-				error: 'Unauthorized',
-			});
+			if (e.code === 'auth/user-not-found') {
+				this.logger.log(`Firebase user missing for existing DB user ${dto.email}, auto-syncing into Firebase...`);
+				try {
+					userRecord = await firebase.createUser({
+						uid: user.firebaseId,
+						email: user.email,
+						password: dto.password,
+						displayName: `${user.firstname} ${user.lastname}`.trim(),
+					});
+				} catch (createErr: any) {
+					this.logger.warn(`Failed to create Firebase user: ${createErr.message}, attempting lookup by uid...`);
+					try {
+						userRecord = await firebase.getUser(user.firebaseId);
+					} catch (_err) {
+						this.logger.error(`Failed to find or create Firebase user: ${createErr.message}`);
+						throw new RpcException({
+							statusCode: HttpStatus.UNAUTHORIZED,
+							message: 'Firebase user not found',
+							error: 'Unauthorized',
+						});
+					}
+				}
+			} else {
+				this.logger.error(`Failed to find Firebase user by email: ${dto.email}`, e);
+				throw new RpcException({
+					statusCode: HttpStatus.UNAUTHORIZED,
+					message: 'Firebase user not found',
+					error: 'Unauthorized',
+				});
+			}
 		}
 
 		// Issue Firebase custom token
