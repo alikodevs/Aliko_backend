@@ -172,7 +172,7 @@ export class AdmissionsService {
 
   async getMyApplication(cohortId: number, user: AuthenticatedUser) {
     await this.userService.getOrCreateProfile(user);
-    return this.prisma.studentAdmissionsApplication.findUnique({
+    const application = await this.prisma.studentAdmissionsApplication.findUnique({
       where: {
         userId_cohortId: {
           userId: user.firebaseId,
@@ -181,8 +181,98 @@ export class AdmissionsService {
       },
       include: {
         cohort: {
-          select: { id: true, name: true, startDate: true, endDate: true },
+          select: {
+            id: true,
+            name: true,
+            startDate: true,
+            endDate: true,
+            agreementDocUrl: true,
+            course: { select: { id: true, title: true, agreementDocUrl: true } },
+          },
         },
+      },
+    });
+    if (!application) return null;
+    return {
+      ...application,
+      // CA-04: Surface the effective enrollment agreement document URL
+      agreementDocUrl:
+        application.cohort.agreementDocUrl ||
+        application.cohort.course.agreementDocUrl ||
+        null,
+    };
+  }
+
+  /**
+   * CA-04: Return the full enrollment agreement document & statutory disclosures for a cohort.
+   */
+  async getEnrollmentAgreement(cohortId: number, user: AuthenticatedUser) {
+    await this.userService.getOrCreateProfile(user);
+    const cohort = await this.prisma.cohort.findUnique({
+      where: { id: cohortId },
+      include: {
+        course: {
+          select: {
+            id: true,
+            title: true,
+            price: true,
+            priceInUsd: true,
+            agreementDocUrl: true,
+          },
+        },
+      },
+    });
+    if (!cohort) throw new NotFoundException('Cohort not found');
+    return {
+      cohortId: cohort.id,
+      cohortName: cohort.name,
+      courseTitle: cohort.course.title,
+      agreementDocUrl: cohort.agreementDocUrl || cohort.course.agreementDocUrl || null,
+      tuitionEtb: cohort.course.price,
+      tuitionUsd: cohort.course.priceInUsd,
+      statutoryDisclosures: [
+        'DSHS Disqualifying Crimes Disclosure (WAC 246-841A-440)',
+        'Workforce Training and Education Coordinating Board (WTECB) Refund Policy',
+        'Physical Demands & Clinical Requirements Acknowledgment',
+      ],
+    };
+  }
+
+  /**
+   * CA-14: Instructor/Admin confirms student orientation attendance.
+   * Students can no longer self-report orientation completion.
+   */
+  async markOrientationAttendance(
+    applicationId: number,
+    attended: boolean,
+    user: AuthenticatedUser,
+  ) {
+    const academyProfile = await this.userService.getOrCreateProfile(user);
+    const application = await this.prisma.studentAdmissionsApplication.findUnique({
+      where: { id: applicationId },
+      include: { cohort: { include: { course: true } } },
+    });
+    if (!application) {
+      throw new NotFoundException('Admissions application not found');
+    }
+
+    const isInstructor =
+      application.cohort.course.instructorId === user.firebaseId ||
+      application.cohort.assignedInstructorIds?.includes(user.firebaseId);
+    const isAdmin = academyProfile.role === 'ADMIN';
+
+    if (!isInstructor && !isAdmin) {
+      throw new ForbiddenException(
+        'Only instructors or admins can mark orientation attendance.',
+      );
+    }
+
+    return this.prisma.studentAdmissionsApplication.update({
+      where: { id: applicationId },
+      data: {
+        orientationCompleted: attended,
+        orientationAttendedAt: attended ? new Date() : null,
+        orientationMarkedBy: user.firebaseId,
       },
     });
   }

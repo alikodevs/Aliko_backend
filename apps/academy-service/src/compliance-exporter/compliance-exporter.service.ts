@@ -207,4 +207,91 @@ export class ComplianceExporterService {
       },
     };
   }
+
+  /**
+   * CA-21: Aggregate Theory, Skills Lab, and Clinical hours by track for a cohort.
+   * Compares actual scheduled/credited hours against WABON targets (35 theory / 33 lab / 40 clinical).
+   */
+  async getHoursReport(cohortId: number) {
+    const cohort = await this.prisma.cohort.findUnique({
+      where: { id: cohortId },
+      include: {
+        course: {
+          include: {
+            modules: {
+              include: {
+                lessons: {
+                  select: { id: true, title: true, estimatedHours: true, isCreditHour: true },
+                },
+              },
+            },
+          },
+        },
+        clinicalShifts: {
+          include: {
+            studentRoster: {
+              where: { passed: true },
+              select: { hoursCompleted: true, userId: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!cohort) {
+      throw new NotFoundException(`Cohort with ID ${cohortId} not found`);
+    }
+
+    let theoryHours = 0;
+    let labHours = 0;
+
+    for (const mod of cohort.course.modules) {
+      const modHours = mod.lessons
+        .filter((l) => l.isCreditHour)
+        .reduce((sum, l) => sum + (l.estimatedHours || 0), 0);
+
+      if (mod.track === 'THEORY_ASYNC' || mod.track === 'THEORY_SYNC') {
+        theoryHours += modHours;
+      } else if (mod.track === 'SKILLS_LAB_IN_PERSON') {
+        labHours += modHours;
+      }
+    }
+
+    const totalClinicalShiftHours = cohort.clinicalShifts.reduce(
+      (sum, shift) => sum + (shift.hoursCredited || 0),
+      0,
+    );
+    const totalStudentClinicalHoursLogged = cohort.clinicalShifts.reduce(
+      (sum, shift) =>
+        sum + shift.studentRoster.reduce((s, r) => s + (r.hoursCompleted || 0), 0),
+      0,
+    );
+
+    const targets = {
+      theoryHours: 35,
+      labHours: 33,
+      clinicalHours: 40,
+      totalHours: 108,
+    };
+
+    return {
+      cohortId: cohort.id,
+      cohortName: cohort.name,
+      courseId: cohort.courseId,
+      courseTitle: cohort.course.title,
+      actual: {
+        theoryHours,
+        labHours,
+        clinicalShiftHours: totalClinicalShiftHours,
+        clinicalStudentHoursLogged: totalStudentClinicalHoursLogged,
+        totalCurriculumHours: theoryHours + labHours + totalClinicalShiftHours,
+      },
+      wabonsTargets: targets,
+      compliance: {
+        theoryMet: theoryHours >= targets.theoryHours,
+        labMet: labHours >= targets.labHours,
+        clinicalMet: totalClinicalShiftHours >= targets.clinicalHours,
+      },
+    };
+  }
 }

@@ -202,6 +202,69 @@ export class ProgressAndAnalyticsService {
     if (!enrollment)
       throw new ForbiddenException('Not enrolled in this course.');
 
+    // CA-03: Server-side lesson lock enforcement — prevent completing locked lessons
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: { module: true },
+    });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+
+    if (
+      academyProfile.role === 'STUDENT' ||
+      academyProfile.role === 'USER'
+    ) {
+      // Check orientation prerequisite
+      const orientationModule = await this.prisma.module.findFirst({
+        where: { courseId, isOrientationModule: true },
+      });
+      if (orientationModule && !lesson.module.isOrientationModule) {
+        const studentApp = await this.prisma.studentAdmissionsApplication.findFirst({
+          where: { userId: user.firebaseId, orientationCompleted: true },
+        });
+        if (!studentApp) {
+          throw new ForbiddenException(
+            'You must complete the mandatory program orientation before completing course lessons (WAC 246-841A-440 Req 11).',
+          );
+        }
+      }
+
+      // Check lesson unlock rules (prerequisites)
+      if (lesson.unlockRules) {
+        const rules = lesson.unlockRules as any;
+        if (rules.prerequisites && Array.isArray(rules.prerequisites)) {
+          const prerequisiteLessonIds = rules.prerequisites
+            .filter((pre: any) => pre.type === 'LESSON' && typeof pre.id === 'number')
+            .map((pre: any) => pre.id);
+
+          if (prerequisiteLessonIds.length > 0) {
+            const completedPrerequisites = await this.prisma.progress.count({
+              where: {
+                userId: user.firebaseId,
+                lessonId: { in: prerequisiteLessonIds },
+                status: 'COMPLETED',
+              },
+            });
+
+            if (completedPrerequisites < prerequisiteLessonIds.length) {
+              throw new ForbiddenException(
+                'This lesson is locked. Complete all prerequisite lessons first.',
+              );
+            }
+          }
+        }
+      }
+
+      // Check admissions agreement signed
+      const admissionsApp = await this.prisma.studentAdmissionsApplication.findFirst({
+        where: { userId: user.firebaseId },
+      });
+      if (admissionsApp && !admissionsApp.agreementSigned) {
+        throw new ForbiddenException(
+          'You must sign the enrollment agreement before accessing course content.',
+        );
+      }
+    }
+
     const existing = await this.prisma.progress.findFirst({
       where: { userId: user.firebaseId, courseId, lessonId, contentId: null },
     });
@@ -214,11 +277,6 @@ export class ProgressAndAnalyticsService {
         lessonId,
         status: 'COMPLETED',
       },
-    });
-
-    const lesson = await this.prisma.lesson.findUnique({
-      where: { id: lessonId },
-      include: { module: true },
     });
 
     if (lesson) {
@@ -516,6 +574,21 @@ export class ProgressAndAnalyticsService {
         contentId: contentId,
       },
     });
+
+    // CA-19: Enforce seat-time verification before marking VIDEO content as COMPLETED
+    if (
+      status === 'COMPLETED' &&
+      content.type?.toUpperCase() === 'VIDEO' &&
+      (academyProfile.role === 'STUDENT' || academyProfile.role === 'USER')
+    ) {
+      const activeSeconds = progress?.activeTimeSeconds ?? 0;
+      const minRequiredSeconds = 30; // Minimum tracked watch time before completion
+      if (activeSeconds < minRequiredSeconds) {
+        throw new ForbiddenException(
+          `Video content cannot be marked complete without watching. Recorded active watch time: ${activeSeconds}s (minimum ${minRequiredSeconds}s required).`,
+        );
+      }
+    }
 
     if (progress) {
       // Update existing progress

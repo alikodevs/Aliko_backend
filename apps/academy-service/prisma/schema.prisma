@@ -71,6 +71,8 @@ model Course {
   priceInUsd       Float?
   prerequisites    String[]
   languages        String[]
+  agreementDocUrl  String?        // CA-04: Full enrollment agreement document URL
+  isStateApproved  Boolean        @default(false) // CA-06: Only ADMIN can mark state-approved
   cohorts          Cohort[]
   modules          Module[]
   createdAt        DateTime       @default(now())
@@ -95,6 +97,8 @@ model Cohort {
   startDate         DateTime
   endDate           DateTime
   maxCapacity       Int?
+  maxLiveCapacity   Int                @default(20) // CA-28: Max 20 students for live classes
+  agreementDocUrl   String?            // CA-04: Cohort-level enrollment agreement override
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -216,6 +220,7 @@ model Lesson {
   isWeekOneAttendanceGate Boolean         @default(false)
   isOrientationLesson     Boolean         @default(false)
   isCreditHour            Boolean         @default(true)
+  estimatedHours          Float           @default(0) // CA-21: Track theory/lab hours per lesson
   readings                LessonReading[]
 
   module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
@@ -519,6 +524,7 @@ model StudentAdmissionsApplication {
   
   orientationCompleted    Boolean        @default(false)
   orientationAttendedAt   DateTime?
+  orientationMarkedBy     String?        // CA-14: Instructor/Admin who confirmed attendance
   lmsTutorialCompleted    Boolean        @default(false)
   netiquetteSigned        Boolean        @default(false)
 
@@ -693,8 +699,9 @@ model SkillCheckoff {
   instructorId String
   cohortId     Int
   passed       Boolean   @default(false)
-  attempts     Int       @default(1)
-  comments     String?
+  attempts            Int       @default(1)
+  evaluatorCredential String?   // CA-23: RN/LPN evaluator license number
+  comments            String?
   checkoffDate DateTime  @default(now())
 
   skill        CoreSkill      @relation(fields: [skillId], references: [id], onDelete: Cascade)

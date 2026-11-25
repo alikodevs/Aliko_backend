@@ -187,4 +187,21 @@ export class SkillsLabController {
       user,
     );
   }
+
+  @Get([
+    'skills-lab/student/:userId/attempts',
+    'academy/skills-lab/student/:userId/attempts',
+  ])
+  @MessagePattern({ cmd: 'get_student_skill_attempts' })
+  async getStudentAttempts(
+    @Param('userId') paramUserId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { userId: string; user: AuthenticatedUser },
+  ) {
+    const targetUserId = payload?.userId || paramUserId;
+    const user = payload?.user || req?.user;
+    if (!user) throw new UnauthorizedException('Authentication required');
+    if (!targetUserId) throw new BadRequestException('Student user ID is required');
+    return this.skillsLabService.getStudentAttempts(targetUserId, user);
+  }
 }

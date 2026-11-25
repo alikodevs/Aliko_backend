@@ -92,6 +92,19 @@ export class EnrollmentsService {
           `Cohort ${cohort.name} has reached its statutory limit of ${statutoryCap} students (30:1 student-to-instructor ratio under WAC 246-841A-440).`,
         );
       }
+
+      // CA-28: Live classes cap (max 20 students when cohort has LIVE teaching schedules)
+      const liveScheduleCount = await this.prisma.teachingSchedule.count({
+        where: { cohortId: cohort.id, type: 'LIVE' },
+      });
+      if (liveScheduleCount > 0) {
+        const liveCap = (cohort as any).maxLiveCapacity ?? 20;
+        if (activeEnrollments >= liveCap) {
+          throw new ConflictException(
+            `Cohort ${cohort.name} includes live classes and has reached the maximum capacity of ${liveCap} students.`,
+          );
+        }
+      }
     }
 
     const isPaid = (academyProfile.role !== 'ADMIN') && !(dto as any)?.bypassPayment && (course.price && course.price > 0);

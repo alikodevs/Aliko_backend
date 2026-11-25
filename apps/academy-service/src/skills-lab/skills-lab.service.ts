@@ -13,7 +13,7 @@ import { CreateCoreSkillDto, RecordSkillCheckoffDto, UpdateSkillCheckoffDto } fr
  * Skills Lab Checkoff Engine (WAC 246-841A Req 1, 8, 9).
  *
  * Manages the 22+ core nursing assistant skills required by Washington State.
- * Each skill has step-by-step criteria and requires an approved RN instructor
+ * Each skill has step-by-step criteria and requires an approved RN or LPN instructor
  * sign-off with date, pass/fail, and optional comments.
  */
 @Injectable()
@@ -84,13 +84,13 @@ export class SkillsLabService {
 
   /**
    * Record an instructor checkoff for a student's skill performance.
-   * Only approved RN instructors may sign off (WAC Req 9).
+   * Only approved RN or LPN instructors may sign off (WAC Req 9).
    */
   async recordCheckoff(dto: RecordSkillCheckoffDto, user: AuthenticatedUser) {
     const profile = await this.userService.getOrCreateProfile(user);
 
     if (!['ADMIN', 'INSTRUCTOR'].includes(profile.role)) {
-      throw new ForbiddenException('Only approved RN instructors can sign off skill checkoffs.');
+      throw new ForbiddenException('Only approved RN or LPN instructors can sign off skill checkoffs.');
     }
 
     // Verify the instructor has valid WABON credentials
@@ -99,12 +99,12 @@ export class SkillsLabService {
     });
     if (!credential) {
       throw new ForbiddenException(
-        'Instructor WABON credentials not on file. Please register your RN license before signing off skills.',
+        'Instructor WABON credentials not on file. Please register your RN or LPN license before signing off skills.',
       );
     }
     if (credential.rnLicenseExpiration < new Date()) {
       throw new ForbiddenException(
-        'Instructor RN license has expired. Skill checkoffs require a current license.',
+        'Instructor RN/LPN license has expired. Skill checkoffs require a current license.',
       );
     }
 
@@ -122,7 +122,22 @@ export class SkillsLabService {
       throw new NotFoundException('Student is not actively enrolled in the specified cohort.');
     }
 
-    // Create or update the checkoff record
+    // CA-23: Enforce maximum of 4 checkoff attempts per skill per cohort
+    const existingAttemptsCount = await this.prisma.skillCheckoff.count({
+      where: {
+        userId: dto.studentUserId,
+        skillId: dto.skillId,
+        cohortId: dto.cohortId,
+      },
+    });
+    const nextAttemptNumber = dto.attempts || existingAttemptsCount + 1;
+    if (existingAttemptsCount >= 4 || nextAttemptNumber > 4) {
+      throw new ForbiddenException(
+        'Maximum of 4 skill checkoff attempts reached for this skill (WAC 246-841A-440).',
+      );
+    }
+
+    // Create the checkoff record
     const checkoff = await this.prisma.skillCheckoff.create({
       data: {
         skillId: dto.skillId,
@@ -130,7 +145,8 @@ export class SkillsLabService {
         instructorId: user.firebaseId,
         cohortId: dto.cohortId,
         passed: dto.passed,
-        attempts: dto.attempts || 1,
+        attempts: nextAttemptNumber,
+        evaluatorCredential: credential.rnLicenseNumber,
         comments: dto.comments || null,
       },
       include: {
@@ -255,6 +271,36 @@ export class SkillsLabService {
         : 0,
       allPassed: passedCount === allSkills.length,
       skills: matrix,
+    };
+  }
+
+  /**
+   * CA-23: Mock/practice skills test attempt log for a student.
+   */
+  async getStudentAttempts(studentUserId: string, user: AuthenticatedUser) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    if (
+      studentUserId !== user.firebaseId &&
+      !['INSTRUCTOR', 'ADMIN', 'COMMISSION_AUDITOR'].includes(profile.role)
+    ) {
+      throw new ForbiddenException(
+        "Only instructors, admins, or auditors can view other students' skill attempt logs.",
+      );
+    }
+
+    const attempts = await this.prisma.skillCheckoff.findMany({
+      where: { userId: studentUserId },
+      include: {
+        skill: { select: { id: true, skillNumber: true, name: true, category: true } },
+      },
+      orderBy: [{ skillId: 'asc' }, { attempts: 'asc' }, { checkoffDate: 'desc' }],
+    });
+
+    return {
+      studentUserId,
+      maxAttemptsAllowed: 4,
+      totalRecords: attempts.length,
+      attempts,
     };
   }
 }

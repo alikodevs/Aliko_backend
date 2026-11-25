@@ -173,11 +173,28 @@ export class CurriculumCrosswalkService {
       })),
     }));
 
+    // CA-17: Compute honest crosswalk alignment percentage from real DB records
+    const allLessons = course.modules.flatMap((m) => m.lessons);
+    const totalLessons = allLessons.length;
+    const lessonsWithReadings = allLessons.filter((l) => l.readings.length > 0).length;
+    const alignmentPercentage =
+      totalLessons > 0 ? Math.round((lessonsWithReadings / totalLessons) * 100) : 0;
+
     return {
       courseId: course.id,
       courseTitle: course.title,
       accreditationStandard: 'WAC 246-841A-440 Curriculum Crosswalk',
       textbooks: course.textbooks,
+      alignmentSummary: {
+        totalLessons,
+        lessonsWithReadings,
+        textbooksCount: course.textbooks.length,
+        alignmentPercentage,
+        isFullyAligned:
+          course.textbooks.length > 0 &&
+          totalLessons > 0 &&
+          lessonsWithReadings === totalLessons,
+      },
       curriculumMatrix: crosswalkMatrix,
     };
   }

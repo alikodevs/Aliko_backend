@@ -18,6 +18,8 @@ import {
 import { JoiValidationPipe } from '../common/pipes/joi-validation.pipe';
 import { AcademyProfileGuard } from '../auth/academy-profile.guard';
 import { RoleGuard } from '../auth/role-guard/role-guard';
+import { Roles } from '../auth/role-guard/roles.decorator';
+import { AcademyRole } from '@prisma/client/academy';
 import { AuthenticatedUser } from '../user/user.service';
 
 @Controller()
@@ -27,6 +29,7 @@ export class CertificationController {
   @Post(['certification/generate', 'academy/certification/generate'])
   @MessagePattern('generate_wabon_certificate')
   @UseGuards(AcademyProfileGuard, RoleGuard)
+  @Roles(AcademyRole.ADMIN, AcademyRole.COURSE_MANAGER)
   @UsePipes(new JoiValidationPipe(generateCertificateSchema))
   async generateCertificate(
     @Body() body?: GenerateCertificateDto,

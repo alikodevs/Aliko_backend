@@ -101,7 +101,8 @@ export class CoursesService {
         estimatedTime: dto.estimatedTime ? Number(dto.estimatedTime) : null,
         targetLevel: dto.targetLevel || (dto as any).level,
         enrolledNum: dto.enrolledNum ? Number(dto.enrolledNum) : 0,
-        rating: dto.rating ? Number(dto.rating) : null,
+        rating: null, // CA-06: Do not allow static/fake ratings on course creation
+        isStateApproved: false, // CA-06: Only ADMIN can mark state-approved
         price: dto.price !== undefined && dto.price !== null ? Number(dto.price) : null,
         priceInUsd: dto.priceInUsd !== undefined && dto.priceInUsd !== null ? Number(dto.priceInUsd) : null,
         prerequisites: dto.prerequisites || [],
@@ -417,7 +418,7 @@ export class CoursesService {
           priceInEtb: course.price,
           priceInUsd: course.priceInUsd,
           modulesCount: course._count?.modules || 0,
-          enrolledNum: course._count?.enrollments || course.enrolledNum || 0,
+          enrolledNum: course._count?.enrollments ?? 0, // CA-18: Always use real enrollment count
           instructor: authInfo
             ? {
                 ...safeAuthInfo,
@@ -598,10 +599,15 @@ export class CoursesService {
       );
     }
 
-    // Only an admin can re-assign an instructor
+    // Only an admin can re-assign an instructor or mark a course as state-approved (CA-06)
     if (dto.instructorId && academyProfile.role !== AcademyRole.ADMIN) {
       throw new ForbiddenException(
         'Only an admin can change the course instructor',
+      );
+    }
+    if ((dto as any).isStateApproved !== undefined && academyProfile.role !== AcademyRole.ADMIN) {
+      throw new ForbiddenException(
+        'Only an admin can change state approval status (CA-06)',
       );
     }
 

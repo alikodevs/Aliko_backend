@@ -2,7 +2,10 @@ import {
   Controller,
   UseGuards,
   UsePipes,
+  Get,
   Post,
+  Param,
+  Query,
   Body,
   Req,
   UnauthorizedException,
@@ -47,5 +50,26 @@ export class ComplianceExporterController {
       throw new BadRequestException('Dossier generation parameters required');
     }
     return this.complianceExporterService.generateDossier(dto);
+  }
+
+  @Get(['compliance/hours-report', 'academy/compliance/hours-report', 'compliance/hours-report/:cohortId', 'academy/compliance/hours-report/:cohortId'])
+  @MessagePattern('get_compliance_hours_report')
+  @Roles(
+    AcademyRole.INSTRUCTOR,
+    AcademyRole.COURSE_MANAGER,
+    AcademyRole.ADMIN,
+    AcademyRole.COMMISSION_AUDITOR,
+  )
+  async getHoursReport(
+    @Param('cohortId') paramCohortId?: string,
+    @Query('cohortId') queryCohortId?: string,
+    @Payload() payload?: { cohortId: number },
+  ) {
+    const rawId = payload?.cohortId ?? paramCohortId ?? queryCohortId;
+    const cohortId = Number(rawId);
+    if (!cohortId || isNaN(cohortId)) {
+      throw new BadRequestException('Valid cohortId is required');
+    }
+    return this.complianceExporterService.getHoursReport(cohortId);
   }
 }

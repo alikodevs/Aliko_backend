@@ -140,6 +140,42 @@ export class AdmissionsController {
     );
   }
 
+  @Get(['admissions/agreement/:cohortId', 'academy/admissions/agreement/:cohortId'])
+  @MessagePattern({ cmd: 'get_enrollment_agreement' })
+  async getEnrollmentAgreement(
+    @Param('cohortId') paramCohortId?: string,
+    @Req() req?: any,
+    @Payload() payload?: { cohortId: number; user: AuthenticatedUser },
+  ) {
+    const rawCohortId = payload?.cohortId !== undefined ? payload.cohortId : paramCohortId;
+    const cohortId = Number(rawCohortId);
+    if (!cohortId || isNaN(cohortId)) {
+      throw new BadRequestException('Valid cohort ID required');
+    }
+    const user = payload?.user || req?.user;
+    if (!user) throw new UnauthorizedException('Authentication required');
+    return this.admissionsService.getEnrollmentAgreement(cohortId, user);
+  }
+
+  @Patch(['admissions/orientation', 'academy/admissions/orientation'])
+  @MessagePattern({ cmd: 'mark_orientation_attendance' })
+  @UseGuards(RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  async markOrientationAttendance(
+    @Body() body?: { applicationId: number; attended: boolean },
+    @Req() req?: any,
+    @Payload() payload?: { applicationId: number; attended: boolean; user: AuthenticatedUser },
+  ) {
+    const applicationId = Number(payload?.applicationId ?? body?.applicationId);
+    const attended = payload?.attended ?? body?.attended ?? true;
+    const user = payload?.user || req?.user;
+    if (!user) throw new UnauthorizedException('Authentication required');
+    if (!applicationId || isNaN(applicationId)) {
+      throw new BadRequestException('Valid applicationId required');
+    }
+    return this.admissionsService.markOrientationAttendance(applicationId, Boolean(attended), user);
+  }
+
   @Get(['admissions/cohort/:cohortId', 'academy/admissions/cohort/:cohortId'])
   @MessagePattern({ cmd: 'get_cohort_admissions_applications' })
   @UseGuards(RoleGuard)

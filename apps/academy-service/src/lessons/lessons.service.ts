@@ -258,24 +258,56 @@ export class LessonsService {
 
     // Check if the lesson is locked for this user (if they are a student)
     let isLocked = false;
-    if (academyProfile.role === 'STUDENT' && lesson.unlockRules) {
-      const rules = lesson.unlockRules as any;
-      if (rules.prerequisites && Array.isArray(rules.prerequisites)) {
-        const prerequisiteLessonIds = rules.prerequisites
-          .filter((pre: any) => pre.type === 'LESSON' && typeof pre.id === 'number')
-          .map((pre: any) => pre.id);
+    if (academyProfile.role === 'STUDENT' || academyProfile.role === 'USER') {
+      // CA-03: Check orientation & enrollment agreement prerequisites
+      const orientationModule = await this.prisma.module.findFirst({
+        where: { courseId: lesson.module.courseId, isOrientationModule: true },
+      });
+      const admissionsApp = await this.prisma.studentAdmissionsApplication.findFirst({
+        where: { userId: user.firebaseId },
+      });
+      if (admissionsApp && !admissionsApp.agreementSigned) {
+        isLocked = true;
+      } else if (orientationModule && !lesson.module.isOrientationModule && (!admissionsApp || !admissionsApp.orientationCompleted)) {
+        isLocked = true;
+      }
 
-        if (prerequisiteLessonIds.length > 0) {
-          const completedPrerequisites = await this.prisma.progress.count({
-            where: {
-              userId: user.firebaseId,
-              lessonId: { in: prerequisiteLessonIds },
-              status: 'COMPLETED',
-            },
-          });
+      if (!isLocked && lesson.unlockRules) {
+        const rules = lesson.unlockRules as any;
+        if (rules.prerequisites && Array.isArray(rules.prerequisites)) {
+          const prerequisiteLessonIds = rules.prerequisites
+            .filter((pre: any) => pre.type === 'LESSON' && typeof pre.id === 'number')
+            .map((pre: any) => pre.id);
 
-          if (completedPrerequisites < prerequisiteLessonIds.length) {
-            isLocked = true;
+          if (prerequisiteLessonIds.length > 0) {
+            const completedPrerequisites = await this.prisma.progress.count({
+              where: {
+                userId: user.firebaseId,
+                lessonId: { in: prerequisiteLessonIds },
+                status: 'COMPLETED',
+              },
+            });
+
+            if (completedPrerequisites < prerequisiteLessonIds.length) {
+              isLocked = true;
+            }
+          }
+
+          // CA-22: Unlock answer videos only after submitting referenced exercise
+          const prerequisiteExerciseIds = rules.prerequisites
+            .filter((pre: any) => pre.type === 'EXERCISE_SUBMISSION' && typeof pre.id === 'number')
+            .map((pre: any) => pre.id);
+
+          if (!isLocked && prerequisiteExerciseIds.length > 0) {
+            const submittedCount = await this.prisma.exerciseSubmission.count({
+              where: {
+                userId: user.firebaseId,
+                exerciseId: { in: prerequisiteExerciseIds },
+              },
+            });
+            if (submittedCount < prerequisiteExerciseIds.length) {
+              isLocked = true;
+            }
           }
         }
       }

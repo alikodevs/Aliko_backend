@@ -273,11 +273,61 @@ export class ExercisesService {
   async submit(id: number, dto: SubmitExerciseDto, user: AuthenticatedUser) {
     const exercise = await this.prisma.exercise.findUnique({
       where: { id },
-      include: { module: { include: { course: true } } },
+      include: {
+        module: { include: { course: true } },
+        lesson: true,
+      },
     });
     if (!exercise) throw new NotFoundException('Exercise not found');
 
     await this.verifyModuleAccess(exercise.moduleId, user);
+
+    // CA-03: Enforce agreement signed, orientation, and lesson unlock rules for students
+    const academyProfile = await this.userService.getOrCreateProfile(user);
+    const isInstructor = exercise.module.course.instructorId === user.firebaseId;
+    const isAdmin = academyProfile.role === 'ADMIN';
+    if (!isInstructor && !isAdmin) {
+      const admissionsApp = await this.prisma.studentAdmissionsApplication.findFirst({
+        where: { userId: user.firebaseId },
+      });
+      if (admissionsApp && !admissionsApp.agreementSigned) {
+        throw new ForbiddenException(
+          'You must sign the enrollment agreement before submitting exercises.',
+        );
+      }
+      const orientationModule = await this.prisma.module.findFirst({
+        where: { courseId: exercise.module.courseId, isOrientationModule: true },
+      });
+      if (orientationModule && !exercise.module.isOrientationModule) {
+        if (!admissionsApp || !admissionsApp.orientationCompleted) {
+          throw new ForbiddenException(
+            'You must complete the mandatory program orientation before submitting exercises (WAC 246-841A-440 Req 11).',
+          );
+        }
+      }
+      if (exercise.lesson?.unlockRules) {
+        const rules = exercise.lesson.unlockRules as any;
+        if (rules.prerequisites && Array.isArray(rules.prerequisites)) {
+          const prereqLessonIds = rules.prerequisites
+            .filter((pre: any) => pre.type === 'LESSON' && typeof pre.id === 'number')
+            .map((pre: any) => pre.id);
+          if (prereqLessonIds.length > 0) {
+            const completed = await this.prisma.progress.count({
+              where: {
+                userId: user.firebaseId,
+                lessonId: { in: prereqLessonIds },
+                status: 'COMPLETED',
+              },
+            });
+            if (completed < prereqLessonIds.length) {
+              throw new ForbiddenException(
+                'This lesson is locked. Complete all prerequisite lessons before submitting.',
+              );
+            }
+          }
+        }
+      }
+    }
 
     let isCorrect = false;
     let score = 0;
