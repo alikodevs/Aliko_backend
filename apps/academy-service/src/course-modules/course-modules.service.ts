@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseModuleDto } from './dto/create-course-module.dto';
 import { UpdateCourseModuleDto } from './dto/update-course-module.dto';
 import { AuthenticatedUser, UserService } from '../user/user.service';
+import { stripExerciseAnswer } from '../common/utils/sanitize-exercises';
 
 // The verified user object passed from the API Gateway
 
@@ -157,6 +158,7 @@ export class CourseModulesService {
   }
 
   async findOne(id: number, user: AuthenticatedUser) {
+    const academyProfile = await this.userService.getOrCreateProfile(user);
     const module = await this.prisma.module.findUnique({
       where: { id },
       include: {
@@ -171,7 +173,19 @@ export class CourseModulesService {
     // This ensures that if the course is not accessible, the module is not accessible
     await this.findAllByCourse(module.course.id, user);
 
+    const isAdmin = academyProfile.role === 'ADMIN';
+    const isInstructor = module.course.instructorId === user.firebaseId;
+
     const { course: _course, ...moduleData } = module;
+
+    // CA-02: Strip correctAnswer from exercises for non-admin/non-instructor users
+    if (!isAdmin && !isInstructor) {
+      return {
+        ...moduleData,
+        exercises: moduleData.exercises.map(stripExerciseAnswer),
+      };
+    }
+
     return moduleData;
   }
 

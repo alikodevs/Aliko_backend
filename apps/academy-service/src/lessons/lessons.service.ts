@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { AuthenticatedUser, UserService } from '../user/user.service';
+import { stripExerciseAnswer } from '../common/utils/sanitize-exercises';
 
 @Injectable()
 export class LessonsService {
@@ -138,8 +139,16 @@ export class LessonsService {
       this.prisma.lesson.count({ where: { moduleId } }),
     ]);
 
+    // CA-02: Strip correctAnswer from exercises for non-admin/non-instructor users
+    const sanitizedLessons = lessons.map((lesson) => ({
+      ...lesson,
+      exercises: (isAdmin || isInstructor)
+        ? lesson.exercises
+        : lesson.exercises.map(stripExerciseAnswer),
+    }));
+
     return {
-      items: lessons,
+      items: sanitizedLessons,
       total,
       page,
       pageSize,

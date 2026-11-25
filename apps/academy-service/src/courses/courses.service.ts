@@ -14,6 +14,7 @@ import { UpdateCourseDto } from './dto/update-course.dto';
 import { AcademyRole, CourseStatus, LessonType } from '@prisma/client/academy';
 import { AuthenticatedUser, UserService } from '../user/user.service';
 import { PushNotificationService } from '@alikohub/notification';
+import { sanitizeCourseExercises, stripExerciseAnswer } from '../common/utils/sanitize-exercises';
 
 type FindAllQuery = {
   page?: number;
@@ -399,8 +400,18 @@ export class CoursesService {
             ? course.priceInUsd ?? course.price
             : course.price;
 
+        // CA-01: Strip password hash from instructor data before including in response
+        const { password: _pw, ...safeAuthInfo } = authInfo || {} as any;
+
+        // Determine if the requesting user can view exercise answers
+        const isInstructor = user?.firebaseId === course.instructorId;
+        const canViewAnswers = isAdmin || isInstructor;
+
+        // CA-02: Strip correctAnswer from exercises for non-admin/non-instructor users
+        const sanitizedCourse = sanitizeCourseExercises(course, canViewAnswers);
+
         return {
-          ...course,
+          ...sanitizedCourse,
           currency,
           price,
           priceInEtb: course.price,
@@ -409,7 +420,7 @@ export class CoursesService {
           enrolledNum: course._count?.enrollments || course.enrolledNum || 0,
           instructor: authInfo
             ? {
-                ...authInfo,
+                ...safeAuthInfo,
                 profile: course.profile,
               }
             : null,
@@ -521,14 +532,26 @@ export class CoursesService {
 
     // Enrich with instructor data
     const instructor = await this.userService.getUserById(course.instructorId);
+    // CA-01: Strip password hash from instructor data
+    const { password: _pw, ...safeInstructor } = instructor || {} as any;
+
+    // CA-02: Determine if requesting user can view exercise answers
+    const isInstructor = user?.firebaseId === course.instructorId;
+    let isAdmin = false;
+    if (user) {
+      const profile = await this.userService.getOrCreateProfile(user);
+      isAdmin = profile.role === AcademyRole.ADMIN;
+    }
+    const sanitizedCourse = sanitizeCourseExercises(course, isAdmin || isInstructor);
+
     return {
-      ...course,
+      ...sanitizedCourse,
       currency,
       price,
       priceInEtb: course.price,
       priceInUsd: course.priceInUsd,
       enrolledNum: enrollmentCount, // Override the stored enrolledNum with actual count
-      instructor,
+      instructor: instructor ? safeInstructor : null,
     };
   }
 

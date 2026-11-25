@@ -40,6 +40,15 @@ export class UserService {
 
 	constructor(private readonly prisma: PrismaService) {}
 
+	/**
+	 * Strips sensitive credential fields (e.g. password hash) before returning user objects.
+	 */
+	sanitizeUser<T extends Record<string, any> | null | undefined>(user: T): T {
+		if (!user || typeof user !== 'object') return user;
+		const { password: _password, ...safeUser } = user;
+		return safeUser as T;
+	}
+
 	async findByFirebaseId(firebaseId: string) {
 		this.logger.log(`Finding user by Firebase ID: ${firebaseId}`);
 		const user = await this.prisma.user.findUnique({ 
@@ -274,7 +283,7 @@ export class UserService {
 	// General User Methods
 	async findAll() {
 		this.logger.log('Finding all users');
-		return this.prisma.user.findMany({
+		const users = await this.prisma.user.findMany({
 			include: {
 				academyUser: true,
 				consultancyUser: true,
@@ -284,6 +293,7 @@ export class UserService {
 				conshifterUser: true,
 			}
 		});
+		return users.map((u) => this.sanitizeUser(u));
 	}
 
 	async updateProfile(firebaseId: string, data: Partial<UserData>) {
@@ -325,7 +335,7 @@ export class UserService {
 			}
 		}
 
-		return user;
+		return this.sanitizeUser(user);
 	}
 
 	async deleteProfile(firebaseId: string) {

@@ -68,7 +68,7 @@ export class UserController {
 		if (!user) {
 			throw new NotFoundException('User profile not found');
 		}
-		return user;
+		return this.userService.sanitizeUser(user);
 	}
 
 	@Get(['users/:firebaseId', 'user/:firebaseId'])
@@ -83,7 +83,8 @@ export class UserController {
 		const firebaseId = paramFirebaseId || body?.firebaseId || payload?.firebaseId;
 		this.logger.log(`Fetching profile for user: ${firebaseId}`);
 		try {
-			return await this.userService.findByFirebaseId(firebaseId);
+			const user = await this.userService.findByFirebaseId(firebaseId);
+			return this.userService.sanitizeUser(user);
 		} catch (error) {
 			this.logger.error(`Failed to fetch profile for user ${firebaseId}: ${error.message}`, error.stack);
 			throw error;
@@ -113,7 +114,7 @@ export class UserController {
 			this.alikowashClient.emit('user_updated', eventPayload);
 			this.conshifterClient.emit('user_updated', eventPayload);
 
-			return updatedUser;
+			return this.userService.sanitizeUser(updatedUser);
 		} catch (error: any) {
 			this.logger.error(`Failed to update profile for user ${data.firebaseId}: ${error.message}`, error.stack);
 			throw error;
@@ -143,7 +144,7 @@ export class UserController {
 			this.alikowashClient.emit('user_updated', eventPayload);
 			this.conshifterClient.emit('user_updated', eventPayload);
 
-			return updatedUser;
+			return this.userService.sanitizeUser(updatedUser);
 		} catch (error: any) {
 			this.logger.error(`Failed to update user ID ${data.firebaseId}: ${error.message}`, error.stack);
 			throw error;
@@ -183,7 +184,7 @@ export class UserController {
 			const users = await Promise.all(
 				data.userIds.map(id => this.userService.findByFirebaseId(id))
 			);
-			return users.filter(u => u !== null);
+			return users.filter(u => u !== null).map(u => this.userService.sanitizeUser(u));
 		} catch (error) {
 			this.logger.error(`Failed to fetch users by batch: ${error.message}`, error.stack);
 			throw error;
@@ -197,7 +198,8 @@ export class UserController {
 		const data = body || payload;
 		this.logger.log(`Updating ConTech role to ${data.role} for user: ${data.userId}`);
 		try {
-			return await this.userService.updateContechRole(data.userId, data.role);
+			const user = await this.userService.updateContechRole(data.userId, data.role);
+			return this.userService.sanitizeUser(user);
 		} catch (error) {
 			this.logger.error(`Failed to update ConTech role for user ${data.userId}: ${error.message}`, error.stack);
 			throw error;
