@@ -64,7 +64,6 @@ export class ChatController {
 
   @Get(['chat/conversations', 'academy/chat/conversations'])
   @MessagePattern({ cmd: CHAT_MESSAGE_PATTERNS.LIST_MY_CONVERSATIONS })
-  @UsePipes(new JoiValidationPipe(UserOnlyChatSchema))
   async listConversations(
     @Req() req?: any,
     @Payload() payload?: { user: AuthenticatedUser },
@@ -78,7 +77,6 @@ export class ChatController {
 
   @Get(['chat/conversations/:conversationId/messages', 'academy/chat/conversations/:conversationId/messages'])
   @MessagePattern({ cmd: CHAT_MESSAGE_PATTERNS.LIST_MESSAGES })
-  @UsePipes(new JoiValidationPipe(ListMessagesSchema))
   async listMessages(
     @Param('conversationId') paramConversationId?: string,
     @Query('cursor') queryCursor?: string,

@@ -35,6 +35,7 @@
     "seed:admin": "ts-node --transpile-only -r dotenv/config -r tsconfig-paths/register apps/user-service/src/seed_test_users.ts",
     "seed:users": "ts-node --transpile-only -r dotenv/config -r tsconfig-paths/register apps/user-service/src/seed_test_users.ts",
     "seed:auditor": "ts-node --transpile-only -r dotenv/config -r tsconfig-paths/register scripts/seed_commission_auditor.ts",
+    "seed:skills": "ts-node --transpile-only -r dotenv/config -r tsconfig-paths/register scripts/seed_core_skills.ts",
     "postman:generate": "node update_postman_collection.js",
     "test:endpoints": "node tests/test_all_endpoints.js",
     "test:integration": "node tests/test_service_integration.js",

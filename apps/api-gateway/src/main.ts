@@ -111,7 +111,8 @@ async function bootstrap() {
   app.use(
     rateLimit({
       windowMs: 60 * 1000,
-      limit: 100,
+      // CA-27: Relax rate limit for authenticated LMS users so normal dashboard/course activity isn't blocked
+      limit: (req: any) => (req.headers?.authorization?.startsWith('Bearer ') ? 1000 : 100),
       standardHeaders: true,
       legacyHeaders: false,
       validate: { xForwardedForHeader: false },
@@ -302,6 +303,10 @@ async function bootstrap() {
         '/api/v1/teaching-schedule/**',
         '/teaching-schedule',
         '/teaching-schedule/**',
+        '/api/v1/chat',
+        '/api/v1/chat/**',
+        '/chat',
+        '/chat/**',
       ],
       pathRewrite: {
         '^/api/v1/academy': '/api/v1',
@@ -334,6 +339,7 @@ async function bootstrap() {
         '^/certification': '/api/v1/certification',
         '^/compliance-exporter': '/api/v1/compliance-exporter',
         '^/teaching-schedule': '/api/v1/teaching-schedule',
+        '^/chat': '/api/v1/chat',
       },
 
 
@@ -463,7 +469,6 @@ async function bootstrap() {
         '/api/v1/messages/**',
         '/messages/**',
         '/api/v1/notifications/**',
-        '/chat/**',
         '/notifications/**',
       ],
       pathRewrite: {

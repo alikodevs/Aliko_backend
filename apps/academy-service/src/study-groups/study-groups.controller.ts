@@ -60,9 +60,21 @@ export class StudyGroupsController {
     return this.studyGroupsService.create(dto, user);
   }
 
+  @Get(['study-groups/my', 'academy/study-groups/my'])
+  @MessagePattern({ cmd: 'find_my_study_groups' })
+  async findMyStudyGroups(
+    @Req() req?: any,
+    @Payload() payload?: { user: AuthenticatedUser },
+  ) {
+    const user = payload?.user || req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    return this.studyGroupsService.findMyStudyGroups(user);
+  }
+
   @Get(['study-groups/cohort/:cohortId', 'academy/study-groups/cohort/:cohortId'])
   @MessagePattern({ cmd: 'find_cohort_study_groups' })
-  @UsePipes(new JoiValidationPipe(CohortStudyGroupsSchema))
   async findByCohort(
     @Param('cohortId') paramCohortId?: string,
     @Req() req?: any,
@@ -86,7 +98,6 @@ export class StudyGroupsController {
 
   @Get(['study-groups/:id', 'academy/study-groups/:id'])
   @MessagePattern({ cmd: 'get_study_group' })
-  @UsePipes(new JoiValidationPipe(StudyGroupIdSchema))
   async findOne(
     @Param('id') paramId?: string,
     @Req() req?: any,

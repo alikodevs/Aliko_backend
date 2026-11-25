@@ -71,15 +71,76 @@ export class StudyGroupsService {
   }
 
   /**
+   * CA-15: List study groups for all cohorts the user is enrolled in (or teaches).
+   */
+  async findMyStudyGroups(user: AuthenticatedUser) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    if (profile.role === 'ADMIN') {
+      return this.prisma.studyGroup.findMany({
+        include: {
+          cohort: { select: { id: true, name: true, courseId: true } },
+          _count: { select: { members: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { userId: user.firebaseId, cohortId: { not: null } },
+      select: { cohortId: true },
+    });
+    const cohortIds = enrollments
+      .map((e) => e.cohortId)
+      .filter((id): id is number => id !== null);
+
+    if (cohortIds.length === 0) return [];
+
+    return this.prisma.studyGroup.findMany({
+      where: { cohortId: { in: cohortIds } },
+      include: {
+        cohort: { select: { id: true, name: true, courseId: true } },
+        members: {
+          include: {
+            profile: {
+              select: { userId: true, role: true, specialization: true },
+            },
+          },
+        },
+        _count: { select: { members: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
    * List all study groups in a cohort.
    */
   async findByCohort(cohortId: number, user: AuthenticatedUser) {
-    await this.userService.getOrCreateProfile(user);
+    const profile = await this.userService.getOrCreateProfile(user);
 
     const cohort = await this.prisma.cohort.findUnique({
       where: { id: cohortId },
+      include: { course: { select: { instructorId: true } } },
     });
     if (!cohort) throw new NotFoundException('Cohort not found');
+
+    // CA-15: Ensure student is enrolled in this cohort (or is instructor/admin/auditor)
+    const isStaffOrAuditor =
+      profile.role === 'ADMIN' ||
+      profile.role === 'COMMISSION_AUDITOR' ||
+      cohort.course.instructorId === user.firebaseId ||
+      cohort.assignedInstructorIds?.includes(user.firebaseId);
+
+    if (!isStaffOrAuditor) {
+      const enrollment = await this.prisma.enrollment.findFirst({
+        where: { userId: user.firebaseId, cohortId },
+      });
+      if (!enrollment) {
+        throw new ForbiddenException(
+          'You must be enrolled in this cohort to view its study groups.',
+        );
+      }
+    }
 
     return this.prisma.studyGroup.findMany({
       where: { cohortId },
