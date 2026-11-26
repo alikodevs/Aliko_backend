@@ -289,11 +289,49 @@ export class HealthDashboardService {
     };
   }
 
+  private getWeekNumber(startDate: Date, targetDate: Date): number {
+    const diffMs = targetDate.getTime() - startDate.getTime();
+    return Math.max(1, Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1);
+  }
+
+  private getProgramPhaseForWeek(weekNumber: number, isHighSchoolTenMonth: boolean): string {
+    if (isHighSchoolTenMonth) {
+      if (weekNumber === 1) return 'Orientation + Unit 1';
+      if (weekNumber <= 28) return 'Units 1–9 theory + lab days';
+      if (weekNumber <= 30) return 'Mock skills #1';
+      if (weekNumber <= 37) return 'Clinical 40 h (5 × 8-h shifts)';
+      if (weekNumber <= 38) return 'Mock skills #2';
+      return 'Exam prep · certificate';
+    }
+    if (weekNumber === 1) return 'Orientation + Unit 1';
+    if (weekNumber <= 8) return 'Units 1–9 theory + lab days';
+    if (weekNumber === 9) return 'Mock skills #1';
+    if (weekNumber <= 11) return 'Clinical 40 h (5 × 8-h shifts)';
+    if (weekNumber === 12) return 'Clinical + Mock skills #2';
+    return 'Exam prep · certificate';
+  }
+
+  private getDefaultPacedWeekForModule(
+    mod: { isOrientationModule: boolean; unitNumber: number | null; title: string },
+    index: number,
+  ): number {
+    if (mod.isOrientationModule || mod.unitNumber === 0) return 1;
+    if (mod.unitNumber && mod.unitNumber >= 1 && mod.unitNumber <= 9) {
+      // Spread Units 1-9 across Weeks 1-8
+      return Math.min(8, Math.max(1, Math.ceil((mod.unitNumber * 8) / 9)));
+    }
+    if (mod.unitNumber === 10 || /mock/i.test(mod.title)) return 9;
+    if (mod.unitNumber === 11 || /clinical/i.test(mod.title)) return 10;
+    if (mod.unitNumber === 12 || /exam|prep|cert/i.test(mod.title)) return 13;
+    return Math.min(13, index + 1);
+  }
+
   /**
    * S9: Health Cohort Schedule (13-week timeline, paced due dates, live Q&A, lab days, clinical shifts)
    */
   async getCohortSchedule(cohortId: number, user: AuthenticatedUser) {
-    await this.userService.getOrCreateProfile(user);
+    const profile = await this.userService.getOrCreateProfile(user);
+    const isStaff = ['INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER', 'COMMISSION_AUDITOR'].includes(profile.role);
 
     const cohort = await this.prisma.cohort.findUnique({
       where: { id: cohortId },
@@ -304,38 +342,260 @@ export class HealthDashboardService {
               orderBy: [{ unitNumber: 'asc' }, { id: 'asc' }],
               include: {
                 lessons: {
-                  where: { dueDate: { not: null } },
-                  select: { id: true, title: true, type: true, dueDate: true },
+                  orderBy: [{ order: 'asc' }, { id: 'asc' }],
+                  select: { id: true, title: true, type: true, dueDate: true, order: true, estimatedHours: true },
+                },
+                discussionTopics: {
+                  select: { id: true, title: true, dueDate: true },
                 },
               },
             },
           },
         },
-        teachingSchedules: { orderBy: { startTime: 'asc' } },
-        clinicalShifts: { orderBy: { shiftDate: 'asc' } },
+        teachingSchedules: {
+          orderBy: { startTime: 'asc' },
+          include: {
+            profile: {
+              select: { userId: true, role: true, specialization: true, bio: true },
+            },
+          },
+        },
+        clinicalShifts: {
+          orderBy: { shiftDate: 'asc' },
+          include: {
+            instructor: {
+              select: { userId: true, role: true, specialization: true, bio: true },
+            },
+            studentRoster: {
+              select: { userId: true, hoursCompleted: true, passed: true, signedBy: true },
+            },
+          },
+        },
+        enrollments: {
+          where: { status: 'ACTIVE' },
+          select: { userId: true, cohortRole: true },
+        },
       },
     });
 
     if (!cohort) throw new NotFoundException(`Cohort ${cohortId} not found`);
 
-    return {
-      cohortId: cohort.id,
-      cohortName: cohort.name,
-      courseTitle: cohort.course.title,
-      domain: cohort.course.domain,
-      windowStatus: this.compute90DayWindow(cohort.startDate, cohort.isHighSchoolTenMonth),
-      maxLiveCapacity: cohort.maxLiveCapacity,
-      pacedUnitSchedule: cohort.course.modules.map((m) => ({
+    if (!isStaff) {
+      const isEnrolled = cohort.enrollments.some((e) => e.userId === user.firebaseId);
+      if (!isEnrolled) {
+        throw new ForbiddenException('You are not enrolled in this cohort.');
+      }
+    }
+
+    const activeStudentCount = cohort.enrollments.filter((e) => e.cohortRole !== 'TEACHING_ASSISTANT').length;
+    const instructorCount = Math.max(1, cohort.assignedInstructorIds?.length || 1);
+    const ratioNumeric = Number((activeStudentCount / instructorCount).toFixed(1));
+    const isWithinLabRatio = activeStudentCount <= instructorCount * 10;
+
+    // Student progress overlay
+    const progressRecords = await this.prisma.progress.findMany({
+      where: { userId: user.firebaseId, courseId: cohort.courseId },
+      select: { lessonId: true, status: true, contentId: true },
+    });
+    const completedLessonIds = new Set(
+      progressRecords
+        .filter((p) => p.lessonId && p.status === 'COMPLETED' && !p.contentId)
+        .map((p) => p.lessonId!),
+    );
+
+    const totalWeeks = cohort.isHighSchoolTenMonth ? 40 : 13;
+    const msPerDay = 24 * 60 * 60 * 1000;
+
+    const pacedUnitSchedule = cohort.course.modules.map((m, idx) => {
+      const defaultWeek = this.getDefaultPacedWeekForModule(m, idx);
+      const effectiveOpenDate =
+        m.scheduledOpenDate ?? new Date(cohort.startDate.getTime() + (defaultWeek - 1) * 7 * msPerDay);
+      const openWeekNumber = Math.min(totalWeeks, this.getWeekNumber(cohort.startDate, effectiveOpenDate));
+      const defaultUnitDueDate = new Date(
+        cohort.startDate.getTime() + (openWeekNumber * 7 - 1) * msPerDay,
+      );
+
+      const totalLessons = m.lessons.length;
+      const completedLessons = m.lessons.filter((l) => completedLessonIds.has(l.id)).length;
+
+      const lessons = m.lessons.map((l) => {
+        const effectiveDue = l.dueDate ?? defaultUnitDueDate;
+        return {
+          id: l.id,
+          title: l.title,
+          type: l.type,
+          order: l.order,
+          estimatedHours: l.estimatedHours,
+          dueDate: l.dueDate,
+          pacedDueDate: effectiveDue,
+          weekNumber: Math.min(totalWeeks, this.getWeekNumber(cohort.startDate, effectiveDue)),
+          completed: completedLessonIds.has(l.id),
+        };
+      });
+
+      const discussions = m.discussionTopics.map((d) => {
+        const effectiveDue = d.dueDate ?? defaultUnitDueDate;
+        return {
+          id: d.id,
+          title: d.title,
+          dueDate: d.dueDate,
+          pacedDueDate: effectiveDue,
+          weekNumber: Math.min(totalWeeks, this.getWeekNumber(cohort.startDate, effectiveDue)),
+        };
+      });
+
+      return {
         moduleId: m.id,
         unitNumber: m.unitNumber,
         title: m.title,
+        isOrientationModule: m.isOrientationModule,
         scheduledOpenDate: m.scheduledOpenDate,
+        effectiveOpenDate,
+        weekNumber: openWeekNumber,
         targetTheoryHours: m.targetTheoryHours,
         targetLabHours: m.targetLabHours,
-        dueItems: m.lessons,
-      })),
-      liveAndLabSessions: cohort.teachingSchedules,
-      clinicalShifts: cohort.clinicalShifts,
+        totalLessons,
+        completedLessons,
+        percentComplete: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
+        isCompleted: totalLessons > 0 && completedLessons === totalLessons,
+        lessons,
+        discussions,
+        dueItems: lessons.filter((l) => l.dueDate !== null),
+      };
+    });
+
+    const liveAndLabSessions = cohort.teachingSchedules.map((s) => {
+      const weekNumber = this.getWeekNumber(cohort.startDate, s.startTime);
+      const isLab = s.type === 'WORKSHOP';
+      const isLiveQa = s.type === 'LIVE' || s.type === 'Q_AND_A' || s.type === 'OFFICE_HOURS';
+      return {
+        ...s,
+        weekNumber,
+        sessionCategory: isLab ? 'LAB_DAY' : isLiveQa ? 'LIVE_QA' : 'RECORDING',
+        instructorProfile: s.profile,
+        ...(isLiveQa
+          ? {
+              liveCapacity: {
+                enrolledCount: activeStudentCount,
+                maxLiveCapacity: cohort.maxLiveCapacity,
+                spotsRemaining: Math.max(0, cohort.maxLiveCapacity - activeStudentCount),
+                isFull: activeStudentCount >= cohort.maxLiveCapacity,
+              },
+              recordingPolicy:
+                'Recordings post within 24 h and do not count as seat-time unless watched in the LMS.',
+            }
+          : {}),
+        ...(isLab
+          ? {
+              labRatio: {
+                enrolledStudents: activeStudentCount,
+                instructorCount,
+                currentRatio: `${ratioNumeric}:1`,
+                maxAllowedRatio: '10:1',
+                isWithinRatio: isWithinLabRatio,
+              },
+            }
+          : {}),
+      };
+    });
+
+    const clinicalShifts = cohort.clinicalShifts.map((shift) => {
+      const weekNumber = this.getWeekNumber(cohort.startDate, shift.shiftDate);
+      const myAttendance = shift.studentRoster.find((a) => a.userId === user.firebaseId) || null;
+      return {
+        id: shift.id,
+        cohortId: shift.cohortId,
+        facilityName: shift.facilityName,
+        instructorId: shift.instructorId,
+        instructorProfile: shift.instructor,
+        shiftDate: shift.shiftDate,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        hoursCredited: shift.hoursCredited,
+        weekNumber,
+        enrolledStudents: shift.studentRoster.length,
+        maxRatio: '10:1',
+        myAttendance,
+      };
+    });
+
+    const totalScheduledClinicalHours = clinicalShifts.reduce((sum, s) => sum + (s.hoursCredited || 0), 0);
+    const completedClinicalHours = clinicalShifts.reduce(
+      (sum, s) => sum + (s.myAttendance?.passed ? s.myAttendance.hoursCompleted : 0),
+      0,
+    );
+
+    const weeklyCalendar = Array.from({ length: totalWeeks }, (_, idx) => {
+      const weekNumber = idx + 1;
+      const weekStart = new Date(cohort.startDate.getTime() + idx * 7 * msPerDay);
+      const weekEnd = new Date(weekStart.getTime() + 6 * msPerDay);
+
+      return {
+        weekNumber,
+        startDate: weekStart,
+        endDate: weekEnd,
+        programPhase: this.getProgramPhaseForWeek(weekNumber, cohort.isHighSchoolTenMonth),
+        unitsOpening: pacedUnitSchedule
+          .filter((u) => u.weekNumber === weekNumber)
+          .map((u) => ({
+            moduleId: u.moduleId,
+            unitNumber: u.unitNumber,
+            title: u.title,
+            isCompleted: u.isCompleted,
+            percentComplete: u.percentComplete,
+          })),
+        dueItems: pacedUnitSchedule.flatMap((u) =>
+          u.lessons
+            .filter((l) => l.weekNumber === weekNumber)
+            .map((l) => ({
+              moduleId: u.moduleId,
+              unitNumber: u.unitNumber,
+              lessonId: l.id,
+              title: l.title,
+              type: l.type,
+              dueDate: l.pacedDueDate,
+              completed: l.completed,
+            })),
+        ),
+        liveSessions: liveAndLabSessions.filter(
+          (s) => s.weekNumber === weekNumber && s.sessionCategory !== 'LAB_DAY',
+        ),
+        labDays: liveAndLabSessions.filter(
+          (s) => s.weekNumber === weekNumber && s.sessionCategory === 'LAB_DAY',
+        ),
+        clinicalShifts: clinicalShifts.filter((c) => c.weekNumber === weekNumber),
+      };
+    });
+
+    return {
+      cohortId: cohort.id,
+      cohortName: cohort.name,
+      courseId: cohort.courseId,
+      courseTitle: cohort.course.title,
+      domain: cohort.course.domain,
+      startDate: cohort.startDate,
+      endDate: cohort.endDate,
+      totalWeeks,
+      windowStatus: this.compute90DayWindow(cohort.startDate, cohort.isHighSchoolTenMonth),
+      capacityAndRatios: {
+        activeStudentCount,
+        maxCapacity: cohort.maxCapacity,
+        maxLiveCapacity: cohort.maxLiveCapacity,
+        instructorCount,
+        currentStudentToInstructorRatio: `${ratioNumeric}:1`,
+        maxLabAndClinicalRatio: '10:1',
+        isWithinLabRatio,
+      },
+      clinicalSummary: {
+        totalScheduledHours: totalScheduledClinicalHours,
+        completedHours: completedClinicalHours,
+        targetHours: 40,
+      },
+      maxLiveCapacity: cohort.maxLiveCapacity,
+      pacedUnitSchedule,
+      liveAndLabSessions,
+      clinicalShifts,
+      weeklyCalendar,
     };
   }
 }
