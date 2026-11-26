@@ -56,7 +56,7 @@ export class HealthDashboardService {
     const profile = HealthCompliancePolicy.getComplianceProfile(enrollment.course)!;
     const activeCourseId = enrollment.courseId;
 
-    const [modules, progressRecords, admissionsApp, skillCheckoffs, clinicalAttendances] =
+    const [modules, progressRecords, admissionsApp, skillCheckoffs, clinicalAttendances, totalCoreSkills] =
       await Promise.all([
         this.prisma.module.findMany({
           where: { courseId: activeCourseId },
@@ -87,6 +87,7 @@ export class HealthDashboardService {
           where: { userId: user.firebaseId, passed: true },
           include: { shift: true },
         }),
+        this.prisma.coreSkill.count(),
       ]);
 
     const verifiedTheorySeconds = progressRecords.reduce((sum, p) => sum + (p.activeTimeSeconds || 0), 0);
@@ -183,7 +184,7 @@ export class HealthDashboardService {
         : null,
       hoursProgress: {
         theory: { completedHours: verifiedTheoryHours, targetHours: profile.requiredTheoryHours },
-        lab: { passedSkills: skillCheckoffs.length, totalSkills: 22, targetHours: profile.requiredLabHours },
+        lab: { passedSkills: skillCheckoffs.length, totalSkills: totalCoreSkills, targetHours: profile.requiredLabHours },
         clinical: { completedHours: completedClinicalHours, targetHours: profile.requiredClinicalHours },
       },
       orientationStatus: {
