@@ -584,4 +584,40 @@ export class HealthAdminService {
       timeHotspots,
     };
   }
+
+  async listFacilities(user: AuthenticatedUser) {
+    await this.assertAdminOrAuditor(user, true);
+    return this.prisma.clinicalFacility.findMany({ orderBy: { name: 'asc' } });
+  }
+
+  async createFacility(dto: any, user: AuthenticatedUser) {
+    await this.assertAdminOrAuditor(user, false);
+    return this.prisma.clinicalFacility.create({
+      data: {
+        name: dto.name,
+        unitType: dto.unitType || 'Subacute Unit',
+        address: dto.address || null,
+        agreementSigned: Boolean(dto.agreementSigned),
+        agreementUrl: dto.agreementUrl || null,
+        agreementExpiresAt: dto.agreementExpiresAt ? new Date(dto.agreementExpiresAt) : null,
+        maxRatio: dto.maxRatio ? Math.min(10, Number(dto.maxRatio)) : 10,
+      },
+    });
+  }
+
+  async updateFacility(id: number, dto: any, user: AuthenticatedUser) {
+    await this.assertAdminOrAuditor(user, false);
+    return this.prisma.clinicalFacility.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined ? { name: dto.name } : {}),
+        ...(dto.unitType !== undefined ? { unitType: dto.unitType } : {}),
+        ...(dto.address !== undefined ? { address: dto.address } : {}),
+        ...(dto.agreementSigned !== undefined ? { agreementSigned: Boolean(dto.agreementSigned) } : {}),
+        ...(dto.agreementUrl !== undefined ? { agreementUrl: dto.agreementUrl } : {}),
+        ...(dto.agreementExpiresAt !== undefined ? { agreementExpiresAt: dto.agreementExpiresAt ? new Date(dto.agreementExpiresAt) : null } : {}),
+        ...(dto.status !== undefined ? { status: dto.status } : {}),
+      },
+    });
+  }
 }

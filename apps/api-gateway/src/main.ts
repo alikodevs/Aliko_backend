@@ -243,6 +243,8 @@ async function bootstrap() {
         '/health/instructor/**',
         '/api/v1/health/admin/**',
         '/health/admin/**',
+        '/api/v1/health/reviewer/**',
+        '/health/reviewer/**',
       ],
       pathRewrite: {
         '^/api/v1/academy': '/api/v1',
@@ -282,6 +284,7 @@ async function bootstrap() {
         '^/health/schedule': '/api/v1/health/schedule',
         '^/health/instructor': '/api/v1/health/instructor',
         '^/health/admin': '/api/v1/health/admin',
+        '^/health/reviewer': '/api/v1/health/reviewer',
       },
 
 

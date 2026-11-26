@@ -39,6 +39,7 @@ import { RubricsModule } from './rubrics/rubrics.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { HealthDashboardModule } from './health-dashboard/health-dashboard.module';
 import { HealthAdminModule } from './health-admin/health-admin.module';
+import { HealthReviewerModule } from './health-reviewer/health-reviewer.module';
 import { PrismaService } from './database/prisma.service';
 import { AcademyOutboxPublisherWorker } from './modules/events/academy-outbox-publisher.worker';
 import { AcademyEventsConsumer } from './modules/events/academy-events.consumer';
@@ -84,6 +85,7 @@ import { UserServiceClient } from './integrations/user-service.client';
     AttendanceModule,
     HealthDashboardModule,
     HealthAdminModule,
+    HealthReviewerModule,
   ],
   controllers: [AppController],
   providers: [

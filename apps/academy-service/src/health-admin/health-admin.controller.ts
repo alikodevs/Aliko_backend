@@ -134,4 +134,19 @@ export class HealthAdminController {
   getHealthAnalytics(@Req() req: any) {
     return this.healthAdminService.getHealthAnalytics(req.user);
   }
+
+  @Get(['health/admin/facilities', 'academy/health/admin/facilities'])
+  listFacilities(@Req() req: any) {
+    return this.healthAdminService.listFacilities(req.user);
+  }
+
+  @Post(['health/admin/facilities', 'academy/health/admin/facilities'])
+  createFacility(@Body() body: any, @Req() req: any) {
+    return this.healthAdminService.createFacility(body, req.user);
+  }
+
+  @Patch(['health/admin/facilities/:id', 'academy/health/admin/facilities/:id'])
+  updateFacility(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+    return this.healthAdminService.updateFacility(Number(id), body, req.user);
+  }
 }

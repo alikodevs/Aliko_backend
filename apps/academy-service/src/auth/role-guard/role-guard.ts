@@ -39,8 +39,10 @@ export class RoleGuard implements CanActivate {
       (role) => academyProfile.role === role,
     );
 
-    // WABON Req 2: COMMISSION_AUDITOR has read-only inspection access across student and instructor views
-    const isAuditor = academyProfile.role === 'COMMISSION_AUDITOR';
+    // WABON Req 2 & Doc 8: COMMISSION_AUDITOR and WABON_REVIEWER have read-only inspection access
+    const isAuditor =
+      academyProfile.role === 'COMMISSION_AUDITOR' ||
+      academyProfile.role === 'WABON_REVIEWER';
     const handlerName = context.getHandler().name;
     const isReadOperation =
       handlerName.startsWith('get') ||

@@ -427,6 +427,7 @@ enum AcademyRole {
   COURSE_MANAGER
   ADMIN
   COMMISSION_AUDITOR // WAC Req 2: Read-only regulatory auditor
+  WABON_REVIEWER     // Doc 8: Read-only WABON nursing education consultant
 }
 
 enum ExerciseType {
@@ -978,4 +979,45 @@ model RefundRequest {
   reviewedAt             DateTime?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
+}
+
+// 13. Clinical Facilities & WABON Reviewer Requests/Findings (Doc 8)
+model ClinicalFacility {
+  id                 Int       @id @default(autoincrement())
+  name               String
+  unitType           String    @default("Subacute Unit")
+  address            String?
+  agreementSigned    Boolean   @default(false)
+  agreementUrl       String?
+  agreementExpiresAt DateTime?
+  maxRatio           Int       @default(10)
+  status             String    @default("ACTIVE")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model ReviewerRequest {
+  id          Int                    @id @default(autoincrement())
+  courseId    Int?
+  cohortId    Int?
+  reviewerId  String
+  title       String
+  description String
+  category    String                 @default("GENERAL")
+  status      String                 @default("OPEN") // OPEN | WAITING_ON_WABON | ANSWERED | RESOLVED
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  replies     ReviewerRequestReply[]
+}
+
+model ReviewerRequestReply {
+  id         Int             @id @default(autoincrement())
+  requestId  Int
+  authorId   String
+  authorRole String
+  body       String
+  createdAt  DateTime        @default(now())
+
+  request    ReviewerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 }
