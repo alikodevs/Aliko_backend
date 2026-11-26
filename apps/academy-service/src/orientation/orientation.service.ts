@@ -9,6 +9,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedUser, UserService } from '../user/user.service';
 import { CompleteOrientationDto } from './dto/complete-orientation.dto';
 
+/**
+ * Bidirectional sync: maps O-key ↔ lesson title prefix (0-N) so that
+ * completing one side automatically mirrors to the other.
+ */
+const O_KEY_TO_LESSON_PREFIX: Record<string, string> = {
+  'O-1': '0-1', 'O-2': '0-2', 'O-3': '0-3',
+  'O-4': '0-4', 'O-5': '0-5', 'O-6': '0-6',
+  'O-7': '0-7', 'O-8': '0-8', 'O-9': '0-9',
+};
+
 export const ORIENTATION_ITEMS = [
   { key: 'O-1', title: 'Welcome Session (Instructor Sign-Off)', instructorOnly: true },
   { key: 'O-2', title: 'Program Rules & Attendance Policy', instructorOnly: false },
@@ -72,6 +82,9 @@ export class OrientationService {
     this.logger.log(
       `Student ${user.firebaseId} completed mandatory orientation for cohort ${dto.cohortId}. Note: Orientation hours are non-credit under WAC 246-841A-440 (Req 11).`,
     );
+
+    // ── Sync → Module 0 lesson progress ──
+    await this.syncAllOrientationLessonsToProgress(user.firebaseId, dto.cohortId);
 
     return application;
   }
@@ -169,6 +182,9 @@ export class OrientationService {
       },
     });
 
+    // ── Sync → Module 0 lesson progress ──
+    await this.syncOrientationItemToProgress(studentUserId, cohortId, itemKey, completed);
+
     return {
       cohortId,
       userId: studentUserId,
@@ -190,5 +206,153 @@ export class OrientationService {
     });
 
     return application?.orientationCompleted ?? false;
+  }
+
+  // ─── Sync helpers: Orientation Checklist → Module 0 Progress ───
+
+  /**
+   * When a single O-key is toggled, mirror it to the matching Module 0 lesson's Progress record.
+   */
+  private async syncOrientationItemToProgress(
+    userId: string,
+    cohortId: number,
+    itemKey: string,
+    completed: boolean,
+  ) {
+    try {
+      const lessonPrefix = O_KEY_TO_LESSON_PREFIX[itemKey];
+      if (!lessonPrefix) return;
+
+      const cohort = await this.prisma.cohort.findUnique({
+        where: { id: cohortId },
+        select: { courseId: true },
+      });
+      if (!cohort?.courseId) return;
+      const courseId = cohort.courseId;
+
+      const orientationLesson = await this.prisma.lesson.findFirst({
+        where: {
+          title: { startsWith: lessonPrefix },
+          isOrientationLesson: true,
+          module: { courseId, isOrientationModule: true },
+        },
+        select: { id: true },
+      });
+      if (!orientationLesson) return;
+
+      if (completed) {
+        // Upsert a COMPLETED progress record
+        const existing = await this.prisma.progress.findFirst({
+          where: { userId, courseId, lessonId: orientationLesson.id, contentId: null },
+        });
+        if (!existing) {
+          await this.prisma.progress.create({
+            data: { userId, courseId, lessonId: orientationLesson.id, status: 'COMPLETED' },
+          });
+        }
+      } else {
+        // Remove the progress record when un-checking
+        await this.prisma.progress.deleteMany({
+          where: { userId, courseId, lessonId: orientationLesson.id, contentId: null },
+        });
+      }
+      this.logger.log(
+        `Orientation sync → lesson progress: ${itemKey} ${completed ? 'completed' : 'removed'} for user ${userId}, lesson ${orientationLesson.id}`,
+      );
+    } catch (err) {
+      this.logger.warn(`Orientation → Progress sync failed for ${itemKey}: ${err.message}`);
+    }
+  }
+
+  /**
+   * Bulk-sync all 9 orientation items to Module 0 progress (used by completeOrientation).
+   */
+  private async syncAllOrientationLessonsToProgress(userId: string, cohortId: number) {
+    for (const item of ORIENTATION_ITEMS) {
+      await this.syncOrientationItemToProgress(userId, cohortId, item.key, true);
+    }
+  }
+
+  /**
+   * Reverse sync: called by ProgressAndAnalyticsService when a Module 0 lesson is completed.
+   * Maps the lesson title back to an O-key and updates the orientation checklist.
+   */
+  async syncLessonProgressToOrientation(
+    userId: string,
+    courseId: number,
+    lessonTitle: string,
+    completed: boolean,
+  ) {
+    try {
+      // Find which O-key this lesson maps to (e.g. "0-3 · Your schedule" → "O-3")
+      let matchedKey: string | null = null;
+      for (const [oKey, prefix] of Object.entries(O_KEY_TO_LESSON_PREFIX)) {
+        if (lessonTitle.startsWith(prefix)) {
+          matchedKey = oKey;
+          break;
+        }
+      }
+      if (!matchedKey) return;
+
+      // Find the cohort for this course + user
+      const enrollment = await this.prisma.enrollment.findFirst({
+        where: {
+          userId,
+          OR: [{ courseId }, { cohort: { courseId } }],
+        },
+        include: { cohort: true },
+      });
+      const cohortId = enrollment?.cohortId;
+      if (!cohortId) return;
+
+      // Determine whether the matched item is instructorOnly
+      const item = ORIENTATION_ITEMS.find((i) => i.key === matchedKey);
+      if (item?.instructorOnly) {
+        // O-1 (Welcome Session) can only be marked by an instructor, so we skip reverse sync for it
+        this.logger.log(`Skipping reverse sync for instructor-only item ${matchedKey}`);
+        return;
+      }
+
+      const existing = await this.prisma.studentAdmissionsApplication.findUnique({
+        where: { userId_cohortId: { userId, cohortId } },
+      });
+
+      const checklist: Record<string, boolean> = {
+        ...((existing?.orientationChecklist as Record<string, boolean> | null) || {}),
+        [matchedKey]: completed,
+      };
+
+      const allNineComplete = ORIENTATION_ITEMS.every((i) => Boolean(checklist[i.key]));
+
+      await this.prisma.studentAdmissionsApplication.upsert({
+        where: { userId_cohortId: { userId, cohortId } },
+        update: {
+          orientationChecklist: checklist,
+          ...(matchedKey === 'O-4' ? { lmsTutorialCompleted: completed } : {}),
+          ...(matchedKey === 'O-5' ? { netiquetteSigned: completed } : {}),
+          ...(matchedKey === 'O-8' ? { techCheckPassed: completed } : {}),
+          ...(matchedKey === 'O-9' ? { agreementSigned: completed, agreementSignedAt: completed ? new Date() : null } : {}),
+          orientationCompleted: allNineComplete,
+          orientationAttendedAt: allNineComplete ? new Date() : existing?.orientationAttendedAt ?? null,
+        },
+        create: {
+          userId,
+          cohortId,
+          orientationChecklist: checklist,
+          lmsTutorialCompleted: matchedKey === 'O-4' ? completed : false,
+          netiquetteSigned: matchedKey === 'O-5' ? completed : false,
+          techCheckPassed: matchedKey === 'O-8' ? completed : false,
+          agreementSigned: matchedKey === 'O-9' ? completed : false,
+          orientationCompleted: allNineComplete,
+          orientationAttendedAt: allNineComplete ? new Date() : null,
+        },
+      });
+
+      this.logger.log(
+        `Progress sync → orientation checklist: lesson "${lessonTitle}" → ${matchedKey} ${completed ? 'completed' : 'removed'} for user ${userId}`,
+      );
+    } catch (err) {
+      this.logger.warn(`Progress → Orientation sync failed for "${lessonTitle}": ${err.message}`);
+    }
   }
 }

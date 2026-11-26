@@ -9,6 +9,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { UserService, AuthenticatedUser } from '../user/user.service';
 import { SubmissionStatus } from '@prisma/client/academy';
 import { HealthCompliancePolicy } from '../common/policies/health-compliance.policy';
+import { OrientationService } from '../orientation/orientation.service';
 
 function assertUser(
   user?: AuthenticatedUser,
@@ -26,6 +27,7 @@ export class ProgressAndAnalyticsService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private userService: UserService,
+    private orientationService: OrientationService,
   ) {}
 
   // --- Get instructor stats ---
@@ -283,6 +285,16 @@ export class ProgressAndAnalyticsService {
         status: 'COMPLETED',
       },
     });
+
+    // ── Sync → Orientation Checklist (Module 0 lessons only) ──
+    if (lesson.isOrientationLesson && lesson.module.isOrientationModule) {
+      await this.orientationService.syncLessonProgressToOrientation(
+        user.firebaseId,
+        courseId,
+        lesson.title,
+        true,
+      );
+    }
 
     if (lesson) {
       await this.notificationsService.notifyInstructorProgress(
