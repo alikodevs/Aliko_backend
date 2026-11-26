@@ -5,12 +5,21 @@
  * Usage:
  *   npx ts-node --transpile-only -r dotenv/config -r tsconfig-paths/register scripts/seed_core_skills.ts
  */
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 import { PrismaClient } from '@prisma/client/academy';
+
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
+const dbUrl =
+  process.env.DATABASE_URL_ACADEMY ||
+  (process.env.ACADEMY_DATABASE_URL ? process.env.ACADEMY_DATABASE_URL.replace('@postgres:', '@127.0.0.1:') : undefined) ||
+  process.env.DATABASE_URL;
 
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.ACADEMY_DATABASE_URL || process.env.DATABASE_URL,
+      url: dbUrl,
     },
   },
 });

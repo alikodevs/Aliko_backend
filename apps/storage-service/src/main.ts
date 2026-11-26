@@ -36,7 +36,13 @@ async function bootstrap() {
   // Public course thumbnails / avatars under /alikohub/images remain accessible.
   const fileAuthMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const reqPath = req.path || '';
-    if (reqPath.includes('/alikohub/images/') || reqPath.startsWith('/images/')) {
+    if (
+      reqPath === '/health' ||
+      reqPath === '/api/v1/health' ||
+      reqPath.startsWith('/api/v1/health') ||
+      reqPath.includes('/alikohub/images/') ||
+      reqPath.startsWith('/images/')
+    ) {
       return next();
     }
 
