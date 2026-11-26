@@ -233,6 +233,12 @@ async function bootstrap() {
         '/chat/**',
         '/api/v1/notifications/**',
         '/notifications/**',
+        '/api/v1/health/student/**',
+        '/health/student/**',
+        '/api/v1/health/grades/**',
+        '/health/grades/**',
+        '/api/v1/health/schedule/**',
+        '/health/schedule/**',
       ],
       pathRewrite: {
         '^/api/v1/academy': '/api/v1',
@@ -267,6 +273,9 @@ async function bootstrap() {
         '^/teaching-schedule': '/api/v1/teaching-schedule',
         '^/chat': '/api/v1/chat',
         '^/notifications': '/api/v1/notifications',
+        '^/health/student': '/api/v1/health/student',
+        '^/health/grades': '/api/v1/health/grades',
+        '^/health/schedule': '/api/v1/health/schedule',
       },
 
 
