@@ -27,7 +27,7 @@ const prisma = new PrismaClient({
 const WABON_22_CORE_SKILLS = [
   {
     skillNumber: 'SKILL-01',
-    name: 'Hand Hygiene (Handwashing)',
+    name: 'Handwashing',
     category: 'Infection Control',
     steps: [
       'Wet hands and wrists thoroughly with warm running water',
@@ -38,29 +38,62 @@ const WABON_22_CORE_SKILLS = [
   },
   {
     skillNumber: 'SKILL-02',
-    name: 'Donning and Doffing Personal Protective Equipment (PPE)',
-    category: 'Infection Control',
+    name: 'Applies One Knee-High Elastic Stocking',
+    category: 'Personal Care',
     steps: [
-      'Perform hand hygiene before donning PPE',
-      'Put on gown, mask/respirator, goggles/face shield, and gloves in proper sequence',
-      'Remove gloves first without contaminating skin, then goggles/face shield, gown, and mask',
-      'Perform hand hygiene immediately after removing all PPE',
+      'Position client supine with leg flat and expose one leg while maintaining privacy',
+      'Turn stocking inside out to heel, slip over foot, and pull smoothly up leg to below knee',
+      'Verify heel is properly positioned and no wrinkles or twists remain',
+      'Check toes for warmth and circulation and place call light within reach',
     ],
   },
   {
     skillNumber: 'SKILL-03',
-    name: 'Measure and Record Radial Pulse',
+    name: 'Assists to Ambulate Using Transfer Belt',
+    category: 'Mobility & Transfers',
+    steps: [
+      'Lock bed/wheelchair brakes and apply non-skid footwear',
+      'Apply transfer (gait) belt snugly over clothing around waist',
+      'Assist client to stand using proper body mechanics',
+      'Walk slightly behind and to the weaker side while holding transfer belt',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-04',
+    name: 'Assist with Use of Bedpan',
+    category: 'Elimination & Output',
+    steps: [
+      'Don gloves, place protective pad, and position bedpan properly under client',
+      'Raise head of bed for comfort, provide toilet tissue and call light, step out for privacy',
+      'Lower head of bed, remove bedpan carefully, and assist with perineal and hand hygiene',
+      'Empty, rinse, and store bedpan; remove gloves and perform handwashing',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-05',
+    name: 'Cleans Upper and Lower Denture',
+    category: 'Personal Care',
+    steps: [
+      'Don gloves and line sink with paper towel/washcloth and fill partially with cool/tepid water',
+      'Brush all surfaces of upper and lower dentures with denture brush/toothpaste',
+      'Rinse dentures thoroughly under cool/tepid running water and place in labeled denture cup',
+      'Remove gloves, discard liner, and perform handwashing',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-06',
+    name: 'Counts and Records Radial Pulse',
     category: 'Vital Signs',
     steps: [
-      'Perform hand hygiene and identify resident',
+      'Perform handwashing and identify client',
       'Locate radial artery on thumb side of wrist using fingertips',
       'Count beats for 60 full seconds (noting rhythm and strength)',
       'Record rate accurately within +/- 4 bpm of evaluator',
     ],
   },
   {
-    skillNumber: 'SKILL-04',
-    name: 'Measure and Record Respirations',
+    skillNumber: 'SKILL-07',
+    name: 'Counts and Records Respirations',
     category: 'Vital Signs',
     steps: [
       'Count respirations unobtrusively immediately after radial pulse',
@@ -69,8 +102,162 @@ const WABON_22_CORE_SKILLS = [
     ],
   },
   {
-    skillNumber: 'SKILL-05',
-    name: 'Measure and Record Blood Pressure (Manual)',
+    skillNumber: 'SKILL-08',
+    name: 'Donning and Removing PPE',
+    category: 'Infection Control',
+    steps: [
+      'Perform handwashing before donning PPE',
+      'Put on gown, mask, goggles/face shield (if required), and gloves in proper sequence',
+      'Remove gloves first without contaminating skin, then gown, and mask/eye protection',
+      'Perform handwashing immediately after removing all PPE',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-09',
+    name: 'Dresses Client with Affected (Weak) Arm',
+    category: 'Personal Care',
+    steps: [
+      'Provide privacy and allow client to choose clothing',
+      'Undress unaffected/strong side first; dress affected/weak arm first',
+      'Handle affected limb gently and support joints without pulling',
+      'Ensure clothing is neat, comfortable, and call light is within reach',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-10',
+    name: 'Feeds Client who Cannot Feed Self',
+    category: 'Nutrition & Hydration',
+    steps: [
+      'Position client upright (75-90 degrees) and verify name/diet card',
+      'Offer small bites and fluids at client pace, alternating food and liquids',
+      'Wipe mouth as needed and keep client upright after meal',
+      'Calculate and record percentage of meal eaten and fluid intake',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-11',
+    name: 'Gives Modified Bed Bath',
+    category: 'Personal Care',
+    steps: [
+      'Test water temperature and have client verify comfort',
+      'Wash eyes from inner to outer canthus with plain water, then wash face',
+      'Wash, rinse, and dry arm, hand, chest, and abdomen while keeping client covered',
+      'Apply lotion/deodorant as requested, lower bed, and perform handwashing',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-13',
+    name: 'Measures and Records Urinary Output',
+    category: 'Elimination & Output',
+    steps: [
+      'Don gloves and pour urine from bedpan/urinal/drainage bag into graduate container',
+      'Place graduate on flat surface and read measurement at eye level',
+      'Empty urine into toilet, rinse/store equipment, and remove gloves',
+      'Perform handwashing and record output accurately in mL',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-14',
+    name: 'Measures and Records Weight of Ambulatory Client',
+    category: 'Vital Signs',
+    steps: [
+      'Balance scale at zero before client steps on',
+      'Ensure client wears non-skid footwear and light clothing',
+      'Assist client onto scale safely without holding onto scale/wall',
+      'Read and record weight accurately',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-15',
+    name: 'Performs Modified Passive Range of Motion for One Knee and One Ankle',
+    category: 'Restorative Care',
+    steps: [
+      'Explain procedure and support joints above and below during movement',
+      'Move knee through flexion/extension and ankle through dorsiflexion/plantar flexion slowly',
+      'Stop immediately if client reports pain or resistance is felt',
+      'Ensure client comfort and call light access upon completion',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-16',
+    name: 'Performs Modified Passive Range of Motion for One Shoulder',
+    category: 'Restorative Care',
+    steps: [
+      'Explain procedure and support wrist and elbow during movement',
+      'Move shoulder slowly through flexion/extension and abduction/adduction',
+      'Stop immediately if client reports pain or resistance is felt',
+      'Ensure client comfort and call light access upon completion',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-17',
+    name: 'Positions on Side',
+    category: 'Mobility & Transfers',
+    steps: [
+      'Lock bed brakes and raise bed to comfortable working height',
+      'Move client to side of bed and roll gently onto side',
+      'Place pillows behind back, between knees/ankles, and under upper arm',
+      'Lower bed to lowest position and place call light within reach',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-18',
+    name: 'Provides Catheter Care for Female',
+    category: 'Elimination & Output',
+    steps: [
+      'Don gloves and inspect meatus/tubing for irritation or kinks',
+      'Stabilize catheter near meatus and cleanse 4 inches down tubing away from meatus',
+      'Rinse and pat dry; keep drainage bag below bladder level off the floor',
+      'Remove gloves and perform handwashing',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-19',
+    name: 'Provides Foot Care on One Foot',
+    category: 'Personal Care',
+    steps: [
+      'Test water temperature, soak foot in basin, and wash gently including between toes',
+      'Rinse and dry foot thoroughly, especially between toes',
+      'Apply lotion to top and bottom of foot (avoiding between toes)',
+      'Put on clean sock/non-skid footwear, clean supplies, and perform handwashing',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-20',
+    name: 'Provides Mouth Care',
+    category: 'Personal Care',
+    steps: [
+      'Don gloves and position client upright (or on side if unconscious)',
+      'Brush all tooth surfaces and tongue gently with moistened toothbrush/toothpaste',
+      'Assist client to rinse mouth into emesis basin and dry face',
+      'Remove gloves, store supplies properly, and perform handwashing',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-21',
+    name: 'Provides Perineal Care for Female',
+    category: 'Personal Care',
+    steps: [
+      'Don gloves, provide privacy, and test water temperature',
+      'Cleanse from cleanest to dirtiest area (front to back) using clean cloth sections',
+      'Rinse thoroughly and pat dry gently',
+      'Dispose of soiled linen/gloves properly and perform handwashing',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-22',
+    name: 'Transfers From Bed to Wheelchair Using Transfer Belt',
+    category: 'Mobility & Transfers',
+    steps: [
+      'Position wheelchair at bedside, lock brakes, and remove/swing away footrests',
+      'Apply transfer belt snugly and assist client to sitting position on edge of bed',
+      'Pivot client smoothly into wheelchair using proper body mechanics',
+      'Remove transfer belt, position footrests, and place call light within reach',
+    ],
+  },
+  {
+    skillNumber: 'SKILL-23',
+    name: 'Measures and Records Manual Blood Pressure',
     category: 'Vital Signs',
     steps: [
       'Clean earpieces and diaphragm of stethoscope; position cuff 1 inch above brachial artery',
@@ -79,202 +266,17 @@ const WABON_22_CORE_SKILLS = [
       'Deflate cuff completely, remove, and record BP accurately',
     ],
   },
-  {
-    skillNumber: 'SKILL-06',
-    name: 'Measure and Record Oral/Tympanic/Temporal Temperature',
-    category: 'Vital Signs',
-    steps: [
-      'Perform hand hygiene and apply disposable probe cover',
-      'Place thermometer correctly according to route',
-      'Wait for audible signal, read temperature, discard probe cover',
-      'Record reading accurately with route noted',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-07',
-    name: 'Measure and Record Weight (Standing Scale)',
-    category: 'Vital Signs',
-    steps: [
-      'Balance scale at zero before resident steps on',
-      'Ensure resident wears non-skid footwear and light clothing',
-      'Assist resident onto scale safely without holding onto scale/wall',
-      'Read and record weight accurately',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-08',
-    name: 'Assist Resident with Ambulation Using Gait Belt',
-    category: 'Mobility & Transfers',
-    steps: [
-      'Lock bed/wheelchair brakes and apply non-skid footwear',
-      'Apply gait belt snugly over clothing around waist',
-      'Assist resident to stand using proper body mechanics',
-      'Walk slightly behind and to the weaker side while holding gait belt',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-09',
-    name: 'Transfer Resident from Bed to Wheelchair Using Gait Belt',
-    category: 'Mobility & Transfers',
-    steps: [
-      'Position wheelchair at bedside, lock brakes, and remove/swing away footrests',
-      'Apply gait belt snugly and assist resident to sitting position on edge of bed',
-      'Pivot resident smoothly into wheelchair using proper body mechanics',
-      'Remove gait belt, position footrests, and place call light within reach',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-10',
-    name: 'Position Resident on Side (Lateral Position)',
-    category: 'Mobility & Transfers',
-    steps: [
-      'Lock bed brakes and raise bed to comfortable working height',
-      'Move resident to side of bed and roll gently onto side',
-      'Place pillows behind back, between knees/ankles, and under upper arm',
-      'Lower bed to lowest position and place call light within reach',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-11',
-    name: 'Perform Passive Range of Motion (PROM) — Upper & Lower Extremities',
-    category: 'Restorative Care',
-    steps: [
-      'Explain procedure and support joints above and below during movement',
-      'Move each joint slowly and smoothly through flexion, extension, abduction, adduction',
-      'Stop immediately if resident reports pain or resistance is felt',
-      'Ensure resident comfort and call light access upon completion',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-12',
-    name: 'Make an Occupied Bed',
-    category: 'Environment & Comfort',
-    steps: [
-      'Lock bed brakes, explain procedure, and maintain privacy',
-      'Roll resident safely to one side, tuck soiled bottom sheet toward center',
-      'Place clean bottom sheet and draw sheet smoothly, then roll resident to clean side',
-      'Remove soiled linen without shaking, apply top sheet/blanket with toe pleat',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-13',
-    name: 'Provide Mouth Care (Brushing Teeth & Denture Care)',
-    category: 'Personal Care',
-    steps: [
-      'Don gloves and position resident upright (or on side if unconscious)',
-      'Brush all tooth surfaces gently (or clean dentures over lined sink in cool water)',
-      'Assist resident to rinse mouth and dry face',
-      'Remove gloves, perform hand hygiene, and store supplies properly',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-14',
-    name: 'Provide Partial Bed Bath (Face, Arm, Hand, Underarm)',
-    category: 'Personal Care',
-    steps: [
-      'Test water temperature and have resident verify comfort',
-      'Wash eyes from inner to outer canthus with plain water, then wash face',
-      'Wash, rinse, and dry arm, hand, and axilla while keeping resident covered',
-      'Apply lotion/deodorant as requested, lower bed, and perform hand hygiene',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-15',
-    name: 'Provide Perineal Care (Female/Male)',
-    category: 'Personal Care',
-    steps: [
-      'Don gloves, provide privacy, and test water temperature',
-      'Cleanse from cleanest to dirtiest area (front to back) using clean cloth sections',
-      'Rinse thoroughly and pat dry gently',
-      'Dispose of soiled linen/gloves properly and perform hand hygiene',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-16',
-    name: 'Provide Nail Care (Fingernails)',
-    category: 'Personal Care',
-    steps: [
-      'Soak fingers in warm water and dry gently',
-      'Clean under nails with orangewood stick',
-      'File nails smoothly in rounded shape (do not cut diabetic residents nails)',
-      'Apply lotion to hands and perform hand hygiene',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-17',
-    name: 'Assist Resident with Dressing (Weak/Affected Arm)',
-    category: 'Personal Care',
-    steps: [
-      'Provide privacy and allow resident to choose clothing',
-      'Undress unaffected/strong side first; dress affected/weak side first',
-      'Handle affected limb gently and support joints',
-      'Ensure clothing is neat, comfortable, and call light is within reach',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-18',
-    name: 'Apply Elastic Stocking (Anti-Embolism Hose)',
-    category: 'Personal Care',
-    steps: [
-      'Position resident supine with leg flat',
-      'Turn stocking inside out to heel, slip over foot, and pull smoothly up leg',
-      'Verify heel is properly positioned and no wrinkles or twists remain',
-      'Check toes for warmth and circulation',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-19',
-    name: 'Assist Resident with Bedpan & Measure Urinary Output',
-    category: 'Elimination & Output',
-    steps: [
-      'Don gloves, place protective pad, and position bedpan properly',
-      'Raise head of bed for comfort, provide toilet tissue and call light, step out for privacy',
-      'Lower head of bed, remove bedpan, and assist with perineal/hand hygiene',
-      'Measure urine in graduate on flat surface at eye level and record output',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-20',
-    name: 'Provide Indwelling Urinary Catheter Care',
-    category: 'Elimination & Output',
-    steps: [
-      'Don gloves and inspect meatus/tubing for irritation or kinks',
-      'Stabilize catheter near meatus and cleanse 4 inches down tubing away from meatus',
-      'Rinse and pat dry; keep drainage bag below bladder level off the floor',
-      'Remove gloves and perform hand hygiene',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-21',
-    name: 'Feed a Resident Safely & Record Intake',
-    category: 'Nutrition & Hydration',
-    steps: [
-      'Position resident upright (75-90 degrees) and verify diet card',
-      'Offer small bites/sips at residents pace, alternating food and fluids',
-      'Wipe mouth as needed and keep resident upright 30 minutes after meal',
-      'Calculate and record percentage of meal eaten and fluid intake in mL',
-    ],
-  },
-  {
-    skillNumber: 'SKILL-22',
-    name: 'Empty Urinary Drainage Bag & Record Output',
-    category: 'Elimination & Output',
-    steps: [
-      'Don gloves and place barrier under graduate container',
-      'Open drain spout without touching container sides and empty completely',
-      'Wipe spout with alcohol swab, close/secure spout in holder',
-      'Measure at eye level on flat surface, record mL, and perform hand hygiene',
-    ],
-  },
 ];
 
 const CATEGORY_UNIT_MAP: Record<string, string> = {
   'Infection Control': 'Unit 2',
   'Vital Signs': 'Unit 4',
   'Mobility & Transfers': 'Unit 5',
+  'Personal Care': 'Unit 6',
   'Personal Care & ADLs': 'Unit 6',
   'Nutrition & Hydration': 'Unit 7',
   'Elimination & Output': 'Unit 7',
+  'Restorative Care': 'Unit 8',
 };
 
 async function seedCoreSkills() {
@@ -284,11 +286,10 @@ async function seedCoreSkills() {
   const deleted = await prisma.coreSkill.deleteMany({
     where: {
       skillNumber: { notIn: officialNumbers },
-      checkoffs: { none: {} },
     },
   });
   if (deleted.count > 0) {
-    console.log(`Removed ${deleted.count} unused test CoreSkill records.`);
+    console.log(`Removed ${deleted.count} non-official/test CoreSkill records.`);
   }
 
   for (const skill of WABON_22_CORE_SKILLS) {
