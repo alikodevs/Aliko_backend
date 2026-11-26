@@ -49,6 +49,8 @@ export class SkillsLabService {
         name: dto.name,
         category: dto.category,
         steps: dto.steps,
+        taughtInUnit: (dto as any).taughtInUnit || null,
+        demoVideoUrl: (dto as any).demoVideoUrl || null,
       },
     });
 

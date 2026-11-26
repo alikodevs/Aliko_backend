@@ -9,6 +9,7 @@ import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { AuthenticatedUser, UserService } from '../user/user.service';
 import { stripExerciseAnswer } from '../common/utils/sanitize-exercises';
+import { HealthCompliancePolicy } from '../common/policies/health-compliance.policy';
 
 @Injectable()
 export class LessonsService {
@@ -107,8 +108,14 @@ export class LessonsService {
       );
     }
 
-    // WABON Req 11: Mandatory Orientation Prerequisite Gate
-    if (!isAdmin && !isInstructor && !isAuditor && isEnrolled) {
+    // WABON Req 11: Mandatory Orientation Prerequisite Gate (HEALTH courses only)
+    if (
+      !isAdmin &&
+      !isInstructor &&
+      !isAuditor &&
+      isEnrolled &&
+      HealthCompliancePolicy.isHealthCourse(module.course)
+    ) {
       const orientationModule = await this.prisma.module.findFirst({
         where: { courseId, isOrientationModule: true },
       });
@@ -119,6 +126,24 @@ export class LessonsService {
         if (!studentApp) {
           throw new ForbiddenException(
             'Under WAC 246-841A-440 (Req 11), you must complete the mandatory program orientation before accessing course theory units.',
+          );
+        }
+      }
+      // FR-04: Sequential unit unlock for HEALTH courses (scheduledOpenDate + previous unit quiz >= 80%)
+      if (module.scheduledOpenDate && new Date(module.scheduledOpenDate) > new Date()) {
+        throw new ForbiddenException(
+          `Unit ${module.unitNumber || ''} is scheduled to open on ${module.scheduledOpenDate.toISOString().slice(0, 10)}.`,
+        );
+      }
+      if (module.unitNumber && module.unitNumber > 1) {
+        const prevPassed = await this.isPreviousUnitQuizPassed(
+          courseId,
+          module.unitNumber - 1,
+          user.firebaseId,
+        );
+        if (!prevPassed) {
+          throw new ForbiddenException(
+            `Complete and pass Unit ${module.unitNumber - 1} Quiz (>= 80%) before unlocking Unit ${module.unitNumber}.`,
           );
         }
       }
@@ -259,17 +284,30 @@ export class LessonsService {
     // Check if the lesson is locked for this user (if they are a student)
     let isLocked = false;
     if (academyProfile.role === 'STUDENT' || academyProfile.role === 'USER') {
-      // CA-03: Check orientation & enrollment agreement prerequisites
-      const orientationModule = await this.prisma.module.findFirst({
-        where: { courseId: lesson.module.courseId, isOrientationModule: true },
-      });
-      const admissionsApp = await this.prisma.studentAdmissionsApplication.findFirst({
-        where: { userId: user.firebaseId },
-      });
-      if (admissionsApp && !admissionsApp.agreementSigned) {
-        isLocked = true;
-      } else if (orientationModule && !lesson.module.isOrientationModule && (!admissionsApp || !admissionsApp.orientationCompleted)) {
-        isLocked = true;
+      // CA-03: Check orientation & enrollment agreement prerequisites (HEALTH courses only)
+      if (HealthCompliancePolicy.isHealthCourse(lesson.module.course)) {
+        const orientationModule = await this.prisma.module.findFirst({
+          where: { courseId: lesson.module.courseId, isOrientationModule: true },
+        });
+        const admissionsApp = await this.prisma.studentAdmissionsApplication.findFirst({
+          where: { userId: user.firebaseId },
+        });
+        if (admissionsApp && !admissionsApp.agreementSigned) {
+          isLocked = true;
+        } else if (orientationModule && !lesson.module.isOrientationModule && (!admissionsApp || !admissionsApp.orientationCompleted)) {
+          isLocked = true;
+        } else if (lesson.module.scheduledOpenDate && new Date(lesson.module.scheduledOpenDate) > new Date()) {
+          isLocked = true;
+        } else if (lesson.module.unitNumber && lesson.module.unitNumber > 1) {
+          const prevPassed = await this.isPreviousUnitQuizPassed(
+            lesson.module.courseId,
+            lesson.module.unitNumber - 1,
+            user.firebaseId,
+          );
+          if (!prevPassed) {
+            isLocked = true;
+          }
+        }
       }
 
       if (!isLocked && lesson.unlockRules) {
@@ -401,5 +439,36 @@ export class LessonsService {
   async getContentByLesson(lessonId: number, user: AuthenticatedUser) {
     const lesson = await this.findOne(lessonId, user); // Re-use the secure findOne logic
     return lesson.contents;
+  }
+
+  private async isPreviousUnitQuizPassed(
+    courseId: number,
+    prevUnitNumber: number,
+    userId: string,
+  ): Promise<boolean> {
+    const prevModule = await this.prisma.module.findFirst({
+      where: { courseId, unitNumber: prevUnitNumber },
+      include: {
+        exercises: {
+          where: {
+            OR: [{ isProctored: true }, { type: 'MULTIPLE_CHOICE' }],
+          },
+          select: { id: true, points: true, passingScorePercent: true },
+        },
+      },
+    });
+    if (!prevModule || prevModule.exercises.length === 0) {
+      return true;
+    }
+    const quizIds = prevModule.exercises.map((e) => e.id);
+    const submissions = await this.prisma.exerciseSubmission.findMany({
+      where: { userId, exerciseId: { in: quizIds } },
+    });
+    return prevModule.exercises.some((ex) => {
+      const sub = submissions.find((s) => s.exerciseId === ex.id);
+      if (!sub) return false;
+      const pct = ex.points > 0 ? (sub.score / ex.points) * 100 : 0;
+      return pct >= (ex.passingScorePercent || 80);
+    });
   }
 }

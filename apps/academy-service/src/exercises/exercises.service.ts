@@ -12,6 +12,7 @@ import { GradeExerciseDto } from './dto/grade-exercise.dto';
 import { AuthenticatedUser, UserService } from '../user/user.service';
 import { ExerciseType, SubmissionStatus } from '@prisma/client/academy';
 import { ProgressAndAnalyticsService } from '../progress-and-analytics/progress-analytics.service';
+import { HealthCompliancePolicy } from '../common/policies/health-compliance.policy';
 
 @Injectable()
 export class ExercisesService {
@@ -287,22 +288,24 @@ export class ExercisesService {
     const isInstructor = exercise.module.course.instructorId === user.firebaseId;
     const isAdmin = academyProfile.role === 'ADMIN';
     if (!isInstructor && !isAdmin) {
-      const admissionsApp = await this.prisma.studentAdmissionsApplication.findFirst({
-        where: { userId: user.firebaseId },
-      });
-      if (admissionsApp && !admissionsApp.agreementSigned) {
-        throw new ForbiddenException(
-          'You must sign the enrollment agreement before submitting exercises.',
-        );
-      }
-      const orientationModule = await this.prisma.module.findFirst({
-        where: { courseId: exercise.module.courseId, isOrientationModule: true },
-      });
-      if (orientationModule && !exercise.module.isOrientationModule) {
-        if (!admissionsApp || !admissionsApp.orientationCompleted) {
+      if (HealthCompliancePolicy.isHealthCourse(exercise.module.course)) {
+        const admissionsApp = await this.prisma.studentAdmissionsApplication.findFirst({
+          where: { userId: user.firebaseId },
+        });
+        if (admissionsApp && !admissionsApp.agreementSigned) {
           throw new ForbiddenException(
-            'You must complete the mandatory program orientation before submitting exercises (WAC 246-841A-440 Req 11).',
+            'You must sign the enrollment agreement before submitting exercises.',
           );
+        }
+        const orientationModule = await this.prisma.module.findFirst({
+          where: { courseId: exercise.module.courseId, isOrientationModule: true },
+        });
+        if (orientationModule && !exercise.module.isOrientationModule) {
+          if (!admissionsApp || !admissionsApp.orientationCompleted) {
+            throw new ForbiddenException(
+              'You must complete the mandatory program orientation before submitting exercises (WAC 246-841A-440 Req 11).',
+            );
+          }
         }
       }
       if (exercise.lesson?.unlockRules) {
@@ -356,9 +359,13 @@ export class ExercisesService {
         isCorrect = true;
         score = exercise.points;
       }
-    } else if (exercise.type === ExerciseType.SHORT_TEXT) {
+    } else if (
+      exercise.type === ExerciseType.SHORT_TEXT ||
+      exercise.type === ExerciseType.MASLOW_PYRAMID ||
+      exercise.type === ExerciseType.STORY_ACTIVITY
+    ) {
       status = SubmissionStatus.PENDING_REVIEW;
-      score = 0; // To be determined
+      score = 0; // Graded by instructor via activity rubric
     }
 
     // Save submission
@@ -419,6 +426,37 @@ export class ExercisesService {
     }
 
     return submission;
+  }
+
+  async autosave(id: number, answer: any, user: AuthenticatedUser) {
+    const exercise = await this.prisma.exercise.findUnique({
+      where: { id },
+    });
+    if (!exercise) throw new NotFoundException('Exercise not found');
+
+    await this.verifyModuleAccess(exercise.moduleId, user);
+
+    return this.prisma.exerciseSubmission.upsert({
+      where: {
+        userId_exerciseId: {
+          userId: user.firebaseId,
+          exerciseId: id,
+        },
+      },
+      update: {
+        answer,
+        status: SubmissionStatus.DRAFT,
+        updatedAt: new Date(),
+      },
+      create: {
+        userId: user.firebaseId,
+        exerciseId: id,
+        answer,
+        isCorrect: false,
+        score: 0,
+        status: SubmissionStatus.DRAFT,
+      },
+    });
   }
 
   async grade(

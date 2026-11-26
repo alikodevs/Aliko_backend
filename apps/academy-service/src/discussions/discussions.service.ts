@@ -84,6 +84,8 @@ export class DiscussionsService {
           : null,
         isWeekOneAttendanceGate: dto.isWeekOneAttendanceGate ?? false,
         courseOutcome: dto.courseOutcome ?? null,
+        postFirst: (dto as any).postFirst ?? true,
+        minReplies: (dto as any).minReplies ?? 2,
       },
       include: {
         rubricRef: {
@@ -238,12 +240,12 @@ export class DiscussionsService {
   }
 
   async getTopicWithPosts(topicId: number, user: AuthenticatedUser) {
-    await this.userService.getOrCreateProfile(user);
+    const profile = await this.userService.getOrCreateProfile(user);
     const topic = await this.prisma.discussionTopic.findUnique({
       where: { id: topicId },
       include: {
         module: {
-          select: { id: true, title: true, courseId: true },
+          select: { id: true, title: true, courseId: true, course: { select: { instructorId: true } } },
         },
         rubricRef: {
           include: {
@@ -280,7 +282,29 @@ export class DiscussionsService {
     });
 
     if (!topic) throw new NotFoundException('Discussion topic not found');
-    return topic;
+
+    const isStaff =
+      ['INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER', 'COMMISSION_AUDITOR'].includes(profile.role) ||
+      topic.module?.course?.instructorId === user.firebaseId;
+
+    const studentRootPosts = topic.posts.filter((p) => p.userId === user.firebaseId);
+    const studentReplyCount = topic.posts.reduce(
+      (sum, root) => sum + root.replies.filter((r) => r.userId === user.firebaseId).length,
+      0,
+    );
+
+    const lockedUntilFirstPost =
+      !isStaff && Boolean(topic.postFirst) && studentRootPosts.length === 0;
+
+    return {
+      ...topic,
+      posts: lockedUntilFirstPost ? [] : topic.posts,
+      lockedUntilFirstPost,
+      studentRootPostCount: studentRootPosts.length,
+      studentReplyCount,
+      minReplies: topic.minReplies ?? 2,
+      repliesRemaining: Math.max(0, (topic.minReplies ?? 2) - studentReplyCount),
+    };
   }
 
   async createPost(dto: CreateDiscussionPostDto, user: AuthenticatedUser) {

@@ -93,6 +93,9 @@ export class CoursesService {
         longDescription: dto.longDescription || (dto as any).description,
         thumbnail: dto.thumbnail,
         category: dto.category,
+        domain: (dto as any).domain || 'GENERAL',
+        regulatoryBody: (dto as any).regulatoryBody || null,
+        complianceProfile: (dto as any).complianceProfile || undefined,
         // Automatically set to DRAFT to allow teacher to add content before approval
         status: dto.status || CourseStatus.DRAFT,
         skills: dto.skills || [],
@@ -177,6 +180,9 @@ export class CoursesService {
           shortDescription: dto.shortDescription,
           longDescription: dto.longDescription,
           category: dto.category,
+          domain: (dto as any).domain || 'GENERAL',
+          regulatoryBody: (dto as any).regulatoryBody || null,
+          complianceProfile: (dto as any).complianceProfile || undefined,
           status: dto.status || CourseStatus.DRAFT,
           skills: dto.skills || [],
           conceptsLearned: dto.conceptsLearned || [],
@@ -275,6 +281,9 @@ export class CoursesService {
 
       if (query.category) {
         where.category = { equals: query.category, mode: 'insensitive' };
+      }
+      if ((query as any).domain) {
+        where.domain = (query as any).domain;
       }
       if (query.targetLevel) {
         where.targetLevel = { equals: query.targetLevel, mode: 'insensitive' };

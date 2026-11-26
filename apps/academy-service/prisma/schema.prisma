@@ -49,14 +49,22 @@ model AcademyProfile {
   createdRubrics           Rubric[]                   @relation("CreatedRubrics")
 }
 
+enum CourseDomain {
+  GENERAL
+  HEALTH
+}
+
 model Course {
-  id               Int            @id @default(autoincrement())
-  title            String
-  thumbnail        String?
-  shortDescription String?
-  longDescription  String?
-  category         String?
-  instructorId     String // userId from auth service
+  id                Int            @id @default(autoincrement())
+  title             String
+  thumbnail         String?
+  shortDescription  String?
+  longDescription   String?
+  category          String?
+  domain            CourseDomain   @default(GENERAL)
+  regulatoryBody    String?
+  complianceProfile Json?
+  instructorId      String // userId from auth service
   profile          AcademyProfile @relation(fields: [instructorId], references: [userId])
   status           CourseStatus
   skills           String[]
@@ -195,6 +203,12 @@ model Module {
   // WABON Trimodal Curriculum & Discussions
   track               CurriculumTrack   @default(THEORY_ASYNC)
   isOrientationModule Boolean           @default(false)
+  unitNumber          Int?
+  scheduledOpenDate   DateTime?
+  targetTheoryHours   Float             @default(0)
+  targetLabHours      Float             @default(0)
+  studentGuidePages   String?
+  characters          String[]          @default([])
   discussionTopics    DiscussionTopic[]
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -227,12 +241,13 @@ model Lesson {
 }
 
 model Content {
-  id        Int         @id @default(autoincrement())
-  title     String
-  type      String
-  url       String?
-  body      String?
-  lessonId  Int
+  id              Int         @id @default(autoincrement())
+  title           String
+  type            String
+  url             String?
+  body            String?
+  durationSeconds Int?
+  lessonId        Int
   progress  Progress[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -337,6 +352,14 @@ enum LessonType {
   WEBINAR
   ASSIGNMENT
   QUIZ
+  TEXT
+  READING
+  DISCUSSION
+  SKILLS
+  CLINICAL
+  LIVE
+  CHECKLIST
+  SIGNATURE
 }
 
 enum ContentType {
@@ -378,9 +401,12 @@ enum ExerciseType {
   TRUE_FALSE
   MATCHING
   SHORT_TEXT
+  MASLOW_PYRAMID
+  STORY_ACTIVITY
 }
 
 enum SubmissionStatus {
+  DRAFT
   PENDING_REVIEW
   GRADED
 }
@@ -404,6 +430,11 @@ model Exercise {
   isWeekOneAttendanceGate Boolean       @default(false)
   courseOutcome           String?
   examSessions            ExamSession[]
+  rubricId                String?
+  alternateDocUrl         String?
+  isProctored             Boolean       @default(false)
+  passingScorePercent     Float         @default(80)
+  poolSize                Int?
 
   module      Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   lesson      Lesson?      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
@@ -527,6 +558,8 @@ model StudentAdmissionsApplication {
   orientationMarkedBy     String?        // CA-14: Instructor/Admin who confirmed attendance
   lmsTutorialCompleted    Boolean        @default(false)
   netiquetteSigned        Boolean        @default(false)
+  orientationChecklist    Json?
+  techCheckPassed         Boolean        @default(false)
 
   status                  ApprovalStatus @default(PENDING)
   reviewedBy              String?
@@ -575,10 +608,12 @@ model DiscussionTopic {
   rubricId    String?
   rubric      Json?
   maxPoints   Float             @default(10)
-  dueDate     DateTime?
+  dueDate                 DateTime?
   isWeekOneAttendanceGate Boolean           @default(false)
   courseOutcome           String?
-  createdAt   DateTime          @default(now())
+  postFirst               Boolean           @default(true)
+  minReplies              Int               @default(2)
+  createdAt               DateTime          @default(now())
 
   module      Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   rubricRef   Rubric?           @relation(fields: [rubricId], references: [id], onDelete: SetNull)
@@ -682,12 +717,14 @@ model ExamSession {
 
 // 7. In-Person Skills Lab & Clinical Tracking (WAC Req 1, 8, 9, 19)
 model CoreSkill {
-  id          Int             @id @default(autoincrement())
-  skillNumber String          @unique
-  name        String
-  category    String
-  steps       Json
-  createdAt   DateTime        @default(now())
+  id           Int             @id @default(autoincrement())
+  skillNumber  String          @unique
+  name         String
+  category     String
+  steps        Json
+  taughtInUnit String?
+  demoVideoUrl String?
+  createdAt    DateTime        @default(now())
 
   checkoffs   SkillCheckoff[]
 }

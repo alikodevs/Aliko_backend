@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GradebookService } from '../gradebook/gradebook.service';
 import { GenerateCertificateDto, VerifyCertificateDto } from './dto';
 import { AcademyRole } from '@prisma/client/academy';
+import { HealthCompliancePolicy } from '../common/policies/health-compliance.policy';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -22,6 +23,52 @@ export class CertificationService {
     requestingUserId: string,
     requestingRole?: AcademyRole | string,
   ) {
+    const cohort = await this.prisma.cohort.findUnique({
+      where: { id: dto.cohortId },
+      include: { course: true },
+    });
+    if (!cohort) {
+      throw new NotFoundException(`Cohort ${dto.cohortId} not found`);
+    }
+
+    // GENERAL courses bypass WABON regulatory checks and issue a standard completion certificate
+    if (!HealthCompliancePolicy.isHealthCourse(cohort.course)) {
+      const enrollment = await this.prisma.enrollment.findFirst({
+        where: { userId: targetUserId, cohortId: dto.cohortId },
+      });
+      if (!enrollment) {
+        throw new BadRequestException('Student is not enrolled in this cohort.');
+      }
+      if (enrollment.progress < 100) {
+        throw new BadRequestException(
+          `Cannot issue Certificate: Course progress is ${enrollment.progress}% (100% required).`,
+        );
+      }
+      const sanitizedId = targetUserId.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase();
+      const certificateNumber = `ALIKO-GEN-${dto.cohortId}-${sanitizedId}-${Date.now().toString(36).toUpperCase()}`;
+      const completionDate = new Date().toISOString();
+      const verificationToken = crypto
+        .createHmac('sha256', 'ALIKO_GENERAL_CERT_KEY_2026')
+        .update(`${certificateNumber}:${targetUserId}:${dto.cohortId}:${completionDate}`)
+        .digest('hex');
+      return {
+        certificateNumber,
+        domain: 'GENERAL',
+        programTitle: cohort.course.title,
+        student: { userId: targetUserId },
+        cohortId: dto.cohortId,
+        courseTitle: cohort.course.title,
+        issuedAt: completionDate,
+        verification: {
+          verificationCode: certificateNumber,
+          verificationToken,
+          qrVerificationUrl: `https://academy.alikohub.com/verify/credential/${certificateNumber}`,
+          status: 'OFFICIALLY_CERTIFIED_VALID',
+        },
+      };
+    }
+
+    // HEALTH course: WABON / WAC 246-841A regulatory checks
     // 1. Check Admissions Application (Orientation & Agreement Disclosures)
     const application = await this.prisma.studentAdmissionsApplication.findFirst({
       where: {

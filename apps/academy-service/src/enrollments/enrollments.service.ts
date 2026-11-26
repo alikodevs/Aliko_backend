@@ -13,6 +13,7 @@ import { AuthenticatedUser, UserService } from '../user/user.service';
 import { CourseStatus, EnrollmentStatus, PaymentStatus, EnrollmentContext } from '@prisma/client/academy';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
+import { HealthCompliancePolicy } from '../common/policies/health-compliance.policy';
 
 @Injectable()
 export class EnrollmentsService {
@@ -77,9 +78,6 @@ export class EnrollmentsService {
         throw new BadRequestException(`Cohort ${cohortId} is not associated with course ${dto.courseId}.`);
       }
 
-      // WABON 30:1 Student-to-Instructor Statutory Ratio Check (WAC 246-841A-440)
-      const instructorCount = cohort.assignedInstructorIds?.length || 1;
-      const statutoryCap = Math.min(cohort.maxCapacity ?? 30, instructorCount * 30);
       const activeEnrollments = await this.prisma.enrollment.count({
         where: {
           cohortId: cohort.id,
@@ -87,23 +85,32 @@ export class EnrollmentsService {
         },
       });
 
-      if (activeEnrollments >= statutoryCap) {
-        throw new ConflictException(
-          `Cohort ${cohort.name} has reached its statutory limit of ${statutoryCap} students (30:1 student-to-instructor ratio under WAC 246-841A-440).`,
-        );
-      }
-
-      // CA-28: Live classes cap (max 20 students when cohort has LIVE teaching schedules)
-      const liveScheduleCount = await this.prisma.teachingSchedule.count({
-        where: { cohortId: cohort.id, type: 'LIVE' },
-      });
-      if (liveScheduleCount > 0) {
-        const liveCap = (cohort as any).maxLiveCapacity ?? 20;
-        if (activeEnrollments >= liveCap) {
+      if (HealthCompliancePolicy.isHealthCourse(course)) {
+        // WABON 30:1 Student-to-Instructor Statutory Ratio Check (WAC 246-841A-440)
+        const instructorCount = cohort.assignedInstructorIds?.length || 1;
+        const statutoryCap = Math.min(cohort.maxCapacity ?? 30, instructorCount * 30);
+        if (activeEnrollments >= statutoryCap) {
           throw new ConflictException(
-            `Cohort ${cohort.name} includes live classes and has reached the maximum capacity of ${liveCap} students.`,
+            `Cohort ${cohort.name} has reached its statutory limit of ${statutoryCap} students (30:1 student-to-instructor ratio under WAC 246-841A-440).`,
           );
         }
+
+        // CA-28: Live classes cap (max 20 students when cohort has LIVE teaching schedules)
+        const liveScheduleCount = await this.prisma.teachingSchedule.count({
+          where: { cohortId: cohort.id, type: 'LIVE' },
+        });
+        if (liveScheduleCount > 0) {
+          const liveCap = (cohort as any).maxLiveCapacity ?? 20;
+          if (activeEnrollments >= liveCap) {
+            throw new ConflictException(
+              `Cohort ${cohort.name} includes live classes and has reached the maximum capacity of ${liveCap} students.`,
+            );
+          }
+        }
+      } else if (cohort.maxCapacity && activeEnrollments >= cohort.maxCapacity) {
+        throw new ConflictException(
+          `Cohort ${cohort.name} has reached its maximum capacity of ${cohort.maxCapacity} students.`,
+        );
       }
     }
 

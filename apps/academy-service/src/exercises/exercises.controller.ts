@@ -336,6 +336,23 @@ export class ExercisesController {
     }
   }
 
+  @Patch(['exercises/:id/autosave', 'academy/exercises/:id/autosave'])
+  async autosave(
+    @Param('id') paramId: string,
+    @Body() body: { answer: any },
+    @Req() req: any,
+  ) {
+    const id = Number(paramId);
+    if (!id || isNaN(id)) {
+      throw new BadRequestException('Invalid exercise ID');
+    }
+    const user = req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    return this.exercisesService.autosave(id, body?.answer ?? body, user);
+  }
+
   @Post(['exercises/submissions/:id/grade', 'academy/exercises/submissions/:id/grade'])
   @MessagePattern({ cmd: 'grade_exercise' })
   @UseGuards(RoleGuard)

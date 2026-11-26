@@ -1,4 +1,4 @@
-import { CourseStatus } from '@prisma/client/academy';
+import { CourseDomain, CourseStatus } from '@prisma/client/academy';
 import {
   IsString,
   IsNotEmpty,
@@ -8,6 +8,7 @@ import {
   IsEnum,
   IsArray,
   IsBoolean,
+  IsObject,
 } from 'class-validator';
 
 export class CreateCourseDto {
@@ -34,6 +35,18 @@ export class CreateCourseDto {
   @IsString()
   @IsOptional()
   category?: string;
+
+  @IsEnum(CourseDomain)
+  @IsOptional()
+  domain?: CourseDomain;
+
+  @IsString()
+  @IsOptional()
+  regulatoryBody?: string;
+
+  @IsObject()
+  @IsOptional()
+  complianceProfile?: Record<string, any>;
 
   @IsEnum(CourseStatus)
   @IsOptional()

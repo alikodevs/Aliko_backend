@@ -85,6 +85,13 @@ export class ExamSecurityService {
       `Exam session ${session.id} started: exercise=${dto.exerciseId} user=${user.firebaseId} ip=${dto.ipAddress || 'unknown'}`,
     );
 
+    // Support randomized question pool draw when poolSize is configured on exercise
+    let drawnQuestions: any[] | null = null;
+    if (exercise.poolSize && Array.isArray(exercise.options)) {
+      const shuffled = [...(exercise.options as any[])].sort(() => Math.random() - 0.5);
+      drawnQuestions = shuffled.slice(0, exercise.poolSize);
+    }
+
     return {
       sessionId: session.id,
       exerciseId: session.exerciseId,
@@ -92,6 +99,10 @@ export class ExamSecurityService {
       honorCodeAccepted: session.honorCodeAccepted,
       hasIdPhoto: !!session.idPhotoUrl,
       hasWebcamSnap: !!session.webcamSnapUrl,
+      isProctored: exercise.isProctored,
+      passingScorePercent: exercise.passingScorePercent,
+      poolSize: exercise.poolSize,
+      ...(drawnQuestions ? { drawnQuestions } : {}),
     };
   }
 

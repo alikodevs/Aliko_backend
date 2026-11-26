@@ -180,6 +180,34 @@ export class CurriculumCrosswalkService {
     const alignmentPercentage =
       totalLessons > 0 ? Math.round((lessonsWithReadings / totalLessons) * 100) : 0;
 
+    // S11: Unit-level crosswalk projection (Unit, Title, Student Guide Pages, Textbook Chapters, Hours, Tested Skills)
+    const coreSkills = await this.prisma.coreSkill.findMany({
+      select: { skillNumber: true, name: true, taughtInUnit: true },
+    });
+    const unitCrosswalk = course.modules.map((mod) => {
+      const unitLabel = mod.unitNumber ? `Unit ${mod.unitNumber}` : mod.title;
+      const textbookChapters = Array.from(
+        new Set(
+          mod.lessons.flatMap((l) =>
+            l.readings.map((r) => `${r.textbook.title} (${r.chapters}, pp. ${r.pageRange})`),
+          ),
+        ),
+      );
+      const testedSkills = coreSkills.filter(
+        (s) => s.taughtInUnit && s.taughtInUnit === unitLabel,
+      );
+      return {
+        moduleId: mod.id,
+        unitNumber: mod.unitNumber,
+        title: mod.title,
+        studentGuidePages: mod.studentGuidePages,
+        textbookChapters,
+        targetTheoryHours: mod.targetTheoryHours,
+        targetLabHours: mod.targetLabHours,
+        testedSkills,
+      };
+    });
+
     return {
       courseId: course.id,
       courseTitle: course.title,
@@ -196,6 +224,7 @@ export class CurriculumCrosswalkService {
           lessonsWithReadings === totalLessons,
       },
       curriculumMatrix: crosswalkMatrix,
+      unitCrosswalk,
     };
   }
 }

@@ -5,6 +5,7 @@ import {
   Logger,
   Get,
   Post,
+  Patch,
   Param,
   Body,
   Req,
@@ -76,6 +77,33 @@ export class OrientationController {
     return this.orientationService.getOrientationStatus(
       cohortId,
       user,
+    );
+  }
+
+  @Patch(['orientation/item', 'academy/orientation/item'])
+  async updateOrientationItem(
+    @Body()
+    body: {
+      cohortId: number;
+      itemKey: string;
+      completed?: boolean;
+      targetUserId?: string;
+    },
+    @Req() req?: any,
+  ) {
+    const user = req?.user;
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!body?.cohortId || !body?.itemKey) {
+      throw new BadRequestException('cohortId and itemKey are required');
+    }
+    return this.orientationService.updateOrientationItem(
+      Number(body.cohortId),
+      body.itemKey,
+      body.completed !== undefined ? Boolean(body.completed) : true,
+      user,
+      body.targetUserId,
     );
   }
 }

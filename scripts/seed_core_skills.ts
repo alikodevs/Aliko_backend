@@ -268,6 +268,15 @@ const WABON_22_CORE_SKILLS = [
   },
 ];
 
+const CATEGORY_UNIT_MAP: Record<string, string> = {
+  'Infection Control': 'Unit 2',
+  'Vital Signs': 'Unit 4',
+  'Mobility & Transfers': 'Unit 5',
+  'Personal Care & ADLs': 'Unit 6',
+  'Nutrition & Hydration': 'Unit 7',
+  'Elimination & Output': 'Unit 7',
+};
+
 async function seedCoreSkills() {
   console.log('Seeding 22 WABON Nursing Assistant Core Skills (CA-20)...');
 
@@ -283,18 +292,21 @@ async function seedCoreSkills() {
   }
 
   for (const skill of WABON_22_CORE_SKILLS) {
+    const taughtInUnit = CATEGORY_UNIT_MAP[skill.category] || 'Unit 6';
     await prisma.coreSkill.upsert({
       where: { skillNumber: skill.skillNumber },
       update: {
         name: skill.name,
         category: skill.category,
         steps: skill.steps,
+        taughtInUnit,
       },
       create: {
         skillNumber: skill.skillNumber,
         name: skill.name,
         category: skill.category,
         steps: skill.steps,
+        taughtInUnit,
       },
     });
   }

@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { CourseStatus } from '@prisma/client/academy';
+import { CourseDomain, CourseStatus } from '@prisma/client/academy';
 
 const createCourseDtoSchema = Joi.object({
   title: Joi.string().required().description('The title of the course'),
@@ -20,6 +20,12 @@ const createCourseDtoSchema = Joi.object({
     .allow('', null)
     .optional()
     .description('The category or domain the course belongs to'),
+  domain: Joi.string()
+    .valid(...Object.values(CourseDomain))
+    .optional()
+    .default(CourseDomain.GENERAL),
+  regulatoryBody: Joi.string().allow('', null).optional(),
+  complianceProfile: Joi.object().optional(),
   status: Joi.string()
     .valid(...Object.values(CourseStatus))
     .optional()
@@ -194,6 +200,10 @@ const CourseQueryFields = Joi.object({
     .optional()
     .description('Filter by course status'),
   category: Joi.string().allow('', null).optional().description('Filter by category'),
+  domain: Joi.string()
+    .valid(...Object.values(CourseDomain))
+    .optional()
+    .description('Filter by course domain (GENERAL or HEALTH)'),
   instructorId: Joi.string()
     .optional()
     .description('Filter by instructor ID'),
