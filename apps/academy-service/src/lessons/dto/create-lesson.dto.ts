@@ -5,6 +5,7 @@ import {
   IsString,
   IsDateString,
   IsNumber,
+  IsBoolean,
   ValidateNested,
   IsArray,
 } from 'class-validator';
@@ -42,4 +43,24 @@ export class CreateLessonDto {
 
   @IsOptional()
   unlockRules?: any;
+
+  @IsOptional()
+  @IsNumber()
+  estimatedHours?: number;
+
+  @IsOptional()
+  @IsString()
+  hourType?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  countsTowardSeatTime?: boolean;
+
+  @IsOptional()
+  @IsString()
+  mappedCompetency?: string;
+
+  @IsOptional()
+  @IsInt()
+  crosswalkRow?: number;
 }

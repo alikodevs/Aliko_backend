@@ -326,4 +326,157 @@ export class GradebookService {
 
     return [headers.join(','), ...rows].join('\n');
   }
+
+  /**
+   * I7: Master Gradebook — one column per WABON unit (U1–U9), 80% pass/remediation, skills & clinical
+   */
+  async getHealthCohortUnitGradebook(cohortId: number) {
+    const cohort = await this.prisma.cohort.findUnique({
+      where: { id: cohortId },
+      include: {
+        course: {
+          include: {
+            modules: {
+              where: { isOrientationModule: false, unitNumber: { gte: 1, lte: 9 } },
+              orderBy: [{ unitNumber: 'asc' }, { id: 'asc' }],
+              include: {
+                exercises: {
+                  select: { id: true, type: true, points: true, isProctored: true, passingScorePercent: true },
+                },
+                discussionTopics: { select: { id: true, maxPoints: true } },
+              },
+            },
+          },
+        },
+        enrollments: {
+          where: { status: 'ACTIVE', cohortRole: 'STUDENT' },
+          select: { userId: true },
+        },
+      },
+    });
+    if (!cohort) throw new NotFoundException(`Cohort ${cohortId} not found`);
+
+    const studentIds = cohort.enrollments.map((e) => e.userId);
+    const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+
+    const [submissions, checkoffs, clinicalAttendances, progressRows, remediations] =
+      await Promise.all([
+        this.prisma.exerciseSubmission.findMany({
+          where: {
+            userId: { in: studentIds },
+            exercise: { module: { courseId: cohort.courseId } },
+          },
+          select: { userId: true, exerciseId: true, score: true, status: true },
+        }),
+        this.prisma.skillCheckoff.findMany({
+          where: { userId: { in: studentIds }, passed: true },
+          select: { userId: true, skillId: true },
+        }),
+        this.prisma.clinicalShiftAttendance.findMany({
+          where: { userId: { in: studentIds }, passed: true },
+          select: { userId: true, hoursCompleted: true },
+        }),
+        this.prisma.progress.findMany({
+          where: { userId: { in: studentIds }, courseId: cohort.courseId, activeTimeSeconds: { gt: 0 } },
+          select: { userId: true, updatedAt: true },
+        }),
+        this.prisma.studentRemediation.findMany({
+          where: { userId: { in: studentIds }, status: { not: 'RESOLVED' } },
+          select: { userId: true, id: true },
+        }),
+      ]);
+
+    const subMap = new Map<string, { score: number; status: string }>();
+    for (const s of submissions) {
+      subMap.set(`${s.userId}_${s.exerciseId}`, { score: s.score, status: s.status });
+    }
+
+    const skillsByStudent = new Map<string, Set<number>>();
+    for (const c of checkoffs) {
+      if (!skillsByStudent.has(c.userId)) skillsByStudent.set(c.userId, new Set());
+      skillsByStudent.get(c.userId)!.add(c.skillId);
+    }
+
+    const clinicalByStudent = new Map<string, number>();
+    for (const ca of clinicalAttendances) {
+      clinicalByStudent.set(ca.userId, (clinicalByStudent.get(ca.userId) || 0) + (ca.hoursCompleted || 0));
+    }
+
+    const lastActiveByStudent = new Map<string, Date>();
+    for (const p of progressRows) {
+      const prev = lastActiveByStudent.get(p.userId);
+      if (!prev || p.updatedAt > prev) lastActiveByStudent.set(p.userId, p.updatedAt);
+    }
+
+    const remediationByStudent = new Map<string, number>();
+    for (const r of remediations) {
+      remediationByStudent.set(r.userId, (remediationByStudent.get(r.userId) || 0) + 1);
+    }
+
+    let quizScoreSum = 0;
+    let quizScoreCount = 0;
+
+    const students = studentIds.map((uid) => {
+      const unitScores = cohort.course.modules.map((mod) => {
+        const quizEx = mod.exercises.find((e) => e.type === 'MULTIPLE_CHOICE' || e.isProctored);
+        const sub = quizEx ? subMap.get(`${uid}_${quizEx.id}`) : undefined;
+        const passThreshold = quizEx?.passingScorePercent ?? 80;
+        const scorePercent =
+          sub && quizEx && quizEx.points > 0
+            ? Math.round((sub.score / quizEx.points) * 100)
+            : sub?.score ?? null;
+
+        if (scorePercent !== null) {
+          quizScoreSum += scorePercent;
+          quizScoreCount++;
+        }
+
+        return {
+          moduleId: mod.id,
+          unitNumber: mod.unitNumber,
+          code: `U${mod.unitNumber}`,
+          title: mod.title,
+          score: scorePercent,
+          status: sub?.status || 'IN_PROGRESS',
+          passed: scorePercent !== null ? scorePercent >= passThreshold : null,
+          needsRemediation: scorePercent !== null && scorePercent < passThreshold,
+        };
+      });
+
+      const lastActive = lastActiveByStudent.get(uid);
+      const isPacingAlert = !lastActive || lastActive < fiveDaysAgo;
+      const openRemediationCount = remediationByStudent.get(uid) || 0;
+      const hasFailingUnit = unitScores.some((u) => u.needsRemediation);
+
+      return {
+        userId: uid,
+        units: unitScores,
+        skillsPassed: skillsByStudent.get(uid)?.size || 0,
+        skillsTotal: 22,
+        clinicalHours: Number((clinicalByStudent.get(uid) || 0).toFixed(1)),
+        clinicalTargetHours: 40,
+        openRemediationCount,
+        needsRemediation: hasFailingUnit || openRemediationCount > 0,
+        paceStatus: isPacingAlert ? 'PACING_ALERT' : 'ON_PACE',
+      };
+    });
+
+    return {
+      cohortId,
+      cohortName: cohort.name,
+      courseTitle: cohort.course.title,
+      passingThresholdPercent: 80,
+      totalEnrolled: studentIds.length,
+      averageQuizScore: quizScoreCount > 0 ? Math.round(quizScoreSum / quizScoreCount) : 0,
+      remediationCount: students.filter((s) => s.needsRemediation).length,
+      pacingAlertCount: students.filter((s) => s.paceStatus === 'PACING_ALERT').length,
+      unitColumns: cohort.course.modules.map((m) => ({
+        moduleId: m.id,
+        unitNumber: m.unitNumber,
+        code: `U${m.unitNumber}`,
+        title: m.title,
+      })),
+      students,
+    };
+  }
 }

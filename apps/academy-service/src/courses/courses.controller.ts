@@ -580,5 +580,50 @@ export class CoursesController {
       throw error;
     }
   }
+
+  @Get(['courses/:id/publish-checks', 'academy/courses/:id/publish-checks'])
+  @UseGuards(AcademyProfileGuard, RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER')
+  async getPublishChecks(@Param('id') paramId: string) {
+    const id = Number(paramId);
+    if (!id || isNaN(id)) throw new BadRequestException('Invalid course ID');
+    return this.coursesService.getPublishChecks(id);
+  }
+
+  @Post(['courses/:id/new-version', 'academy/courses/:id/new-version'])
+  @UseGuards(AcademyProfileGuard, RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  async createNewVersion(@Param('id') paramId: string, @Req() req: any) {
+    const id = Number(paramId);
+    if (!id || isNaN(id)) throw new BadRequestException('Invalid course ID');
+    return this.coursesService.createNewVersion(id, req.user);
+  }
+
+  @Post(['courses/:id/lock', 'academy/courses/:id/lock'])
+  @UseGuards(AcademyProfileGuard, RoleGuard)
+  @Roles('ADMIN')
+  async lockCourse(
+    @Param('id') paramId: string,
+    @Body() body: { locked?: boolean },
+    @Req() req: any,
+  ) {
+    const id = Number(paramId);
+    if (!id || isNaN(id)) throw new BadRequestException('Invalid course ID');
+    return this.coursesService.lockCourse(id, body?.locked !== false, req.user);
+  }
+
+  @Post(['courses/import-wabons-template', 'academy/courses/import-wabons-template'])
+  @UseGuards(AcademyProfileGuard, RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  async importWabonTemplate(
+    @Body() body: { courseId?: number; title?: string },
+    @Req() req: any,
+  ) {
+    return this.coursesService.importWabonTemplate(
+      req.user,
+      body?.courseId ? Number(body.courseId) : undefined,
+      body?.title,
+    );
+  }
 }
 

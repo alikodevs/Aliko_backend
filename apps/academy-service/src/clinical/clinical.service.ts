@@ -73,6 +73,8 @@ export class ClinicalService {
         startTime: new Date(dto.startTime),
         endTime: new Date(dto.endTime),
         hoursCredited: dto.hoursCredited,
+        groupName: dto.groupName || null,
+        maxStudents: dto.maxStudents ? Math.min(10, Number(dto.maxStudents)) : 10,
       },
       include: {
         instructor: { select: { userId: true, role: true } },
@@ -156,9 +158,10 @@ export class ClinicalService {
     if (!shift) throw new NotFoundException('Clinical shift not found');
 
     // Enforce 1:10 clinical ratio
-    if (shift._count.studentRoster >= ClinicalService.MAX_CLINICAL_RATIO) {
+    const maxAllowed = Math.min(shift.maxStudents || ClinicalService.MAX_CLINICAL_RATIO, ClinicalService.MAX_CLINICAL_RATIO);
+    if (shift._count.studentRoster >= maxAllowed) {
       throw new BadRequestException(
-        `WAC clinical ratio violation: Maximum ${ClinicalService.MAX_CLINICAL_RATIO} students per supervising instructor.`,
+        `WAC clinical ratio violation: Maximum ${maxAllowed} students per supervising instructor.`,
       );
     }
 

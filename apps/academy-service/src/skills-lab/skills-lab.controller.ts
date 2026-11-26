@@ -204,4 +204,13 @@ export class SkillsLabController {
     if (!targetUserId) throw new BadRequestException('Student user ID is required');
     return this.skillsLabService.getStudentAttempts(targetUserId, user);
   }
+
+  @Get(['skills-lab/cohort/:cohortId/summary', 'academy/skills-lab/cohort/:cohortId/summary'])
+  async getCohortSkillsSummary(@Param('cohortId') rawCohortId: string, @Req() req: any) {
+    const user = req?.user;
+    if (!user) throw new UnauthorizedException('Authentication required');
+    const cohortId = Number(rawCohortId);
+    if (!cohortId || isNaN(cohortId)) throw new BadRequestException('Valid cohortId is required');
+    return this.skillsLabService.getCohortSkillsSummary(cohortId, user);
+  }
 }

@@ -121,4 +121,24 @@ export class GradebookController {
       filename: `cohort_${cohortId}_gradebook.csv`,
     };
   }
+
+  @Get([
+    'health/instructor/gradebook/:cohortId',
+    'academy/health/instructor/gradebook/:cohortId',
+    'gradebook/cohort/:cohortId/units',
+    'academy/gradebook/cohort/:cohortId/units',
+  ])
+  @Roles(
+    AcademyRole.INSTRUCTOR,
+    AcademyRole.COURSE_MANAGER,
+    AcademyRole.ADMIN,
+    AcademyRole.COMMISSION_AUDITOR,
+  )
+  async getHealthCohortUnitGradebook(@Param('cohortId') paramCohortId: string) {
+    const cohortId = Number(paramCohortId);
+    if (!cohortId || isNaN(cohortId)) {
+      throw new BadRequestException('Valid cohort ID is required');
+    }
+    return this.gradebookService.getHealthCohortUnitGradebook(cohortId);
+  }
 }

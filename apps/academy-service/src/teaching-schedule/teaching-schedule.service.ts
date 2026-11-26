@@ -359,4 +359,125 @@ export class TeachingScheduleService {
 
     return schedule;
   }
+
+  /**
+   * I5: List live sessions for a cohort with 20-student cap, registration & attendance counts
+   */
+  async getCohortLiveSessions(cohortId: number, user: AuthenticatedUser) {
+    assertUser(user);
+    await this.userService.getOrCreateProfile(user);
+
+    const cohort = await this.prisma.cohort.findUnique({
+      where: { id: cohortId },
+      include: { course: { select: { id: true, title: true, domain: true } } },
+    });
+    if (!cohort) throw new NotFoundException(`Cohort ${cohortId} not found`);
+
+    const schedules = await this.prisma.teachingSchedule.findMany({
+      where: { cohortId },
+      orderBy: { startTime: 'asc' },
+      include: {
+        profile: { select: { userId: true, role: true, specialization: true } },
+        registrations: true,
+      },
+    });
+
+    return {
+      cohortId,
+      cohortName: cohort.name,
+      maxLiveCapacity: cohort.maxLiveCapacity,
+      sessions: schedules.map((s) => {
+        const cap = Math.min(s.maxCapacity || 20, cohort.maxLiveCapacity || 20);
+        const registeredCount = s.registrations.length;
+        const attendedCount = s.registrations.filter((r) => r.attended).length;
+        const isRegistered = s.registrations.some((r) => r.userId === user.firebaseId);
+        return {
+          ...s,
+          registeredCount,
+          attendedCount,
+          capacity: cap,
+          spotsRemaining: Math.max(0, cap - registeredCount),
+          isFull: registeredCount >= cap,
+          isRegistered,
+        };
+      }),
+    };
+  }
+
+  /**
+   * I5: Register a student for a live session, enforcing the 20-student WABON cap
+   */
+  async registerForLiveSession(scheduleId: number, user: AuthenticatedUser) {
+    assertUser(user);
+    await this.userService.getOrCreateProfile(user);
+
+    const schedule = await this.prisma.teachingSchedule.findUnique({
+      where: { id: scheduleId },
+      include: {
+        course: { select: { id: true, domain: true } },
+        cohort: { select: { id: true, maxLiveCapacity: true } },
+        registrations: true,
+      },
+    });
+    if (!schedule) throw new NotFoundException('Teaching schedule not found');
+
+    const already = schedule.registrations.find((r) => r.userId === user.firebaseId);
+    if (already) return already;
+
+    const isHealth = schedule.course.domain === 'HEALTH';
+    const cap = isHealth
+      ? Math.min(schedule.maxCapacity || 20, schedule.cohort?.maxLiveCapacity || 20)
+      : schedule.maxCapacity || 100;
+
+    if (schedule.registrations.length >= cap) {
+      throw new BadRequestException(
+        `Live session is full (${schedule.registrations.length}/${cap}). Please select the next available session or overflow group.`,
+      );
+    }
+
+    return this.prisma.liveSessionRegistration.create({
+      data: {
+        scheduleId,
+        userId: user.firebaseId,
+      },
+    });
+  }
+
+  /**
+   * I5: Instructor-only live session attendance confirmation
+   */
+  async confirmSessionAttendance(
+    scheduleId: number,
+    attendees: Array<{ userId: string; attended: boolean }>,
+    user: AuthenticatedUser,
+  ) {
+    assertUser(user);
+    const profile = await this.userService.getOrCreateProfile(user);
+    if (!['INSTRUCTOR', 'ADMIN'].includes(profile.role)) {
+      throw new ForbiddenException('Only instructors and admins can confirm live session attendance.');
+    }
+
+    const schedule = await this.prisma.teachingSchedule.findUnique({ where: { id: scheduleId } });
+    if (!schedule) throw new NotFoundException('Teaching schedule not found');
+
+    const results = await Promise.all(
+      attendees.map((a) =>
+        this.prisma.liveSessionRegistration.upsert({
+          where: { scheduleId_userId: { scheduleId, userId: a.userId } },
+          create: {
+            scheduleId,
+            userId: a.userId,
+            attended: a.attended,
+            confirmedBy: user.firebaseId,
+          },
+          update: {
+            attended: a.attended,
+            confirmedBy: user.firebaseId,
+          },
+        }),
+      ),
+    );
+
+    return { scheduleId, updatedCount: results.length, registrations: results };
+  }
 }

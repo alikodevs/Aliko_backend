@@ -244,4 +244,39 @@ export class TeachingScheduleController {
       throw error;
     }
   }
+
+  @Get(['teaching-schedule/cohort/:cohortId/live-sessions', 'academy/teaching-schedule/cohort/:cohortId/live-sessions'])
+  @UseGuards(RoleGuard)
+  @Roles('STUDENT', 'INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER', 'COMMISSION_AUDITOR')
+  async getCohortLiveSessions(@Param('cohortId') rawCohortId: string, @Req() req: any) {
+    const cohortId = Number(rawCohortId);
+    if (!cohortId || isNaN(cohortId)) throw new BadRequestException('Invalid cohort ID');
+    return this.teachingScheduleService.getCohortLiveSessions(cohortId, req.user);
+  }
+
+  @Post(['teaching-schedule/:id/register', 'academy/teaching-schedule/:id/register'])
+  @UseGuards(RoleGuard)
+  @Roles('STUDENT', 'INSTRUCTOR', 'ADMIN')
+  async registerForLiveSession(@Param('id') rawId: string, @Req() req: any) {
+    const scheduleId = Number(rawId);
+    if (!scheduleId || isNaN(scheduleId)) throw new BadRequestException('Invalid schedule ID');
+    return this.teachingScheduleService.registerForLiveSession(scheduleId, req.user);
+  }
+
+  @Patch(['teaching-schedule/:id/attendance', 'academy/teaching-schedule/:id/attendance'])
+  @UseGuards(RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  async confirmSessionAttendance(
+    @Param('id') rawId: string,
+    @Body() body: { attendees: Array<{ userId: string; attended: boolean }> },
+    @Req() req: any,
+  ) {
+    const scheduleId = Number(rawId);
+    if (!scheduleId || isNaN(scheduleId)) throw new BadRequestException('Invalid schedule ID');
+    return this.teachingScheduleService.confirmSessionAttendance(
+      scheduleId,
+      body?.attendees || [],
+      req.user,
+    );
+  }
 }

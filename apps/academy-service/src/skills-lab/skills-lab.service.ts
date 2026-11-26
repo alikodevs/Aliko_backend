@@ -305,4 +305,71 @@ export class SkillsLabService {
       attempts,
     };
   }
+
+  /**
+   * I9: Cohort-level Skills Lab summary (22 skills, per-student roster, 10:1 lab ratio)
+   */
+  async getCohortSkillsSummary(cohortId: number, user: AuthenticatedUser) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    if (!['INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER', 'COMMISSION_AUDITOR'].includes(profile.role)) {
+      throw new ForbiddenException('Only instructors, admins, and auditors can view cohort skills summaries.');
+    }
+
+    const cohort = await this.prisma.cohort.findUnique({
+      where: { id: cohortId },
+      include: {
+        enrollments: {
+          where: { status: 'ACTIVE', cohortRole: 'STUDENT' },
+          select: { userId: true },
+        },
+      },
+    });
+    if (!cohort) throw new NotFoundException(`Cohort ${cohortId} not found`);
+
+    const studentIds = cohort.enrollments.map((e) => e.userId);
+    const [allSkills, passedCheckoffs] = await Promise.all([
+      this.prisma.coreSkill.findMany({ orderBy: { skillNumber: 'asc' } }),
+      this.prisma.skillCheckoff.findMany({
+        where: {
+          cohortId,
+          passed: true,
+          ...(studentIds.length > 0 ? { userId: { in: studentIds } } : {}),
+        },
+        select: { userId: true, skillId: true },
+      }),
+    ]);
+
+    const passedByStudent = new Map<string, Set<number>>();
+    for (const c of passedCheckoffs) {
+      if (!passedByStudent.has(c.userId)) passedByStudent.set(c.userId, new Set());
+      passedByStudent.get(c.userId)!.add(c.skillId);
+    }
+
+    const instructorCount = Math.max(1, cohort.assignedInstructorIds?.length || 1);
+    const totalRequired = allSkills.length || 22;
+
+    const students = studentIds.map((uid) => {
+      const passedCount = passedByStudent.get(uid)?.size || 0;
+      return {
+        userId: uid,
+        passedSkills: passedCount,
+        totalSkills: totalRequired,
+        readyForClinical: passedCount >= totalRequired,
+      };
+    });
+
+    return {
+      cohortId,
+      cohortName: cohort.name,
+      totalRequiredSkills: totalRequired,
+      labRatio: {
+        enrolledStudents: studentIds.length,
+        instructorCount,
+        currentRatio: `${(studentIds.length / instructorCount).toFixed(1)}:1`,
+        maxAllowedRatio: '10:1',
+        isWithinRatio: studentIds.length <= instructorCount * 10,
+      },
+      students,
+    };
+  }
 }

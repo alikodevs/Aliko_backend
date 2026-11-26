@@ -39,6 +39,14 @@ export class LessonsService {
       );
     }
 
+    if (module.course.isLocked) {
+      throw new ForbiddenException(
+        'This approved course version is locked. Create a new draft version to edit lessons.',
+      );
+    }
+
+    const isHealth = HealthCompliancePolicy.isHealthCourse(module.course);
+
     return await this.prisma.lesson.create({
       data: {
         title,
@@ -47,13 +55,21 @@ export class LessonsService {
         order: dto.order || 0,
         unlockRules: dto.unlockRules || ({} as object),
         dueDate: dueDate ? new Date(dueDate) : null,
+        ...(dto.estimatedHours !== undefined ? { estimatedHours: dto.estimatedHours } : {}),
+        ...(dto.hourType !== undefined ? { hourType: dto.hourType } : {}),
+        ...(dto.countsTowardSeatTime !== undefined ? { countsTowardSeatTime: dto.countsTowardSeatTime } : {}),
+        ...(dto.mappedCompetency !== undefined ? { mappedCompetency: dto.mappedCompetency } : {}),
+        ...(dto.crosswalkRow !== undefined ? { crosswalkRow: dto.crosswalkRow } : {}),
         module: { connect: { id: moduleId } },
         ...(contents && contents.length > 0
           ? {
               contents: {
                 create: contents.map((c) => {
                   const { lessonId: _lessonId, ...rest } = c;
-                  return rest;
+                  return {
+                    ...rest,
+                    ...(isHealth ? { isDownloadable: false, visibility: 'LOGGED_IN_ONLY' } : {}),
+                  };
                 }),
               },
             }
@@ -384,6 +400,14 @@ export class LessonsService {
       );
     }
 
+    if (lesson.module.course.isLocked) {
+      throw new ForbiddenException(
+        'This approved course version is locked. Create a new draft version to edit lessons.',
+      );
+    }
+
+    const isHealth = HealthCompliancePolicy.isHealthCourse(lesson.module.course);
+
     return await this.prisma.lesson.update({
       where: { id },
       data: {
@@ -404,7 +428,10 @@ export class LessonsService {
                 deleteMany: {},
                 create: contents.map((c) => {
                   const { lessonId: _lessonId, ...rest } = c;
-                  return rest;
+                  return {
+                    ...rest,
+                    ...(isHealth ? { isDownloadable: false, visibility: 'LOGGED_IN_ONLY' } : {}),
+                  };
                 }),
               },
             }

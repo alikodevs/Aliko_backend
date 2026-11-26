@@ -13,6 +13,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import { ContentType } from '@prisma/client/academy';
+import { HealthCompliancePolicy } from '../common/policies/health-compliance.policy';
 
 interface UploadedFile {
   buffer: Buffer | string; // Buffer or base64 encoded string
@@ -51,8 +52,19 @@ export class ContentService {
       throw new BadRequestException(
         'lessonId is required for direct content creation',
       );
+    if (lesson.module.course.isLocked) {
+      throw new ForbiddenException(
+        'This approved course version is locked. Create a new draft version to add content.',
+      );
+    }
 
-    return this.prisma.content.create({ data: dto as any });
+    const isHealth = HealthCompliancePolicy.isHealthCourse(lesson.module.course);
+    return this.prisma.content.create({
+      data: {
+        ...(dto as any),
+        ...(isHealth ? { isDownloadable: false, visibility: 'LOGGED_IN_ONLY' } : {}),
+      },
+    });
   }
 
   async uploadFile(

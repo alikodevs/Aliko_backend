@@ -175,15 +175,41 @@ export class AttendanceService {
 
     // Reference dates for census
     const now = new Date();
+    const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
     const startDate = cohort ? new Date(cohort.startDate) : null;
     const censusDeadline = startDate
       ? new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000)
       : null;
 
+    // Fetch verified theory seat-time (Progress.activeTimeSeconds) for enrolled students
+    const enrolledUserIds = enrollments.map((e) => e.userId);
+    const progressRows =
+      enrolledUserIds.length > 0
+        ? await this.prisma.progress.findMany({
+            where: {
+              courseId,
+              userId: { in: enrolledUserIds },
+              activeTimeSeconds: { gt: 0 },
+            },
+            select: { userId: true, activeTimeSeconds: true, updatedAt: true },
+          })
+        : [];
+
+    const seatTimeByUser = new Map<string, { totalSeconds: number; lastActiveAt: Date | null }>();
+    for (const row of progressRows) {
+      const prev = seatTimeByUser.get(row.userId) || { totalSeconds: 0, lastActiveAt: null };
+      prev.totalSeconds += row.activeTimeSeconds || 0;
+      if (!prev.lastActiveAt || row.updatedAt > prev.lastActiveAt) {
+        prev.lastActiveAt = row.updatedAt;
+      }
+      seatTimeByUser.set(row.userId, prev);
+    }
+
     let verifiedCount = 0;
     let pendingCount = 0;
     let noShowCount = 0;
     let droppedCount = 0;
+    let atRisk5DayCount = 0;
 
     const studentRoster = enrollments.map((enr) => {
       const u = userMap.get(enr.userId);
@@ -240,6 +266,12 @@ export class AttendanceService {
         }
       }
 
+      const seatInfo = seatTimeByUser.get(enr.userId);
+      const verifiedTheoryHours = Number(((seatInfo?.totalSeconds || 0) / 3600).toFixed(2));
+      const lastSeatTimeAt = seatInfo?.lastActiveAt || null;
+      const atRisk5Day = !lastSeatTimeAt || lastSeatTimeAt < fiveDaysAgo;
+      if (atRisk5Day) atRisk5DayCount++;
+
       return {
         enrollmentId: enr.id,
         userId: enr.userId,
@@ -252,6 +284,10 @@ export class AttendanceService {
         enrolledAt: enr.enrolledAt,
         daysElapsedSinceStart: daysElapsed,
         isOverdueCensus: isOverdue,
+        verifiedTheoryHours,
+        lastSeatTimeAt,
+        atRisk5Day,
+        censusRowStatus: atRisk5Day ? 'AT_RISK' : enr.attendanceStatus === 'VERIFIED_PRESENT' ? 'VERIFIED' : enr.attendanceStatus,
         qualifyingEvidence,
       };
     });

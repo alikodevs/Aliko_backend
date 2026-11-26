@@ -5,6 +5,8 @@ export class CreateClinicalShiftDto {
   startTime: string; // ISO datetime
   endTime: string;   // ISO datetime
   hoursCredited: number;
+  groupName?: string;
+  maxStudents?: number;
 }
 
 export class RecordClinicalAttendanceDto {

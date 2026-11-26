@@ -598,4 +598,481 @@ export class HealthDashboardService {
       weeklyCalendar,
     };
   }
+
+  /**
+   * I1: Instructor Console Dashboard
+   */
+  async getInstructorDashboard(user: AuthenticatedUser, cohortId?: number) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    const isStaff = ['INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER', 'COMMISSION_AUDITOR'].includes(profile.role);
+    if (!isStaff) {
+      throw new ForbiddenException('Only instructors and staff can access the instructor console.');
+    }
+
+    const cohort = cohortId
+      ? await this.prisma.cohort.findUnique({
+          where: { id: cohortId },
+          include: {
+            course: {
+              include: {
+                modules: {
+                  where: { isOrientationModule: false, unitNumber: { gte: 1, lte: 9 } },
+                  orderBy: [{ unitNumber: 'asc' }, { id: 'asc' }],
+                  include: {
+                    exercises: { select: { id: true, type: true, isProctored: true, passingScorePercent: true } },
+                  },
+                },
+              },
+            },
+            enrollments: {
+              where: { status: 'ACTIVE', cohortRole: 'STUDENT' },
+              select: { userId: true, enrolledAt: true },
+            },
+            teachingSchedules: {
+              where: { type: 'WORKSHOP', startTime: { gte: new Date() } },
+              orderBy: { startTime: 'asc' },
+              take: 5,
+            },
+          },
+        })
+      : await this.prisma.cohort.findFirst({
+          where: {
+            course: { domain: CourseDomain.HEALTH },
+            ...(profile.role === 'INSTRUCTOR'
+              ? {
+                  OR: [
+                    { assignedInstructorIds: { has: user.firebaseId } },
+                    { course: { instructorId: user.firebaseId } },
+                  ],
+                }
+              : {}),
+          },
+          orderBy: { startDate: 'desc' },
+          include: {
+            course: {
+              include: {
+                modules: {
+                  where: { isOrientationModule: false, unitNumber: { gte: 1, lte: 9 } },
+                  orderBy: [{ unitNumber: 'asc' }, { id: 'asc' }],
+                  include: {
+                    exercises: { select: { id: true, type: true, isProctored: true, passingScorePercent: true } },
+                  },
+                },
+              },
+            },
+            enrollments: {
+              where: { status: 'ACTIVE', cohortRole: 'STUDENT' },
+              select: { userId: true, enrolledAt: true },
+            },
+            teachingSchedules: {
+              where: { type: 'WORKSHOP', startTime: { gte: new Date() } },
+              orderBy: { startTime: 'asc' },
+              take: 5,
+            },
+          },
+        });
+
+    if (!cohort) {
+      throw new NotFoundException('No active Health cohort found for instructor console.');
+    }
+
+    const studentIds = cohort.enrollments.map((e) => e.userId);
+    const totalStudents = studentIds.length;
+    const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+
+    const [
+      pendingSubmissions,
+      ungradedDiscussions,
+      unitSubmissions,
+      recentProgress,
+      proctoringFlags,
+    ] = await Promise.all([
+      this.prisma.exerciseSubmission.findMany({
+        where: {
+          status: 'PENDING_REVIEW',
+          exercise: { module: { courseId: cohort.courseId } },
+          ...(studentIds.length > 0 ? { userId: { in: studentIds } } : {}),
+        },
+        select: { id: true, updatedAt: true },
+      }),
+      this.prisma.discussionPost.findMany({
+        where: {
+          parentId: null,
+          grade: null,
+          topic: { module: { courseId: cohort.courseId } },
+          ...(studentIds.length > 0 ? { userId: { in: studentIds } } : {}),
+        },
+        select: { id: true, createdAt: true },
+      }),
+      this.prisma.exerciseSubmission.findMany({
+        where: {
+          status: 'GRADED',
+          exercise: { module: { courseId: cohort.courseId } },
+          ...(studentIds.length > 0 ? { userId: { in: studentIds } } : {}),
+        },
+        select: { userId: true, exerciseId: true, score: true },
+      }),
+      this.prisma.progress.findMany({
+        where: {
+          courseId: cohort.courseId,
+          activeTimeSeconds: { gt: 0 },
+          ...(studentIds.length > 0 ? { userId: { in: studentIds } } : {}),
+        },
+        select: { userId: true, updatedAt: true },
+      }),
+      this.prisma.examSession.findMany({
+        where: {
+          exercise: { module: { courseId: cohort.courseId } },
+          ...(studentIds.length > 0 ? { userId: { in: studentIds } } : {}),
+          tabBlurCount: { gt: 0 },
+        },
+        select: { id: true, userId: true, exerciseId: true, tabBlurCount: true, startTime: true },
+        orderBy: { startTime: 'desc' },
+        take: 10,
+      }),
+    ]);
+
+    const overdueSubmissions = pendingSubmissions.filter((s) => s.updatedAt < twoDaysAgo).length;
+    const overdueDiscussions = ungradedDiscussions.filter((d) => d.createdAt < twoDaysAgo).length;
+
+    // 5-day inactivity pacing alerts
+    const lastActiveByStudent = new Map<string, Date>();
+    for (const p of recentProgress) {
+      const prev = lastActiveByStudent.get(p.userId);
+      if (!prev || p.updatedAt > prev) lastActiveByStudent.set(p.userId, p.updatedAt);
+    }
+    const pacingAlertStudentIds = studentIds.filter((uid) => {
+      const last = lastActiveByStudent.get(uid);
+      return !last || last < fiveDaysAgo;
+    });
+
+    // Unit-by-unit quiz pass counts
+    const unitProgress = cohort.course.modules.map((mod) => {
+      const quizEx = mod.exercises.find((e) => e.type === 'MULTIPLE_CHOICE' || e.isProctored);
+      const passThreshold = quizEx?.passingScorePercent ?? 80;
+      const passedUsers = new Set(
+        quizEx
+          ? unitSubmissions
+              .filter((s) => s.exerciseId === quizEx.id && s.score >= passThreshold)
+              .map((s) => s.userId)
+          : [],
+      );
+      return {
+        moduleId: mod.id,
+        unitNumber: mod.unitNumber,
+        title: mod.title,
+        studentsPassedQuiz: passedUsers.size,
+        totalStudents,
+        passPercent: totalStudents > 0 ? Math.round((passedUsers.size / totalStudents) * 100) : 0,
+      };
+    });
+
+    return {
+      course: {
+        id: cohort.course.id,
+        title: cohort.course.title,
+        version: cohort.course.version,
+        isLocked: cohort.course.isLocked,
+        status: cohort.course.status,
+        isStateApproved: cohort.course.isStateApproved,
+        domain: cohort.course.domain,
+      },
+      cohort: {
+        id: cohort.id,
+        name: cohort.name,
+        startDate: cohort.startDate,
+        endDate: cohort.endDate,
+        enrolledCount: totalStudents,
+        maxTheoryCap: 30,
+        isWithinTheoryCap: totalStudents <= 30,
+      },
+      windowStatus: this.compute90DayWindow(cohort.startDate, cohort.isHighSchoolTenMonth),
+      gradingQueue: {
+        pendingExercisesCount: pendingSubmissions.length,
+        pendingDiscussionsCount: ungradedDiscussions.length,
+        totalPending: pendingSubmissions.length + ungradedDiscussions.length,
+        overdueCount: overdueSubmissions + overdueDiscussions,
+        targetSlaDays: 2,
+      },
+      unitProgress,
+      needsAttention: {
+        pacingAlertCount: pacingAlertStudentIds.length,
+        pacingAlertStudentIds,
+        proctoringFlagsCount: proctoringFlags.length,
+        proctoringFlags,
+        upcomingLabDays: cohort.teachingSchedules,
+      },
+    };
+  }
+
+  /**
+   * I8: Unified Submissions Grading Queue (oldest first, 2-business-day SLA, rubrics attached)
+   */
+  async getSubmissionsQueue(user: AuthenticatedUser, courseId?: number) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    const isStaff = ['INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER'].includes(profile.role);
+    if (!isStaff) {
+      throw new ForbiddenException('Only instructors and admins can access the grading queue.');
+    }
+
+    const [exerciseSubs, discussionPosts] = await Promise.all([
+      this.prisma.exerciseSubmission.findMany({
+        where: {
+          status: 'PENDING_REVIEW',
+          exercise: {
+            module: {
+              course: {
+                domain: CourseDomain.HEALTH,
+                ...(courseId ? { id: courseId } : {}),
+              },
+            },
+          },
+        },
+        include: {
+          exercise: {
+            select: { id: true, title: true, type: true, points: true, rubricId: true, moduleId: true },
+          },
+          profile: { select: { userId: true, role: true } },
+        },
+        orderBy: { updatedAt: 'asc' },
+      }),
+      this.prisma.discussionPost.findMany({
+        where: {
+          parentId: null,
+          grade: null,
+          topic: {
+            module: {
+              course: {
+                domain: CourseDomain.HEALTH,
+                ...(courseId ? { id: courseId } : {}),
+              },
+            },
+          },
+        },
+        include: {
+          topic: {
+            select: { id: true, title: true, maxPoints: true, rubricId: true, rubric: true, moduleId: true },
+          },
+          profile: { select: { userId: true, role: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    const now = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+
+    const queue = [
+      ...exerciseSubs.map((s) => {
+        const daysWaiting = Number(((now - s.updatedAt.getTime()) / dayMs).toFixed(1));
+        return {
+          itemType: 'EXERCISE' as const,
+          submissionId: s.id,
+          userId: s.userId,
+          exerciseId: s.exerciseId,
+          title: s.exercise.title,
+          activityType: s.exercise.type,
+          maxPoints: s.exercise.points,
+          rubricId: s.exercise.rubricId,
+          answers: s.answer,
+          submittedAt: s.updatedAt,
+          daysWaiting,
+          slaOverdue: daysWaiting > 2,
+        };
+      }),
+      ...discussionPosts.map((p) => {
+        const daysWaiting = Number(((now - p.createdAt.getTime()) / dayMs).toFixed(1));
+        return {
+          itemType: 'DISCUSSION' as const,
+          postId: p.id,
+          userId: p.userId,
+          topicId: p.topicId,
+          title: p.topic.title,
+          activityType: 'DISCUSSION',
+          maxPoints: p.topic.maxPoints,
+          rubricId: p.topic.rubricId,
+          rubric: p.topic.rubric,
+          content: p.body,
+          submittedAt: p.createdAt,
+          daysWaiting,
+          slaOverdue: daysWaiting > 2,
+        };
+      }),
+    ].sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
+
+    return {
+      totalPending: queue.length,
+      overdueCount: queue.filter((q) => q.slaOverdue).length,
+      targetSlaDays: 2,
+      queue,
+    };
+  }
+
+  /**
+   * I11: Cohort Compliance Audit Checklist
+   */
+  async getCohortComplianceAudit(cohortId: number, user: AuthenticatedUser) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    const isStaff = ['INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER', 'COMMISSION_AUDITOR'].includes(profile.role);
+    if (!isStaff) {
+      throw new ForbiddenException('Only instructors, admins, and auditors can view the compliance audit.');
+    }
+
+    const cohort = await this.prisma.cohort.findUnique({
+      where: { id: cohortId },
+      include: {
+        course: {
+          include: {
+            modules: {
+              include: {
+                lessons: { include: { contents: true } },
+                exercises: true,
+                discussionTopics: { include: { posts: { include: { grade: true } } } },
+              },
+            },
+          },
+        },
+        enrollments: { where: { status: 'ACTIVE', cohortRole: 'STUDENT' } },
+        teachingSchedules: { include: { registrations: true } },
+      },
+    });
+    if (!cohort) throw new NotFoundException(`Cohort ${cohortId} not found`);
+
+    const studentIds = cohort.enrollments.map((e) => e.userId);
+    const enrolledCount = studentIds.length;
+    const instructorCount = Math.max(1, cohort.assignedInstructorIds?.length || 1);
+
+    // Compute hours from lessons
+    let theoryHours = 0;
+    let labHours = 0;
+    let clinicalHours = 0;
+    for (const m of cohort.course.modules) {
+      for (const l of m.lessons) {
+        if (!l.isCreditHour) continue;
+        const ht = (l.hourType || '').toUpperCase();
+        if (ht === 'CLINICAL' || m.track === 'CLINICAL_IN_PERSON' || l.type === 'CLINICAL') clinicalHours += l.estimatedHours;
+        else if (ht === 'LAB' || m.track === 'SKILLS_LAB_IN_PERSON' || l.type === 'SKILLS') labHours += l.estimatedHours;
+        else if (ht === 'THEORY') theoryHours += l.estimatedHours;
+      }
+    }
+
+    const allVideos = cohort.course.modules.flatMap((m) =>
+      m.lessons.flatMap((l) => l.contents.filter((c) => c.type === 'VIDEO')),
+    );
+    const linkedVideos = allVideos.filter((v) => Boolean(v.url && v.url.trim().length > 0));
+    const proctoredQuizzes = cohort.course.modules.flatMap((m) =>
+      m.exercises.filter((e) => e.type === 'MULTIPLE_CHOICE' || e.isProctored),
+    );
+
+    const [apps, credentials] = await Promise.all([
+      this.prisma.studentAdmissionsApplication.findMany({
+        where: { cohortId },
+        select: { userId: true, orientationCompleted: true, agreementSigned: true },
+      }),
+      this.prisma.instructorCredential.findMany({
+        where: {
+          userId: {
+            in: Array.from(new Set([cohort.course.instructorId, ...(cohort.assignedInstructorIds || [])])),
+          },
+        },
+      }),
+    ]);
+
+    const now = new Date();
+    const validCredentials = credentials.filter((c) => !c.rnLicenseExpiration || c.rnLicenseExpiration > now);
+    const hasRnDirector = validCredentials.some((c) => Boolean(c.rnLicenseNumber));
+    const orientationCount = apps.filter((a) => a.orientationCompleted).length;
+    const agreementsSignedCount = apps.filter((a) => a.agreementSigned).length;
+    const durationDays = Math.round((cohort.endDate.getTime() - cohort.startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const liveOverCap = cohort.teachingSchedules.some((s) => s.registrations.length > cohort.maxLiveCapacity);
+    const hasInstructorInteraction = cohort.course.modules.some((m) =>
+      m.discussionTopics.some((t) => t.posts.some((p) => p.grade !== null)),
+    );
+
+    const checklist = [
+      {
+        key: 'hours',
+        label: 'Hours = 35 / 33 / 40',
+        status: theoryHours >= 35 && labHours >= 33 && clinicalHours >= 40 ? 'MET' : 'NOT_MET',
+        evidence: `${theoryHours.toFixed(1)}h / ${labHours.toFixed(1)}h / ${clinicalHours.toFixed(1)}h`,
+      },
+      {
+        key: 'liveCap',
+        label: 'Live cap ≤ 20',
+        status: cohort.maxLiveCapacity <= 20 && !liveOverCap ? 'MET' : 'NOT_MET',
+        evidence: `Max ${cohort.maxLiveCapacity} registered`,
+      },
+      {
+        key: 'threeMonthWindow',
+        label: 'Async theory finished within 3 months',
+        status: cohort.isHighSchoolTenMonth || durationDays <= 90 ? 'MET' : 'NOT_MET',
+        evidence: `${durationDays} calendar days`,
+      },
+      {
+        key: 'asyncCap',
+        label: 'Async cap ≤ 30 per instructor',
+        status: enrolledCount <= instructorCount * 30 ? 'MET' : 'NOT_MET',
+        evidence: `${enrolledCount} enrolled`,
+      },
+      {
+        key: 'labClinicalRatio',
+        label: 'Lab and clinical ratio ≤ 10:1',
+        status: enrolledCount <= instructorCount * 10 ? 'MET' : 'NOT_MET',
+        evidence: `${(enrolledCount / instructorCount).toFixed(1)}:1`,
+      },
+      {
+        key: 'quizIdCheck',
+        label: 'Identity check on every quiz',
+        status: proctoredQuizzes.length > 0 && proctoredQuizzes.every((q) => q.isProctored) ? 'MET' : 'NOT_MET',
+        evidence: `${proctoredQuizzes.filter((q) => q.isProctored).length}/${proctoredQuizzes.length} quizzes proctored`,
+      },
+      {
+        key: 'orientation9of9',
+        label: 'Orientation 9/9 before Unit 1',
+        status: enrolledCount > 0 && orientationCount >= enrolledCount ? 'MET' : 'NOT_MET',
+        evidence: `${orientationCount}/${enrolledCount} completed`,
+      },
+      {
+        key: 'programDirectorRn',
+        label: 'Program Director is an RN',
+        status: hasRnDirector ? 'MET' : 'NOT_MET',
+        evidence: hasRnDirector ? 'Verified RN credential' : 'Missing active RN credential',
+      },
+      {
+        key: 'instructorInteraction',
+        label: 'Instructor interaction each unit',
+        status: hasInstructorInteraction ? 'MET' : 'NOT_MET',
+        evidence: hasInstructorInteraction ? 'Instructor feedback recorded' : 'Pending graded interactions',
+      },
+      {
+        key: 'wabonVideosComplete',
+        label: 'WABON videos complete',
+        status: allVideos.length > 0 && linkedVideos.length === allVideos.length ? 'MET' : 'NOT_MET',
+        evidence: `${linkedVideos.length}/${allVideos.length} linked`,
+      },
+      {
+        key: 'allInstructorsApproved',
+        label: 'All instructors approved',
+        status: validCredentials.length > 0 ? 'MET' : 'NOT_MET',
+        evidence: `${validCredentials.length} active credential(s)`,
+      },
+      {
+        key: 'enrollmentAgreementsSigned',
+        label: 'Enrollment agreements signed',
+        status: enrolledCount > 0 && agreementsSignedCount >= enrolledCount ? 'MET' : 'NOT_MET',
+        evidence: `${agreementsSignedCount}/${enrolledCount}`,
+      },
+    ];
+
+    return {
+      cohortId: cohort.id,
+      cohortName: cohort.name,
+      courseId: cohort.courseId,
+      courseTitle: cohort.course.title,
+      metCount: checklist.filter((c) => c.status === 'MET').length,
+      totalChecks: checklist.length,
+      checklist,
+    };
+  }
 }

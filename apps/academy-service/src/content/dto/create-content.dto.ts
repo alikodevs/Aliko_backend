@@ -59,4 +59,20 @@ export class CreateContentDto {
   @IsOptional()
   @IsInt()
   order?: number;
+
+  @IsOptional()
+  @IsInt()
+  durationSeconds?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isDownloadable?: boolean;
+
+  @IsOptional()
+  @IsString()
+  visibility?: string;
+
+  @IsOptional()
+  @IsString()
+  transcript?: string;
 }

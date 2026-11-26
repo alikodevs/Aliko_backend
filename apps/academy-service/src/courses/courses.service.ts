@@ -15,6 +15,7 @@ import { AcademyRole, CourseStatus, LessonType } from '@prisma/client/academy';
 import { AuthenticatedUser, UserService } from '../user/user.service';
 import { PushNotificationService } from '@alikohub/notification';
 import { sanitizeCourseExercises, stripExerciseAnswer } from '../common/utils/sanitize-exercises';
+import { HealthCompliancePolicy } from '../common/policies/health-compliance.policy';
 
 type FindAllQuery = {
   page?: number;
@@ -608,6 +609,12 @@ export class CoursesService {
       );
     }
 
+    if (course.isLocked) {
+      throw new ForbiddenException(
+        'This approved course version is locked. Create a new draft version before making changes.',
+      );
+    }
+
     // Only an admin can re-assign an instructor or mark a course as state-approved (CA-06)
     if (dto.instructorId && academyProfile.role !== AcademyRole.ADMIN) {
       throw new ForbiddenException(
@@ -709,9 +716,24 @@ export class CoursesService {
       throw new BadRequestException('Archived courses cannot be re-published');
     }
 
+    if (status === CourseStatus.PUBLISHED && HealthCompliancePolicy.isHealthCourse(course)) {
+      const checks = await this.getPublishChecks(id);
+      if (!checks.canPublish) {
+        const failed = checks.checks.filter((c: any) => !c.passed).map((c: any) => c.label);
+        throw new BadRequestException(
+          `WABON publish checks failed: ${failed.join('; ')}`,
+        );
+      }
+    }
+
     return await this.prisma.course.update({
       where: { id },
-      data: { status },
+      data: {
+        status,
+        ...(status === CourseStatus.PUBLISHED && HealthCompliancePolicy.isHealthCourse(course)
+          ? { isLocked: true }
+          : {}),
+      },
     });
   }
 
@@ -944,9 +966,26 @@ export class CoursesService {
       throw new ForbiddenException('Only administrators can approve courses');
     }
 
+    const existing = await this.prisma.course.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Course not found');
+
+    const isHealth = HealthCompliancePolicy.isHealthCourse(existing);
+    if (isHealth) {
+      const checks = await this.getPublishChecks(id);
+      if (!checks.canPublish) {
+        const failed = checks.checks.filter((c: any) => !c.passed).map((c: any) => c.label);
+        throw new BadRequestException(
+          `Cannot approve HEALTH course until WABON publish checks pass: ${failed.join('; ')}`,
+        );
+      }
+    }
+
     const course = await this.prisma.course.update({
       where: { id },
-      data: { status: CourseStatus.PUBLISHED },
+      data: {
+        status: CourseStatus.PUBLISHED,
+        ...(isHealth ? { isLocked: true, isStateApproved: true } : {}),
+      },
     });
 
     this.notificationService.sendCourseCreatedNotification(
@@ -970,6 +1009,474 @@ export class CoursesService {
         status: CourseStatus.REJECTED,
         rejectionReason: reason,
       },
+    });
+  }
+
+  /**
+   * I3: WABON Hours Check (35h/33h/40h = 108h) & Publish Readiness Checks
+   */
+  async getPublishChecks(courseId: number) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        modules: {
+          orderBy: [{ unitNumber: 'asc' }, { id: 'asc' }],
+          include: {
+            lessons: {
+              include: {
+                contents: true,
+                exercises: true,
+              },
+            },
+            exercises: true,
+            discussionTopics: true,
+          },
+        },
+      },
+    });
+    if (!course) throw new NotFoundException('Course not found');
+
+    if (!HealthCompliancePolicy.isHealthCourse(course)) {
+      return {
+        courseId: course.id,
+        domain: course.domain,
+        isHealthCourse: false,
+        canPublish: true,
+        checks: [],
+      };
+    }
+
+    const profile = HealthCompliancePolicy.getComplianceProfile(course)!;
+    const allLessons = course.modules.flatMap((m) => m.lessons);
+    const allContents = allLessons.flatMap((l) => l.contents);
+    const allExercises = [
+      ...course.modules.flatMap((m) => m.exercises),
+      ...allLessons.flatMap((l) => l.exercises),
+    ];
+    const allTopics = course.modules.flatMap((m) => m.discussionTopics);
+
+    // Sum hours by hourType
+    let theoryHours = 0;
+    let labHours = 0;
+    let clinicalHours = 0;
+    for (const mod of course.modules) {
+      for (const lesson of mod.lessons) {
+        if (!lesson.isCreditHour) continue;
+        const hrs = lesson.estimatedHours || 0;
+        const ht = (lesson.hourType || '').toUpperCase();
+        if (ht === 'CLINICAL' || mod.track === 'CLINICAL_IN_PERSON' || lesson.type === 'CLINICAL') {
+          clinicalHours += hrs;
+        } else if (ht === 'LAB' || mod.track === 'SKILLS_LAB_IN_PERSON' || lesson.type === 'SKILLS') {
+          labHours += hrs;
+        } else if (ht === 'THEORY') {
+          theoryHours += hrs;
+        }
+      }
+    }
+    theoryHours = Number(theoryHours.toFixed(2));
+    labHours = Number(labHours.toFixed(2));
+    clinicalHours = Number(clinicalHours.toFixed(2));
+    const totalHours = Number((theoryHours + labHours + clinicalHours).toFixed(2));
+
+    const hoursMet =
+      theoryHours >= profile.requiredTheoryHours &&
+      labHours >= profile.requiredLabHours &&
+      clinicalHours >= profile.requiredClinicalHours;
+
+    const unitModules = course.modules.filter(
+      (m) => !m.isOrientationModule && m.unitNumber && m.unitNumber >= 1 && m.unitNumber <= 9,
+    );
+    const hasOrientation = course.modules.some((m) => m.isOrientationModule);
+    const unitsHaveTenPattern =
+      unitModules.length === 9 && unitModules.every((u) => u.lessons.length >= 10);
+
+    const videoContents = allContents.filter((c) => c.type === 'VIDEO');
+    const linkedVideos = videoContents.filter((c) => Boolean(c.url && c.url.trim().length > 0));
+
+    const quizzes = allExercises.filter((e) => e.type === 'MULTIPLE_CHOICE' || e.isProctored);
+    const quizPoolsValid =
+      quizzes.length > 0 &&
+      quizzes.every((q) => {
+        const qCount = Array.isArray(q.question) ? (q.question as any[]).length : 1;
+        const draw = q.poolSize || qCount;
+        return qCount >= draw && (q.poolSize ? qCount >= q.poolSize : true);
+      });
+
+    const activities = allExercises.filter(
+      (e) => e.type === 'MASLOW_PYRAMID' || e.type === 'STORY_ACTIVITY',
+    );
+    const rubricsValid =
+      activities.every((a) => Boolean(a.rubricId)) &&
+      allTopics.every((t) => Boolean(t.rubricId || t.rubric));
+
+    const nonLoginFiles = allContents.filter(
+      (c) => c.isDownloadable || c.visibility !== 'LOGGED_IN_ONLY',
+    );
+
+    const coreSkills = await this.prisma.coreSkill.findMany({
+      select: { id: true, taughtInUnit: true },
+    });
+    const mappedSkills = coreSkills.filter((s) => Boolean(s.taughtInUnit));
+
+    const checks = [
+      {
+        key: 'hoursCheck',
+        label: `Trimodal hours (${theoryHours}h / ${labHours}h / ${clinicalHours}h = ${totalHours}h vs ${profile.requiredTheoryHours}/${profile.requiredLabHours}/${profile.requiredClinicalHours}h)`,
+        passed: hoursMet,
+        details: { theoryHours, labHours, clinicalHours, totalHours },
+      },
+      {
+        key: 'unitPatternCheck',
+        label: `Orientation + 9 units with 10-lesson pattern (${unitModules.length}/9 units)`,
+        passed: hasOrientation && unitsHaveTenPattern,
+        details: { hasOrientation, unitCount: unitModules.length },
+      },
+      {
+        key: 'videoLinksCheck',
+        label: `WABON videos linked (${linkedVideos.length} of ${videoContents.length})`,
+        passed: videoContents.length === 0 || linkedVideos.length === videoContents.length,
+        details: { linked: linkedVideos.length, total: videoContents.length },
+      },
+      {
+        key: 'quizPoolCheck',
+        label: `Unit quizzes have valid question pools (${quizzes.length} quizzes)`,
+        passed: quizPoolsValid,
+        details: { quizCount: quizzes.length },
+      },
+      {
+        key: 'rubricsCheck',
+        label: 'Every graded activity and discussion has a rubric',
+        passed: rubricsValid,
+        details: { activities: activities.length, discussions: allTopics.length },
+      },
+      {
+        key: 'loginOnlyFilesCheck',
+        label: 'WABON files set to login-only & download disabled',
+        passed: nonLoginFiles.length === 0,
+        details: { nonCompliantFiles: nonLoginFiles.length },
+      },
+      {
+        key: 'skillsMappingCheck',
+        label: `22 tested skills mapped to units (${mappedSkills.length}/${coreSkills.length})`,
+        passed: coreSkills.length >= 22 && mappedSkills.length >= 22,
+        details: { mapped: mappedSkills.length, total: coreSkills.length },
+      },
+    ];
+
+    return {
+      courseId: course.id,
+      domain: course.domain,
+      isHealthCourse: true,
+      canPublish: checks.every((c) => c.passed),
+      hoursSummary: {
+        theoryHours,
+        labHours,
+        clinicalHours,
+        totalHours,
+        required: {
+          theory: profile.requiredTheoryHours,
+          lab: profile.requiredLabHours,
+          clinical: profile.requiredClinicalHours,
+        },
+      },
+      checks,
+    };
+  }
+
+  /**
+   * I2: Create a new draft version from a locked/approved course
+   */
+  async createNewVersion(courseId: number, user: AuthenticatedUser) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    const source = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        modules: {
+          orderBy: [{ unitNumber: 'asc' }, { id: 'asc' }],
+          include: {
+            lessons: { orderBy: { order: 'asc' }, include: { contents: true } },
+            discussionTopics: true,
+          },
+        },
+      },
+    });
+    if (!source) throw new NotFoundException('Course not found');
+    if (profile.role !== AcademyRole.ADMIN && source.instructorId !== user.firebaseId) {
+      throw new ForbiddenException('You do not have permission to version this course.');
+    }
+
+    const parts = (source.version || '1.0').split('.').map(Number);
+    const nextVersion = `${parts[0] || 1}.${(parts[1] ?? 0) + 1}`;
+
+    return this.prisma.$transaction(async (tx) => {
+      const cloned = await tx.course.create({
+        data: {
+          title: `${source.title} (v${nextVersion})`,
+          shortDescription: source.shortDescription,
+          longDescription: source.longDescription,
+          thumbnail: source.thumbnail,
+          category: source.category,
+          domain: source.domain,
+          regulatoryBody: source.regulatoryBody,
+          complianceProfile: source.complianceProfile ?? undefined,
+          instructorId: source.instructorId,
+          status: CourseStatus.DRAFT,
+          version: nextVersion,
+          isLocked: false,
+          parentCourseId: source.id,
+          skills: source.skills,
+          conceptsLearned: source.conceptsLearned,
+          outcomes: source.outcomes,
+          estimatedTime: source.estimatedTime,
+          targetLevel: source.targetLevel,
+          prerequisites: source.prerequisites,
+          languages: source.languages,
+          agreementDocUrl: source.agreementDocUrl,
+        },
+      });
+
+      for (const mod of source.modules) {
+        const clonedMod = await tx.module.create({
+          data: {
+            title: mod.title,
+            description: mod.description,
+            courseId: cloned.id,
+            track: mod.track,
+            isOrientationModule: mod.isOrientationModule,
+            unitNumber: mod.unitNumber,
+            targetTheoryHours: mod.targetTheoryHours,
+            targetLabHours: mod.targetLabHours,
+            studentGuidePages: mod.studentGuidePages,
+            characters: mod.characters,
+          },
+        });
+
+        for (const lesson of mod.lessons) {
+          await tx.lesson.create({
+            data: {
+              title: lesson.title,
+              type: lesson.type,
+              moduleId: clonedMod.id,
+              order: lesson.order,
+              maxScore: lesson.maxScore,
+              unlockRules: lesson.unlockRules ?? undefined,
+              isWeekOneAttendanceGate: lesson.isWeekOneAttendanceGate,
+              isOrientationLesson: lesson.isOrientationLesson,
+              isCreditHour: lesson.isCreditHour,
+              estimatedHours: lesson.estimatedHours,
+              hourType: lesson.hourType,
+              countsTowardSeatTime: lesson.countsTowardSeatTime,
+              mappedCompetency: lesson.mappedCompetency,
+              crosswalkRow: lesson.crosswalkRow,
+              contents: {
+                create: lesson.contents.map((c) => ({
+                  title: c.title,
+                  type: c.type,
+                  url: c.url,
+                  body: c.body,
+                  durationSeconds: c.durationSeconds,
+                  isDownloadable: c.isDownloadable,
+                  visibility: c.visibility,
+                  transcript: c.transcript,
+                })),
+              },
+            },
+          });
+        }
+      }
+
+      return cloned;
+    });
+  }
+
+  /**
+   * I2: Lock an approved course version
+   */
+  async lockCourse(courseId: number, locked: boolean, user: AuthenticatedUser) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    if (profile.role !== AcademyRole.ADMIN) {
+      throw new ForbiddenException('Only administrators can lock or unlock course versions.');
+    }
+    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) throw new NotFoundException('Course not found');
+    return this.prisma.course.update({
+      where: { id: courseId },
+      data: { isLocked: locked },
+    });
+  }
+
+  /**
+   * I3: One-click Import WABON Template (Module 0 + Units 1-9 + Modules 10-12)
+   */
+  async importWabonTemplate(
+    user: AuthenticatedUser,
+    courseId?: number,
+    title?: string,
+  ) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    if (profile.role !== AcademyRole.INSTRUCTOR && profile.role !== AcademyRole.ADMIN) {
+      throw new ForbiddenException('Only instructors and admins can import the WABON template.');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      let targetCourse = courseId
+        ? await tx.course.findUnique({ where: { id: courseId } })
+        : null;
+
+      if (courseId && !targetCourse) throw new NotFoundException('Course not found');
+      if (targetCourse?.isLocked) {
+        throw new ForbiddenException('Cannot import template into a locked course.');
+      }
+
+      if (!targetCourse) {
+        targetCourse = await tx.course.create({
+          data: {
+            title: title || 'WABON Nursing Assistant Certified (NA-C) Program',
+            shortDescription: 'WAC 246-841A compliant 108-hour hybrid CNA training program.',
+            category: 'Healthcare',
+            domain: 'HEALTH',
+            regulatoryBody: 'WABON',
+            instructorId: user.firebaseId,
+            status: CourseStatus.DRAFT,
+            version: '1.0',
+          },
+        });
+      }
+
+      // Module 0: Orientation
+      await tx.module.create({
+        data: {
+          title: 'Module 0 · Program Orientation',
+          description: '9-item mandatory WABON orientation (non-credit)',
+          courseId: targetCourse.id,
+          track: 'THEORY_ASYNC',
+          isOrientationModule: true,
+          unitNumber: 0,
+          lessons: {
+            create: [
+              '0-1 · Welcome session (live)',
+              '0-2 · Program rules',
+              '0-3 · Your schedule',
+              '0-4 · Using the LMS',
+              '0-5 · Online conduct & integrity',
+              '0-6 · How this course works',
+              '0-7 · Lab & clinical expectations',
+              '0-8 · Technology check',
+              '0-9 · Sign enrollment agreement',
+            ].map((t, idx) => ({
+              title: t,
+              type: idx === 0 ? LessonType.LIVE : idx === 8 ? LessonType.SIGNATURE : LessonType.CHECKLIST,
+              order: idx + 1,
+              isOrientationLesson: true,
+              isCreditHour: false,
+              estimatedHours: 0,
+              hourType: 'NON_CREDIT',
+              countsTowardSeatTime: false,
+            })),
+          },
+        },
+      });
+
+      // Units 1-9 (10-lesson pattern)
+      const unitTitles = [
+        'Unit 1 · Role & Communication',
+        'Unit 2 · Resident Rights & Ethics',
+        'Unit 3 · Safety & Emergencies',
+        'Unit 4 · Infection Prevention',
+        'Unit 5 · Body Mechanics & Mobility',
+        'Unit 6 · Basic Nursing & Vital Signs',
+        'Unit 7 · Personal Care & ADLs',
+        'Unit 8 · Restorative & Elimination',
+        'Unit 9 · End-of-Life & Post-Mortem Care',
+      ];
+      const pattern: Array<{ title: string; type: LessonType; hourType: string; hrs: number; credit: boolean }> = [
+        { title: 'L1 · Start here', type: LessonType.TEXT, hourType: 'THEORY', hrs: 0.1, credit: true },
+        { title: 'L2 · Introduction video', type: LessonType.VIDEO, hourType: 'THEORY', hrs: 0.25, credit: true },
+        { title: 'L3 · Student Guide & Textbook Reading', type: LessonType.READING, hourType: 'THEORY', hrs: 1.0, credit: true },
+        { title: 'L4 · Mini-lessons', type: LessonType.TEXT, hourType: 'THEORY', hrs: 0.85, credit: true },
+        { title: 'L5 · Maslow Pyramid Activity', type: LessonType.ASSIGNMENT, hourType: 'THEORY', hrs: 0.5, credit: true },
+        { title: 'L6 · Story Activity', type: LessonType.ASSIGNMENT, hourType: 'THEORY', hrs: 0.45, credit: true },
+        { title: 'L7 · Unit Discussion', type: LessonType.DISCUSSION, hourType: 'THEORY', hrs: 0.4, credit: true },
+        { title: 'L8 · Get ready for lab', type: LessonType.VIDEO, hourType: 'NON_CREDIT', hrs: 0, credit: false },
+        { title: 'L9 · Unit Quiz (proctored)', type: LessonType.QUIZ, hourType: 'THEORY', hrs: 0.34, credit: true },
+        { title: 'L10 · Lab day (in person)', type: LessonType.SKILLS, hourType: 'LAB', hrs: 2.78, credit: true },
+      ];
+
+      for (let u = 0; u < unitTitles.length; u++) {
+        await tx.module.create({
+          data: {
+            title: unitTitles[u],
+            description: `WABON Common Curriculum ${unitTitles[u]}`,
+            courseId: targetCourse.id,
+            track: 'THEORY_ASYNC',
+            unitNumber: u + 1,
+            targetTheoryHours: 3.89,
+            targetLabHours: 2.78,
+            lessons: {
+              create: pattern.map((p, idx) => ({
+                title: p.title,
+                type: p.type,
+                order: idx + 1,
+                isCreditHour: p.credit,
+                estimatedHours: p.hrs,
+                hourType: p.hourType,
+                countsTowardSeatTime: p.hourType === 'THEORY',
+              })),
+            },
+          },
+        });
+      }
+
+      // Modules 10-12
+      await tx.module.create({
+        data: {
+          title: 'Module 10 · Mock Skills',
+          description: 'Timed pre-clinical and pre-state-exam mock skills (8h lab)',
+          courseId: targetCourse.id,
+          track: 'SKILLS_LAB_IN_PERSON',
+          unitNumber: 10,
+          targetLabHours: 8,
+          lessons: {
+            create: [
+              { title: 'M-1 · Mock skills (before clinical)', type: LessonType.SKILLS, order: 1, estimatedHours: 4, hourType: 'LAB', countsTowardSeatTime: false },
+              { title: 'M-2 · Mock skills (after clinical)', type: LessonType.SKILLS, order: 2, estimatedHours: 4, hourType: 'LAB', countsTowardSeatTime: false },
+            ],
+          },
+        },
+      });
+
+      await tx.module.create({
+        data: {
+          title: 'Module 11 · Clinical Training',
+          description: '40 hours supervised direct resident care (5 × 8-h shifts)',
+          courseId: targetCourse.id,
+          track: 'CLINICAL_IN_PERSON',
+          unitNumber: 11,
+          lessons: {
+            create: [
+              { title: 'C-0 · Facility orientation', type: LessonType.CLINICAL, order: 1, isCreditHour: false, estimatedHours: 0, hourType: 'NON_CREDIT', countsTowardSeatTime: false },
+              { title: 'C-1 · Clinical shifts (40h)', type: LessonType.CLINICAL, order: 2, isCreditHour: true, estimatedHours: 40, hourType: 'CLINICAL', countsTowardSeatTime: false },
+            ],
+          },
+        },
+      });
+
+      await tx.module.create({
+        data: {
+          title: 'Module 12 · State Exam Prep & Certificate',
+          description: 'Final state competency exam preparation and WABON certificate',
+          courseId: targetCourse.id,
+          track: 'THEORY_ASYNC',
+          unitNumber: 12,
+          lessons: {
+            create: [
+              { title: 'State Exam Readiness & Evaluation', type: LessonType.TEXT, order: 1, isCreditHour: false, estimatedHours: 0, hourType: 'NON_CREDIT', countsTowardSeatTime: false },
+            ],
+          },
+        },
+      });
+
+      return targetCourse;
     });
   }
 }

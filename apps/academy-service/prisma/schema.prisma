@@ -47,6 +47,7 @@ model AcademyProfile {
   supportTickets           SupportTicket[]
   instructorCredential     InstructorCredential?
   createdRubrics           Rubric[]                   @relation("CreatedRubrics")
+  liveSessionRegistrations LiveSessionRegistration[]
 }
 
 enum CourseDomain {
@@ -81,6 +82,9 @@ model Course {
   languages        String[]
   agreementDocUrl  String?        // CA-04: Full enrollment agreement document URL
   isStateApproved  Boolean        @default(false) // CA-06: Only ADMIN can mark state-approved
+  version          String         @default("1.0")
+  isLocked         Boolean        @default(false)
+  parentCourseId   Int?
   cohorts          Cohort[]
   modules          Module[]
   createdAt        DateTime       @default(now())
@@ -235,6 +239,10 @@ model Lesson {
   isOrientationLesson     Boolean         @default(false)
   isCreditHour            Boolean         @default(true)
   estimatedHours          Float           @default(0) // CA-21: Track theory/lab hours per lesson
+  hourType                String          @default("THEORY")
+  countsTowardSeatTime    Boolean         @default(true)
+  mappedCompetency        String?
+  crosswalkRow            Int?
   readings                LessonReading[]
 
   module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
@@ -247,6 +255,9 @@ model Content {
   url             String?
   body            String?
   durationSeconds Int?
+  isDownloadable  Boolean     @default(true)
+  visibility      String      @default("ENROLLED")
+  transcript      String?
   lessonId        Int
   progress  Progress[]
   createdAt DateTime    @default(now())
@@ -293,7 +304,29 @@ model TeachingSchedule {
   course            Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   profile           AcademyProfile @relation(fields: [instructorId], references: [userId])
   cohortId          Int?
+  recordingUrl      String?
+  recordingStatus   String         @default("SCHEDULED")
+  countsAs          String         @default("INTERACTION_NOT_SEAT_TIME")
+  maxCapacity       Int            @default(20)
+  groupName         String?
   cohort            Cohort?        @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  registrations     LiveSessionRegistration[]
+}
+
+model LiveSessionRegistration {
+  id           Int       @id @default(autoincrement())
+  scheduleId   Int
+  userId       String
+  registeredAt DateTime  @default(now())
+  attended     Boolean   @default(false)
+  joinedAt     DateTime?
+  leftAt       DateTime?
+  confirmedBy  String?
+
+  schedule     TeachingSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  student      AcademyProfile   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([scheduleId, userId])
 }
 
 model Notification {
@@ -755,6 +788,8 @@ model ClinicalShift {
   startTime      DateTime
   endTime        DateTime
   hoursCredited  Float
+  groupName      String?
+  maxStudents    Int                       @default(10)
   
   cohort         Cohort                    @relation(fields: [cohortId], references: [id], onDelete: Cascade)
   instructor     AcademyProfile            @relation(fields: [instructorId], references: [userId], onDelete: Cascade)
