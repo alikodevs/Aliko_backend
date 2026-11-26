@@ -229,10 +229,10 @@ async function bootstrap() {
         '/compliance-exporter/**',
         '/api/v1/teaching-schedule/**',
         '/teaching-schedule/**',
-        '/api/v1/chat',
         '/api/v1/chat/**',
-        '/chat',
         '/chat/**',
+        '/api/v1/notifications/**',
+        '/notifications/**',
       ],
       pathRewrite: {
         '^/api/v1/academy': '/api/v1',
@@ -266,6 +266,7 @@ async function bootstrap() {
         '^/compliance-exporter': '/api/v1/compliance-exporter',
         '^/teaching-schedule': '/api/v1/teaching-schedule',
         '^/chat': '/api/v1/chat',
+        '^/notifications': '/api/v1/notifications',
       },
 
 
@@ -394,8 +395,6 @@ async function bootstrap() {
         '/conversations/**',
         '/api/v1/messages/**',
         '/messages/**',
-        '/api/v1/notifications/**',
-        '/notifications/**',
       ],
       pathRewrite: {
         '^/api/v1/communication': '/api/v1',
