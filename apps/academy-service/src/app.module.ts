@@ -38,6 +38,7 @@ import { ComplianceExporterModule } from './compliance-exporter/compliance-expor
 import { RubricsModule } from './rubrics/rubrics.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { HealthDashboardModule } from './health-dashboard/health-dashboard.module';
+import { HealthAdminModule } from './health-admin/health-admin.module';
 import { PrismaService } from './database/prisma.service';
 import { AcademyOutboxPublisherWorker } from './modules/events/academy-outbox-publisher.worker';
 import { AcademyEventsConsumer } from './modules/events/academy-events.consumer';
@@ -82,6 +83,7 @@ import { UserServiceClient } from './integrations/user-service.client';
     RubricsModule,
     AttendanceModule,
     HealthDashboardModule,
+    HealthAdminModule,
   ],
   controllers: [AppController],
   providers: [

@@ -167,4 +167,17 @@ export class InstructorsController {
     }
     return this.instructorsService.listAllInstructors(user);
   }
+
+  @Post(['instructors/verify-doh', 'academy/instructors/verify-doh'])
+  @UseGuards(RoleGuard)
+  @Roles('ADMIN')
+  async verifyDohCredential(
+    @Body() body: { instructorUserId: string; roleTitle?: string; notes?: string; approve?: boolean },
+    @Req() req: any,
+  ) {
+    if (!body?.instructorUserId) {
+      throw new BadRequestException('instructorUserId is required');
+    }
+    return this.instructorsService.verifyDohCredential(body, req.user);
+  }
 }

@@ -1479,4 +1479,90 @@ export class CoursesService {
       return targetCourse;
     });
   }
+
+  /**
+   * A5: Compare a draft course version against its locked parent version
+   */
+  async getVersionDiff(courseId: number) {
+    const draft = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        modules: {
+          orderBy: [{ unitNumber: 'asc' }, { id: 'asc' }],
+          include: { lessons: { select: { id: true, title: true, estimatedHours: true, hourType: true } } },
+        },
+      },
+    });
+    if (!draft) throw new NotFoundException('Course not found');
+
+    if (!draft.parentCourseId) {
+      return {
+        courseId: draft.id,
+        version: draft.version,
+        parentCourseId: null,
+        requiresWabonApproval: false,
+        changes: [],
+      };
+    }
+
+    const parent = await this.prisma.course.findUnique({
+      where: { id: draft.parentCourseId },
+      include: {
+        modules: {
+          orderBy: [{ unitNumber: 'asc' }, { id: 'asc' }],
+          include: { lessons: { select: { id: true, title: true, estimatedHours: true, hourType: true } } },
+        },
+      },
+    });
+    if (!parent) {
+      return {
+        courseId: draft.id,
+        version: draft.version,
+        parentCourseId: draft.parentCourseId,
+        requiresWabonApproval: false,
+        changes: [],
+      };
+    }
+
+    const sumHours = (c: typeof draft) =>
+      c.modules.reduce(
+        (s, m) => s + m.lessons.reduce((ls, l) => ls + (l.estimatedHours || 0), 0),
+        0,
+      );
+
+    const draftHours = Number(sumHours(draft).toFixed(2));
+    const parentHours = Number(sumHours(parent).toFixed(2));
+    const hoursChanged = Math.abs(draftHours - parentHours) > 0.1;
+    const unitsChanged = draft.modules.length !== parent.modules.length;
+
+    const parentByTitle = new Map(parent.modules.map((m) => [m.title, m]));
+    const changes: Array<{ area: string; change: string; wabonApprovalNeeded: boolean }> = [];
+
+    for (const mod of draft.modules) {
+      const prev = parentByTitle.get(mod.title);
+      if (!prev) {
+        changes.push({
+          area: mod.title,
+          change: `Added module with ${mod.lessons.length} lessons`,
+          wabonApprovalNeeded: true,
+        });
+      } else if (prev.lessons.length !== mod.lessons.length) {
+        changes.push({
+          area: mod.title,
+          change: `Lesson count changed (${prev.lessons.length} -> ${mod.lessons.length})`,
+          wabonApprovalNeeded: false,
+        });
+      }
+    }
+
+    return {
+      courseId: draft.id,
+      version: draft.version,
+      parentCourseId: parent.id,
+      parentVersion: parent.version,
+      hoursDelta: Number((draftHours - parentHours).toFixed(2)),
+      requiresWabonApproval: hoursChanged || unitsChanged || changes.some((c) => c.wabonApprovalNeeded),
+      changes,
+    };
+  }
 }

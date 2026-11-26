@@ -203,4 +203,18 @@ export class ExamSecurityController {
     );
     return this.examSecurityService.auditSession(dto, user);
   }
+
+  @Get([
+    'exam-security/course/:courseId/by-unit',
+    'academy/exam-security/course/:courseId/by-unit',
+    'health/admin/integrity-audit/:courseId',
+    'academy/health/admin/integrity-audit/:courseId',
+  ])
+  @UseGuards(RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER', 'COMMISSION_AUDITOR')
+  async getCourseIntegrityAuditByUnit(@Param('courseId') paramCourseId: string, @Req() req: any) {
+    const courseId = Number(paramCourseId);
+    if (!courseId || isNaN(courseId)) throw new BadRequestException('Invalid course ID');
+    return this.examSecurityService.getCourseIntegrityAuditByUnit(courseId, req.user);
+  }
 }

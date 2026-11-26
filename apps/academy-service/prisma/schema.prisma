@@ -851,6 +851,9 @@ model InstructorCredential {
   trainTheTrainerCertUrl String?
   wabonApprovalLetterUrl String?
   approvedByDirectorAt   DateTime?
+  roleTitle              String    @default("Instructor (RN)")
+  dohVerifiedAt          DateTime?
+  dohVerificationNotes   String?
 
   profile                AcademyProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
 }
@@ -903,3 +906,76 @@ model RubricLevel {
   criterion   RubricCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
 }
 
+// 12. Global Admin Program Approvals, Reviewer Access & Refunds (Doc 7)
+model RegulatoryApproval {
+  id          Int       @id @default(autoincrement())
+  courseId    Int?
+  agency      String    // WABON | WORKFORCE_BOARD | CREDENTIA
+  title       String
+  statuteRef  String?
+  status      String    @default("PLANNED") // PLANNED | SUBMITTED | IN_REVIEW | APPROVED | ACTION_REQUIRED
+  nextStep    String?
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model ProgramDocument {
+  id                 Int      @id @default(autoincrement())
+  courseId           Int?
+  title              String
+  category           String   @default("APPLICATION_PACKAGE")
+  fileUrl            String
+  sharedWithReviewer Boolean  @default(true)
+  uploadedBy         String
+  createdAt          DateTime @default(now())
+}
+
+model ReviewerAccess {
+  id               Int                @id @default(autoincrement())
+  email            String
+  userId           String?
+  agency           String             // WABON | WORKFORCE_BOARD
+  reviewerTitle    String
+  scope            String             @default("Program + all cohorts + course player")
+  maskStudentNames Boolean            @default(false)
+  status           String             @default("INVITED") // INVITED | ACTIVE | REVOKED | EXPIRED
+  expiresAt        DateTime
+  lastActiveAt     DateTime?
+  invitedBy        String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  auditLogs        ReviewerAuditLog[]
+}
+
+model ReviewerAuditLog {
+  id         Int            @id @default(autoincrement())
+  reviewerId Int
+  action     String
+  resource   String
+  ipAddress  String?
+  createdAt  DateTime       @default(now())
+
+  reviewer   ReviewerAccess @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+}
+
+model RefundRequest {
+  id                     Int       @id @default(autoincrement())
+  userId                 String
+  cohortId               Int?
+  enrollmentId           Int?
+  withdrawalDate         DateTime
+  progressPercent        Float     @default(0)
+  tuitionPaid            Float     @default(0)
+  calculatedRefundAmount Float     @default(0)
+  status                 String    @default("OPEN") // OPEN | APPROVED | PROCESSED | DENIED
+  reason                 String?
+  agreementRuleApplied   String?
+  reviewedBy             String?
+  reviewedAt             DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+}

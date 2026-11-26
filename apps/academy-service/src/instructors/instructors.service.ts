@@ -243,12 +243,55 @@ export class InstructorsService {
       orderBy: { rnLicenseExpiration: 'asc' },
     });
 
-    return credentials.map((c) => ({
-      ...c,
-      isLicenseExpired: c.rnLicenseExpiration < new Date(),
-      isDirectorApproved: !!c.approvedByDirectorAt,
-      complianceStatus: this.getComplianceStatus(c),
-    }));
+    const now = new Date();
+    const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const in60Days = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+
+    return credentials.map((c) => {
+      let expiryAlert: 'EXPIRED' | 'CRITICAL_30D' | 'WARNING_60D' | 'VALID' = 'VALID';
+      if (c.rnLicenseExpiration < now) expiryAlert = 'EXPIRED';
+      else if (c.rnLicenseExpiration <= in30Days) expiryAlert = 'CRITICAL_30D';
+      else if (c.rnLicenseExpiration <= in60Days) expiryAlert = 'WARNING_60D';
+
+      return {
+        ...c,
+        isLicenseExpired: c.rnLicenseExpiration < now,
+        isDirectorApproved: !!c.approvedByDirectorAt,
+        isDohVerified: !!c.dohVerifiedAt,
+        expiryAlert,
+        complianceStatus: this.getComplianceStatus(c),
+      };
+    });
+  }
+
+  /**
+   * A4: Record WA DOH Provider Credential Search verification & roleTitle
+   */
+  async verifyDohCredential(
+    dto: { instructorUserId: string; roleTitle?: string; notes?: string; approve?: boolean },
+    user: AuthenticatedUser,
+  ) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    if (profile.role !== 'ADMIN') {
+      throw new ForbiddenException('Only admins can verify instructor DOH credentials.');
+    }
+
+    const credential = await this.prisma.instructorCredential.findUnique({
+      where: { userId: dto.instructorUserId },
+    });
+    if (!credential) {
+      throw new NotFoundException('No WABON credentials found for this instructor.');
+    }
+
+    return this.prisma.instructorCredential.update({
+      where: { userId: dto.instructorUserId },
+      data: {
+        dohVerifiedAt: new Date(),
+        ...(dto.roleTitle ? { roleTitle: dto.roleTitle } : {}),
+        ...(dto.notes !== undefined ? { dohVerificationNotes: dto.notes } : {}),
+        ...(dto.approve ? { approvedByDirectorAt: new Date() } : {}),
+      },
+    });
   }
 
   // ── Helpers ──────────────────────────────────────────────────

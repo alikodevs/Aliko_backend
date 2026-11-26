@@ -249,6 +249,72 @@ export class ExamSecurityService {
   }
 
   /**
+   * A7: Exam Session Integrity Audit aggregated by Unit (U1–U9)
+   */
+  async getCourseIntegrityAuditByUnit(courseId: number, user: AuthenticatedUser) {
+    const profile = await this.userService.getOrCreateProfile(user);
+    if (!['INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER', 'COMMISSION_AUDITOR'].includes(profile.role)) {
+      throw new ForbiddenException(
+        'Only instructors, admins, or auditors can view course integrity audits.',
+      );
+    }
+
+    const modules = await this.prisma.module.findMany({
+      where: { courseId, isOrientationModule: false, unitNumber: { gte: 1, lte: 9 } },
+      orderBy: [{ unitNumber: 'asc' }, { id: 'asc' }],
+      include: {
+        exercises: {
+          where: { OR: [{ type: 'MULTIPLE_CHOICE' }, { isProctored: true }] },
+          select: { id: true, title: true },
+        },
+      },
+    });
+
+    const exerciseIds = modules.flatMap((m) => m.exercises.map((e) => e.id));
+    const sessions =
+      exerciseIds.length > 0
+        ? await this.prisma.examSession.findMany({
+            where: { exerciseId: { in: exerciseIds } },
+            select: {
+              id: true,
+              exerciseId: true,
+              idPhotoUrl: true,
+              webcamSnapUrl: true,
+              tabBlurCount: true,
+              isAudited: true,
+            },
+          })
+        : [];
+
+    const units = modules.map((mod) => {
+      const exIds = new Set(mod.exercises.map((e) => e.id));
+      const unitSessions = sessions.filter((s) => exIds.has(s.exerciseId));
+      const idVerifiedCount = unitSessions.filter((s) => Boolean(s.idPhotoUrl)).length;
+      const flaggedSessions = unitSessions.filter((s) => s.tabBlurCount > 0);
+      const auditedFlags = flaggedSessions.filter((s) => s.isAudited).length;
+
+      return {
+        moduleId: mod.id,
+        unitNumber: mod.unitNumber,
+        unitLabel: `Unit ${mod.unitNumber}`,
+        title: mod.title,
+        totalSessions: unitSessions.length,
+        idVerifiedCount,
+        flagsCount: flaggedSessions.length,
+        auditedFlagsCount: auditedFlags,
+        status:
+          flaggedSessions.length === 0
+            ? 'CLEAN'
+            : auditedFlags === flaggedSessions.length
+              ? 'CLEARED'
+              : 'PENDING_REVIEW',
+      };
+    });
+
+    return { courseId, units };
+  }
+
+  /**
    * Mark an exam session as audited (instructors/auditors only).
    */
   async auditSession(dto: AuditExamSessionDto, user: AuthenticatedUser) {

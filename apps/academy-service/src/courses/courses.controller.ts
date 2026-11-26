@@ -625,5 +625,14 @@ export class CoursesController {
       body?.title,
     );
   }
+
+  @Get(['courses/:id/version-diff', 'academy/courses/:id/version-diff'])
+  @UseGuards(AcademyProfileGuard, RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER', 'COMMISSION_AUDITOR')
+  async getVersionDiff(@Param('id') paramId: string) {
+    const id = Number(paramId);
+    if (!id || isNaN(id)) throw new BadRequestException('Invalid course ID');
+    return this.coursesService.getVersionDiff(id);
+  }
 }
 
