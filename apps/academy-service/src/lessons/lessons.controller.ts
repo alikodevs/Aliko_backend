@@ -169,6 +169,17 @@ export class LessonsController {
   }
 
   @Put(['lessons/:id', 'academy/lessons/:id'])
+  @UseGuards(RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  @UsePipes(new JoiValidationPipe(UpdateLessonSchema))
+  async updatePut(
+    @Param('id') paramId?: string,
+    @Body() body?: UpdateLessonDto,
+    @Req() req?: any,
+  ) {
+    return this.update(paramId, body, req);
+  }
+
   @Patch(['lessons/:id', 'academy/lessons/:id'])
   @MessagePattern({ cmd: 'update_lesson' })
   @UseGuards(RoleGuard)

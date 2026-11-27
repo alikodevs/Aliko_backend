@@ -299,8 +299,19 @@ export class CoursesController {
     }
   }
 
-  @Patch(['courses/:id', 'academy/courses/:id'])
   @Put(['courses/:id', 'academy/courses/:id'])
+  @UseGuards(AcademyProfileGuard, RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  @UsePipes(new JoiValidationPipe(UpdateCourseSchema))
+  async updatePut(
+    @Param('id') paramId?: string,
+    @Body() body?: UpdateCourseDto,
+    @Req() req?: any,
+  ) {
+    return this.update(paramId, body, req);
+  }
+
+  @Patch(['courses/:id', 'academy/courses/:id'])
   @MessagePattern({ cmd: 'update_course' })
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
@@ -378,8 +389,19 @@ export class CoursesController {
     }
   }
 
-  @Patch(['courses/:id/status', 'academy/courses/:id/status'])
   @Put(['courses/:id/status', 'academy/courses/:id/status'])
+  @UseGuards(AcademyProfileGuard, RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  @UsePipes(new JoiValidationPipe(UpdateCourseStatusSchema))
+  async updateStatusPut(
+    @Param('id') paramId?: string,
+    @Body() body?: { status: CourseStatus },
+    @Req() req?: any,
+  ) {
+    return this.updateStatus(paramId, body, req);
+  }
+
+  @Patch(['courses/:id/status', 'academy/courses/:id/status'])
   @MessagePattern({ cmd: 'update_course_status' })
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')

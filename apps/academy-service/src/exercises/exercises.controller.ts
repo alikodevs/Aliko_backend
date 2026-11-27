@@ -211,6 +211,17 @@ export class ExercisesController {
   }
 
   @Put(['exercises/:id', 'academy/exercises/:id'])
+  @UseGuards(RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  @UsePipes(new JoiValidationPipe(UpdateExerciseSchema))
+  async updatePut(
+    @Param('id') paramId?: string,
+    @Body() body?: UpdateExerciseDto,
+    @Req() req?: any,
+  ) {
+    return this.update(paramId, body, req);
+  }
+
   @Patch(['exercises/:id', 'academy/exercises/:id'])
   @MessagePattern({ cmd: 'update_exercise' })
   @UseGuards(RoleGuard)

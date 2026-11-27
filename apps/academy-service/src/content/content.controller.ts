@@ -262,8 +262,19 @@ export class ContentController {
     }
   }
 
-  @Patch(['content/:id', 'academy/content/:id'])
   @Put(['content/:id', 'academy/content/:id'])
+  @UseGuards(RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  @UsePipes(new JoiValidationPipe(UpdateContentSchema))
+  async updatePut(
+    @Param('id') paramId?: string,
+    @Body() body?: UpdateContentDto,
+    @Req() req?: any,
+  ) {
+    return this.update(paramId, body, req);
+  }
+
+  @Patch(['content/:id', 'academy/content/:id'])
   @MessagePattern({ cmd: 'update_content' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
