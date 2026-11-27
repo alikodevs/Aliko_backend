@@ -626,6 +626,15 @@ export class CoursesController {
     );
   }
 
+  @Post(['courses/:id/unpublish', 'academy/courses/:id/unpublish'])
+  @UseGuards(AcademyProfileGuard, RoleGuard)
+  @Roles('INSTRUCTOR', 'ADMIN')
+  async unpublish(@Param('id') paramId: string, @Req() req: any) {
+    const id = Number(paramId);
+    if (!id || isNaN(id)) throw new BadRequestException('Invalid course ID');
+    return this.coursesService.updateStatus(id, CourseStatus.DRAFT, req.user);
+  }
+
   @Get(['courses/:id/version-diff', 'academy/courses/:id/version-diff'])
   @UseGuards(AcademyProfileGuard, RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN', 'COURSE_MANAGER', 'COMMISSION_AUDITOR')

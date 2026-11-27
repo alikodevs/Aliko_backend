@@ -12,9 +12,12 @@ import {
   Body,
   Query,
   Req,
+  UseInterceptors,
+  UploadedFile as NestUploadedFile,
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ContentService } from './content.service';
 import { CreateContentDto } from './dto/create-content.dto';
@@ -126,9 +129,11 @@ export class ContentController {
   @MessagePattern({ cmd: 'upload_content_file' })
   @UseGuards(RoleGuard)
   @Roles('INSTRUCTOR', 'ADMIN')
+  @UseInterceptors(FileInterceptor('file'))
   @UsePipes(new JoiValidationPipe(UploadContentSchema))
   async uploadFile(
     @Body() body?: UploadContentDto,
+    @NestUploadedFile() uploadedFile?: any,
     @Req() req?: any,
     @Payload()
     payload?: {
@@ -145,7 +150,7 @@ export class ContentController {
     if (!dto) {
       throw new BadRequestException('Content upload data required');
     }
-    const file = payload?.file || req?.file;
+    const file = payload?.file || uploadedFile || req?.file;
     const fileName = file?.originalname || dto?.contentUrl || 'N/A';
     this.logger.log(
       `Uploading content "${fileName}" for lesson ${dto.lessonId} by user: ${user.firebaseId}`,

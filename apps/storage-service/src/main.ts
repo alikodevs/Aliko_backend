@@ -32,8 +32,7 @@ async function bootstrap() {
     },
   };
 
-  // CA-07: Gate protected file downloads (documents, videos, admissions proofs) behind JWT auth.
-  // Public course thumbnails / avatars under /alikohub/images remain accessible.
+  // CA-07: Validate JWT when provided, while allowing direct browser static asset loads (images, PDFs, videos)
   const fileAuthMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const reqPath = req.path || '';
     if (
@@ -41,6 +40,8 @@ async function bootstrap() {
       reqPath === '/api/v1/health' ||
       reqPath.startsWith('/api/v1/health') ||
       reqPath.includes('/alikohub/images/') ||
+      reqPath.includes('/alikohub/documents/') ||
+      reqPath.includes('/alikohub/videos/') ||
       reqPath.startsWith('/images/')
     ) {
       return next();

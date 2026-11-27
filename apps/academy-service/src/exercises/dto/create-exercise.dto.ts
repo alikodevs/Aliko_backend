@@ -57,6 +57,28 @@ export class CreateExerciseDto {
   points?: number;
 
   @IsOptional()
+  @IsString()
+  rubricId?: string;
+
+  @IsOptional()
+  @IsString()
+  alternateDocUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isProctored?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  passingScorePercent?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  poolSize?: number;
+
+  @IsOptional()
   @IsInt()
   @Type(() => Number)
   order?: number;

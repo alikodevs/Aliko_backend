@@ -732,7 +732,9 @@ export class CoursesService {
         status,
         ...(status === CourseStatus.PUBLISHED && HealthCompliancePolicy.isHealthCourse(course)
           ? { isLocked: true }
-          : {}),
+          : status === CourseStatus.DRAFT
+            ? { isLocked: false }
+            : {}),
       },
     });
   }
@@ -1061,12 +1063,15 @@ export class CoursesService {
     let clinicalHours = 0;
     for (const mod of course.modules) {
       for (const lesson of mod.lessons) {
-        if (!lesson.isCreditHour) continue;
-        const hrs = lesson.estimatedHours || 0;
         const ht = (lesson.hourType || '').toUpperCase();
-        if (ht === 'CLINICAL' || mod.track === 'CLINICAL_IN_PERSON' || lesson.type === 'CLINICAL') {
+        if (ht === 'NON_CREDIT') continue;
+        const isClinical = ht === 'CLINICAL' || mod.track === 'CLINICAL_IN_PERSON' || lesson.type === 'CLINICAL';
+        const isLab = ht === 'LAB' || mod.track === 'SKILLS_LAB_IN_PERSON' || lesson.type === 'SKILLS';
+        if (!lesson.isCreditHour && !isClinical && !isLab) continue;
+        const hrs = lesson.estimatedHours || 0;
+        if (isClinical) {
           clinicalHours += hrs;
-        } else if (ht === 'LAB' || mod.track === 'SKILLS_LAB_IN_PERSON' || lesson.type === 'SKILLS') {
+        } else if (isLab) {
           labHours += hrs;
         } else if (ht === 'THEORY') {
           theoryHours += hrs;

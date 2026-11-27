@@ -15,7 +15,7 @@ const createExerciseDtoSchema = Joi.object({
     .optional()
     .description('The lesson ID this exercise belongs to'),
   type: Joi.string()
-    .valid('MULTIPLE_CHOICE', 'TRUE_FALSE', 'MATCHING', 'SHORT_TEXT')
+    .valid('MULTIPLE_CHOICE', 'TRUE_FALSE', 'MATCHING', 'SHORT_TEXT', 'MASLOW_PYRAMID', 'STORY_ACTIVITY')
     .required()
     .description('The type of exercise'),
   question: Joi.string().required().description('The question text'),
@@ -45,7 +45,12 @@ const createExerciseDtoSchema = Joi.object({
     .allow('', null)
     .optional()
     .description('Course outcome or competency standard tied to this assignment'),
-});
+  rubricId: Joi.string().allow('', null).optional(),
+  alternateDocUrl: Joi.string().allow('', null).optional(),
+  isProctored: Joi.boolean().optional(),
+  passingScorePercent: Joi.number().integer().optional(),
+  poolSize: Joi.number().integer().optional(),
+}).unknown(true);
 
 export const CreateExerciseSchema = Joi.alternatives().try(
   Joi.object({
@@ -97,7 +102,7 @@ const updateExerciseDtoSchema = Joi.object({
     .optional()
     .description('The updated lesson ID'),
   type: Joi.string()
-    .valid('MULTIPLE_CHOICE', 'TRUE_FALSE', 'MATCHING', 'SHORT_TEXT')
+    .valid('MULTIPLE_CHOICE', 'TRUE_FALSE', 'MATCHING', 'SHORT_TEXT', 'MASLOW_PYRAMID', 'STORY_ACTIVITY')
     .optional()
     .description('The updated type'),
   question: Joi.string().optional().description('The updated question'),
@@ -118,7 +123,12 @@ const updateExerciseDtoSchema = Joi.object({
     .allow('', null)
     .optional()
     .description('The updated course outcome tied to this assignment'),
-}).min(1);
+  rubricId: Joi.string().allow('', null).optional(),
+  alternateDocUrl: Joi.string().allow('', null).optional(),
+  isProctored: Joi.boolean().optional(),
+  passingScorePercent: Joi.number().integer().optional(),
+  poolSize: Joi.number().integer().optional(),
+}).min(1).unknown(true);
 
 export const UpdateExerciseSchema = Joi.alternatives().try(
   Joi.object({

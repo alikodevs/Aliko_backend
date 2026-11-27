@@ -1,9 +1,24 @@
 import * as Joi from 'joi';
 
+const lessonTypes = [
+  'VIDEO',
+  'WEBINAR',
+  'ASSIGNMENT',
+  'QUIZ',
+  'TEXT',
+  'READING',
+  'DISCUSSION',
+  'SKILLS',
+  'CLINICAL',
+  'LIVE',
+  'CHECKLIST',
+  'SIGNATURE',
+];
+
 const createLessonDtoSchema = Joi.object({
   title: Joi.string().required().description('The title of the lesson'),
   type: Joi.string()
-    .valid('VIDEO', 'WEBINAR', 'ASSIGNMENT', 'QUIZ')
+    .valid(...lessonTypes)
     .required()
     .description('The pedagogical type of the lesson'),
   moduleId: Joi.number()
@@ -29,7 +44,16 @@ const createLessonDtoSchema = Joi.object({
   unlockRules: Joi.any()
     .optional()
     .description('Conditional logic for unlocking this lesson'),
-});
+  estimatedHours: Joi.number().optional(),
+  hourType: Joi.string().valid('THEORY', 'LAB', 'CLINICAL', 'NON_CREDIT').optional(),
+  countsTowardSeatTime: Joi.boolean().optional(),
+  isCreditHour: Joi.boolean().optional(),
+  isOrientationLesson: Joi.boolean().optional(),
+  isWeekOneAttendanceGate: Joi.boolean().optional(),
+  mappedCompetency: Joi.string().allow('', null).optional(),
+  crosswalkRow: Joi.number().integer().allow(null).optional(),
+  contents: Joi.array().optional(),
+}).unknown(true);
 
 export const CreateLessonSchema = Joi.alternatives().try(
   Joi.object({
@@ -42,7 +66,7 @@ export const CreateLessonSchema = Joi.alternatives().try(
 const updateLessonDtoSchema = Joi.object({
   title: Joi.string().optional().description('The updated title'),
   type: Joi.string()
-    .valid('VIDEO', 'WEBINAR', 'ASSIGNMENT', 'QUIZ')
+    .valid(...lessonTypes)
     .optional()
     .description('The updated type'),
   moduleId: Joi.number()
@@ -60,7 +84,16 @@ const updateLessonDtoSchema = Joi.object({
     .description('The updated max score'),
   order: Joi.number().integer().optional().description('The updated order'),
   unlockRules: Joi.any().optional().description('The updated unlock rules'),
-});
+  estimatedHours: Joi.number().optional(),
+  hourType: Joi.string().valid('THEORY', 'LAB', 'CLINICAL', 'NON_CREDIT').optional(),
+  countsTowardSeatTime: Joi.boolean().optional(),
+  isCreditHour: Joi.boolean().optional(),
+  isOrientationLesson: Joi.boolean().optional(),
+  isWeekOneAttendanceGate: Joi.boolean().optional(),
+  mappedCompetency: Joi.string().allow('', null).optional(),
+  crosswalkRow: Joi.number().integer().allow(null).optional(),
+  contents: Joi.array().optional(),
+}).unknown(true);
 
 export const UpdateLessonSchema = Joi.alternatives().try(
   Joi.object({

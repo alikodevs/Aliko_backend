@@ -13,7 +13,17 @@ const createCourseModuleDtoSchema = Joi.object({
     .description(
       'The unique identifier of the course this module belongs to',
     ),
-});
+  track: Joi.string()
+    .valid('THEORY_ASYNC', 'THEORY_SYNC', 'SKILLS_LAB_IN_PERSON', 'CLINICAL_IN_PERSON')
+    .optional(),
+  isOrientationModule: Joi.boolean().optional(),
+  unitNumber: Joi.number().integer().allow(null).optional(),
+  scheduledOpenDate: Joi.date().allow(null).optional(),
+  targetTheoryHours: Joi.number().optional(),
+  targetLabHours: Joi.number().optional(),
+  studentGuidePages: Joi.string().allow('', null).optional(),
+  characters: Joi.array().items(Joi.string()).optional(),
+}).unknown(true);
 
 export const CreateCourseModuleSchema = Joi.alternatives().try(
   Joi.object({
@@ -30,7 +40,17 @@ const updateCourseModuleDtoSchema = Joi.object({
     .integer()
     .optional()
     .description('The updated course ID'),
-});
+  track: Joi.string()
+    .valid('THEORY_ASYNC', 'THEORY_SYNC', 'SKILLS_LAB_IN_PERSON', 'CLINICAL_IN_PERSON')
+    .optional(),
+  isOrientationModule: Joi.boolean().optional(),
+  unitNumber: Joi.number().integer().allow(null).optional(),
+  scheduledOpenDate: Joi.date().allow(null).optional(),
+  targetTheoryHours: Joi.number().optional(),
+  targetLabHours: Joi.number().optional(),
+  studentGuidePages: Joi.string().allow('', null).optional(),
+  characters: Joi.array().items(Joi.string()).optional(),
+}).unknown(true);
 
 export const UpdateCourseModuleSchema = Joi.alternatives().try(
   Joi.object({

@@ -1,5 +1,5 @@
-import { IsEnum, IsInt, IsString, IsOptional } from 'class-validator';
-import { ContentType } from '@prisma/client/academy';
+import { IsInt, IsString, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UploadContentDto {
   @IsString()
@@ -9,6 +9,7 @@ export class UploadContentDto {
   type: string;
 
   @IsInt()
+  @Type(() => Number)
   lessonId: number;
 
   @IsOptional()
