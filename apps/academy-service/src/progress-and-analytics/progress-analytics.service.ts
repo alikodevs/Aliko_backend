@@ -259,8 +259,22 @@ export class ProgressAndAnalyticsService {
         }
       }
 
-      // Check admissions agreement signed (HEALTH courses only)
-      if (HealthCompliancePolicy.isHealthCourse(lesson.module.course)) {
+      // 0-1 (Welcome Session) is instructor-only per WABON Req 11
+      if (
+        lesson.module.isOrientationModule &&
+        lesson.isOrientationLesson &&
+        lesson.title.startsWith('0-1')
+      ) {
+        throw new ForbiddenException(
+          '0-1 (Welcome session) attendance can only be recorded by an instructor or admin.',
+        );
+      }
+
+      // Check admissions agreement signed (HEALTH courses only, excluding Module 0 which contains 0-9 Sign Enrollment Agreement)
+      if (
+        HealthCompliancePolicy.isHealthCourse(lesson.module.course) &&
+        !lesson.module.isOrientationModule
+      ) {
         const admissionsApp = await this.prisma.studentAdmissionsApplication.findFirst({
           where: { userId: user.firebaseId },
         });

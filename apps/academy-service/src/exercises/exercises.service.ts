@@ -292,7 +292,7 @@ export class ExercisesService {
         const admissionsApp = await this.prisma.studentAdmissionsApplication.findFirst({
           where: { userId: user.firebaseId },
         });
-        if (admissionsApp && !admissionsApp.agreementSigned) {
+        if (!exercise.module.isOrientationModule && admissionsApp && !admissionsApp.agreementSigned) {
           throw new ForbiddenException(
             'You must sign the enrollment agreement before submitting exercises.',
           );

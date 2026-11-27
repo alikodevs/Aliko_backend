@@ -13,6 +13,7 @@ import {
   ReviewAdmissionsApplicationDto,
 } from './dto';
 import { ApprovalStatus, EnrollmentStatus } from '@prisma/client/academy';
+import { OrientationService } from '../orientation/orientation.service';
 
 @Injectable()
 export class AdmissionsService {
@@ -21,6 +22,7 @@ export class AdmissionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
+    private readonly orientationService: OrientationService,
   ) {}
 
   async submitApplication(
@@ -104,6 +106,9 @@ export class AdmissionsService {
         disclosuresAcknowledged: true,
       },
     });
+
+    // Sync O-9 (Sign Enrollment Agreement) in orientationChecklist + Module 0 lesson 0-9 progress
+    await this.orientationService.updateOrientationItem(dto.cohortId, 'O-9', true, user);
 
     this.logger.log(
       `Student ${user.firebaseId} signed enrollment agreement for cohort ${dto.cohortId}`,

@@ -308,7 +308,7 @@ export class LessonsService {
         const admissionsApp = await this.prisma.studentAdmissionsApplication.findFirst({
           where: { userId: user.firebaseId },
         });
-        if (admissionsApp && !admissionsApp.agreementSigned) {
+        if (!lesson.module.isOrientationModule && admissionsApp && !admissionsApp.agreementSigned) {
           isLocked = true;
         } else if (orientationModule && !lesson.module.isOrientationModule && (!admissionsApp || !admissionsApp.orientationCompleted)) {
           isLocked = true;
