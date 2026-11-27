@@ -1377,17 +1377,17 @@ export class CoursesService {
         },
       });
 
-      // Units 1-9 (10-lesson pattern)
-      const unitTitles = [
-        'Unit 1 · Role & Communication',
-        'Unit 2 · Resident Rights & Ethics',
-        'Unit 3 · Safety & Emergencies',
-        'Unit 4 · Infection Prevention',
-        'Unit 5 · Body Mechanics & Mobility',
-        'Unit 6 · Basic Nursing & Vital Signs',
-        'Unit 7 · Personal Care & ADLs',
-        'Unit 8 · Restorative & Elimination',
-        'Unit 9 · End-of-Life & Post-Mortem Care',
+      // Units 1-9 (10-lesson pattern matching Doc 5 Appendix A & S11 Crosswalk)
+      const unitsSpec = [
+        { title: 'Unit 1 · The Nursing Assistant Role, Human Needs, Rules & Regulations', theory: 4, lab: 1, pages: 'pp. 26-42' },
+        { title: 'Unit 2 · Client or Resident Rights and Promoting Independence', theory: 4, lab: 1, pages: 'pp. 43-53' },
+        { title: 'Unit 3 · Communication and Interpersonal Skills', theory: 3, lab: 2, pages: 'pp. 54-68' },
+        { title: 'Unit 4 · Infection Control', theory: 4, lab: 2, pages: 'pp. 69-84' },
+        { title: 'Unit 5 · Safety and Emergency Procedures', theory: 3, lab: 3, pages: 'pp. 85-103' },
+        { title: 'Unit 6 · Basic Nursing Skills', theory: 5, lab: 4, pages: 'pp. 104-119' },
+        { title: 'Unit 7 · Basic Restorative Services', theory: 3, lab: 3, pages: 'pp. 120-136' },
+        { title: 'Unit 8 · Personal Care', theory: 5, lab: 7, pages: 'pp. 137-161' },
+        { title: 'Unit 9 · Life Transitions', theory: 4, lab: 2, pages: 'pp. 162-213' },
       ];
       const pattern: Array<{ title: string; type: LessonType; hourType: string; hrs: number; credit: boolean }> = [
         { title: 'L1 · Start here', type: LessonType.TEXT, hourType: 'THEORY', hrs: 0.1, credit: true },
@@ -1399,26 +1399,28 @@ export class CoursesService {
         { title: 'L7 · Unit Discussion', type: LessonType.DISCUSSION, hourType: 'THEORY', hrs: 0.4, credit: true },
         { title: 'L8 · Get ready for lab', type: LessonType.VIDEO, hourType: 'NON_CREDIT', hrs: 0, credit: false },
         { title: 'L9 · Unit Quiz (proctored)', type: LessonType.QUIZ, hourType: 'THEORY', hrs: 0.34, credit: true },
-        { title: 'L10 · Lab day (in person)', type: LessonType.SKILLS, hourType: 'LAB', hrs: 2.78, credit: true },
+        { title: 'L10 · Lab day (in person)', type: LessonType.SKILLS, hourType: 'LAB', hrs: 1.0, credit: true },
       ];
 
-      for (let u = 0; u < unitTitles.length; u++) {
+      for (let u = 0; u < unitsSpec.length; u++) {
+        const spec = unitsSpec[u];
         await tx.module.create({
           data: {
-            title: unitTitles[u],
-            description: `WABON Common Curriculum ${unitTitles[u]}`,
+            title: spec.title,
+            description: `WABON Common Curriculum ${spec.title}`,
             courseId: targetCourse.id,
             track: 'THEORY_ASYNC',
             unitNumber: u + 1,
-            targetTheoryHours: 3.89,
-            targetLabHours: 2.78,
+            targetTheoryHours: spec.theory,
+            targetLabHours: spec.lab,
+            studentGuidePages: spec.pages,
             lessons: {
               create: pattern.map((p, idx) => ({
                 title: p.title,
                 type: p.type,
                 order: idx + 1,
                 isCreditHour: p.credit,
-                estimatedHours: p.hrs,
+                estimatedHours: p.hourType === 'LAB' ? spec.lab : p.hrs,
                 hourType: p.hourType,
                 countsTowardSeatTime: p.hourType === 'THEORY',
               })),

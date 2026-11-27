@@ -268,15 +268,30 @@ const WABON_22_CORE_SKILLS = [
   },
 ];
 
-const CATEGORY_UNIT_MAP: Record<string, string> = {
-  'Infection Control': 'Unit 2',
-  'Vital Signs': 'Unit 4',
-  'Mobility & Transfers': 'Unit 5',
-  'Personal Care': 'Unit 6',
-  'Personal Care & ADLs': 'Unit 6',
-  'Nutrition & Hydration': 'Unit 7',
-  'Elimination & Output': 'Unit 7',
-  'Restorative Care': 'Unit 8',
+// Exact unit mapping from Doc 5 (S10 · Skills Lab & S11 · Curriculum Crosswalk)
+const SKILL_UNIT_MAP: Record<string, string> = {
+  'SKILL-01': 'Unit 4',
+  'SKILL-02': 'Unit 8',
+  'SKILL-03': 'Unit 5',
+  'SKILL-04': 'Unit 8',
+  'SKILL-05': 'Unit 8',
+  'SKILL-06': 'Unit 6',
+  'SKILL-07': 'Unit 6',
+  'SKILL-08': 'Unit 4',
+  'SKILL-09': 'Unit 7',
+  'SKILL-10': 'Unit 8',
+  'SKILL-11': 'Unit 8',
+  'SKILL-13': 'Unit 6',
+  'SKILL-14': 'Unit 6',
+  'SKILL-15': 'Unit 7',
+  'SKILL-16': 'Unit 7',
+  'SKILL-17': 'Unit 5',
+  'SKILL-18': 'Unit 8',
+  'SKILL-19': 'Unit 8',
+  'SKILL-20': 'Unit 8',
+  'SKILL-21': 'Unit 8',
+  'SKILL-22': 'Unit 5',
+  'SKILL-23': 'Unit 6',
 };
 
 async function seedCoreSkills() {
@@ -293,7 +308,7 @@ async function seedCoreSkills() {
   }
 
   for (const skill of WABON_22_CORE_SKILLS) {
-    const taughtInUnit = CATEGORY_UNIT_MAP[skill.category] || 'Unit 6';
+    const taughtInUnit = SKILL_UNIT_MAP[skill.skillNumber] || 'Unit 6';
     await prisma.coreSkill.upsert({
       where: { skillNumber: skill.skillNumber },
       update: {
