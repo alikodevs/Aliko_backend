@@ -139,10 +139,10 @@ export class CertificationService {
       cohortId: dto.cohortId,
       courseTitle: report.courseTitle,
       hoursBreakdown: {
-        classroomTheoryHours: 50.0,
-        skillsLabHours: 20.0,
+        classroomTheoryHours: 35.0,
+        skillsLabHours: 33.0,
         clinicalHours: summary.clinicalHours.totalCompleted,
-        totalTrainingHours: 50.0 + 20.0 + summary.clinicalHours.totalCompleted,
+        totalTrainingHours: 35.0 + 33.0 + summary.clinicalHours.totalCompleted,
       },
       academicRecord: {
         overallTheoryScorePercent: summary.overallTheoryPercent,

@@ -289,16 +289,21 @@ export class ProgressAndAnalyticsService {
     const existing = await this.prisma.progress.findFirst({
       where: { userId: user.firebaseId, courseId, lessonId, contentId: null },
     });
-    if (existing) return existing;
+    if (existing && existing.status === 'COMPLETED') return existing;
 
-    const progress = await this.prisma.progress.create({
-      data: {
-        userId: user.firebaseId,
-        courseId,
-        lessonId,
-        status: 'COMPLETED',
-      },
-    });
+    const progress = existing
+      ? await this.prisma.progress.update({
+          where: { id: existing.id },
+          data: { status: 'COMPLETED', updatedAt: new Date() },
+        })
+      : await this.prisma.progress.create({
+          data: {
+            userId: user.firebaseId,
+            courseId,
+            lessonId,
+            status: 'COMPLETED',
+          },
+        });
 
     // ── Sync → Orientation Checklist (Module 0 lessons only) ──
     if (lesson.isOrientationLesson && lesson.module.isOrientationModule) {
