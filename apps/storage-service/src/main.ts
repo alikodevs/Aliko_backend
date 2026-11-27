@@ -24,7 +24,10 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'x-internal-service-key', 'Origin'],
   });
 
-  const uploadPath = path.resolve(config.localUploadDir || './uploads');
+  const uploadPath = path.resolve(
+    process.env.LOCAL_UPLOAD_DIR || process.env.UPLOAD_PATH || config.localUploadDir || './uploads',
+  );
+  logger.log(`Serving static uploads from: ${uploadPath}`, 'STORAGE-SERVICE');
   const staticOptions = {
     setHeaders: (res: any) => {
       res.setHeader('Access-Control-Allow-Origin', '*');
